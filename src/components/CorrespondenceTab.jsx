@@ -19,6 +19,7 @@ import {
   Building,
   User,
   Hash,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function CorrespondenceTab({
