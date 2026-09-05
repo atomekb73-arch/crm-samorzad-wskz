@@ -100,59 +100,65 @@ export default function OrganizationsTab({
       </div>
 
       {/* ── Organizations Grid ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredOrgs.map((org) => (
-          <div
-            key={org.id}
-            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 hover:shadow-md transition flex flex-col justify-between space-y-4 text-slate-900"
-          >
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    {org.category || 'Koło Naukowe'}
+      {filteredOrgs.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400 text-xs font-medium">
+          Brak zarejestrowanych kół i organizacji
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredOrgs.map((org) => (
+            <div
+              key={org.id}
+              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 hover:shadow-md transition flex flex-col justify-between space-y-4 text-slate-900"
+            >
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      {org.category || 'Koło Naukowe'}
+                    </span>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 mt-1">
+                      {org.name}
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    {org.status || 'Aktywne'}
                   </span>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 mt-1">
-                    {org.name}
-                  </h3>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                  {org.status || 'Aktywne'}
-                </span>
+
+                {org.description && (
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {org.description}
+                  </p>
+                )}
               </div>
 
-              {org.description && (
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {org.description}
-                </p>
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Zarząd / Lider:</span>
-                <span className="font-semibold text-slate-800">{org.leader || 'Zarząd Koła'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Opiekun Naukowy:</span>
-                <span className="font-semibold text-slate-800">{org.supervisor || 'Instytut / Katedra'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Liczba członków:</span>
-                <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
-                  {org.membersCount || 0} osób
-                </span>
-              </div>
-              {org.email && (
+              <div className="pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Kontakt email:</span>
-                  <span className="font-mono text-[#1e3a8a] font-medium">{org.email}</span>
+                  <span className="text-slate-400 font-medium">Zarząd / Lider:</span>
+                  <span className="font-semibold text-slate-800">{org.leader || 'Zarząd Koła'}</span>
                 </div>
-              )}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Opiekun Naukowy:</span>
+                  <span className="font-semibold text-slate-800">{org.supervisor || 'Instytut / Katedra'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Liczba członków:</span>
+                  <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
+                    {org.membersCount || 0} osób
+                  </span>
+                </div>
+                {org.email && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-medium">Kontakt email:</span>
+                    <span className="font-mono text-[#1e3a8a] font-medium">{org.email}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Modal: Nowa Organizacja ──────────────────────────────────────── */}
       {isAddModalOpen && (

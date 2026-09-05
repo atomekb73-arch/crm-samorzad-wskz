@@ -140,8 +140,8 @@ export default function OperationalDecisionsTab({
             <tbody className="divide-y divide-slate-100">
               {filteredDecisions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
-                    Brak ustaleń operacyjnych.
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                    Brak zarejestrowanych ustaleń operacyjnych w Kancelarii
                   </td>
                 </tr>
               ) : (

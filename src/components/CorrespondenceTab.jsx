@@ -248,8 +248,8 @@ export default function CorrespondenceTab({
             <tbody className="divide-y divide-slate-100">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
-                    Brak pism spełniających wybrane kryteria wyszukiwania.
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
+                    Brak zarejestrowanych wpisów w Kancelarii
                   </td>
                 </tr>
               ) : (

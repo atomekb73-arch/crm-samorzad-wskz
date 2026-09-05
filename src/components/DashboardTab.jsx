@@ -154,53 +154,59 @@ export default function DashboardTab({
           </div>
 
           <div className="divide-y divide-slate-100">
-            {recentLetters.map((item) => {
-              const isIncoming = item.direction === 'IN';
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectCorrespondence(item)}
-                  className="py-3 px-2 rounded-xl hover:bg-slate-50 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono font-bold text-[#1e3a8a]">
-                        {item.id}
-                      </span>
-                      {isIncoming ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                          <ArrowDownLeft size={12} /> Wchodzące
+            {recentLetters.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs font-medium">
+                Brak zarejestrowanych wpisów w Kancelarii
+              </div>
+            ) : (
+              recentLetters.map((item) => {
+                const isIncoming = item.direction === 'IN';
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => onSelectCorrespondence(item)}
+                    className="py-3 px-2 rounded-xl hover:bg-slate-50 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono font-bold text-[#1e3a8a]">
+                          {item.id}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <ArrowUpRight size={12} /> Wychodzące
+                        {isIncoming ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                            <ArrowDownLeft size={12} /> Wchodzące
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <ArrowUpRight size={12} /> Wychodzące
+                          </span>
+                        )}
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          {item.date}
                         </span>
-                      )}
-                      <span className="text-[11px] text-slate-500 font-medium">
-                        {item.date}
-                      </span>
+                      </div>
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-[#1e3a8a] transition truncate max-w-xl">
+                        {item.subject}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate max-w-xl">
+                        <span className="text-slate-400 font-medium">Nadawca:</span> {item.sender} &bull; <span className="text-slate-400 font-medium">Odbiorca:</span> {item.recipient}
+                      </p>
                     </div>
-                    <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-[#1e3a8a] transition truncate max-w-xl">
-                      {item.subject}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate max-w-xl">
-                      <span className="text-slate-400 font-medium">Nadawca:</span> {item.sender} &bull; <span className="text-slate-400 font-medium">Odbiorca:</span> {item.recipient}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
-                      item.status === 'Zatwierdzone'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200'
-                    }`}>
-                      {item.status}
-                    </span>
-                    <ChevronRight size={14} className="text-slate-400 group-hover:text-[#1e3a8a] transition" />
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
+                        item.status === 'Zatwierdzone'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}>
+                        {item.status}
+                      </span>
+                      <ChevronRight size={14} className="text-slate-400 group-hover:text-[#1e3a8a] transition" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -227,33 +233,39 @@ export default function DashboardTab({
             </div>
 
             <div className="space-y-2.5">
-              {recentItIssues.map((issue) => (
-                <div
-                  key={issue.id}
-                  onClick={() => onNavigateTab('it_issues')}
-                  className={`p-3 rounded-xl border text-xs transition cursor-pointer hover:shadow-xs ${
-                    issue.ectsImpact?.includes('Krytyczny')
-                      ? 'bg-rose-50/60 border-rose-200 hover:bg-rose-50 text-slate-900'
-                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80 text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono font-bold text-[#1e3a8a]">{issue.id}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      issue.ectsImpact?.includes('Krytyczny')
-                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                        : 'bg-amber-100 text-amber-800 border border-amber-200'
-                    }`}>
-                      {issue.ectsImpact}
-                    </span>
-                  </div>
-                  <p className="font-medium text-slate-800 line-clamp-2">{issue.description}</p>
-                  <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500">
-                    <span>{issue.platformArea}</span>
-                    <span className="font-semibold text-slate-700">{issue.status}</span>
-                  </div>
+              {recentItIssues.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs font-medium">
+                  Brak zgłoszonych wad IT
                 </div>
-              ))}
+              ) : (
+                recentItIssues.map((issue) => (
+                  <div
+                    key={issue.id}
+                    onClick={() => onNavigateTab('it_issues')}
+                    className={`p-3 rounded-xl border text-xs transition cursor-pointer hover:shadow-xs ${
+                      issue.ectsImpact?.includes('Krytyczny')
+                        ? 'bg-rose-50/60 border-rose-200 hover:bg-rose-50 text-slate-900'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80 text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono font-bold text-[#1e3a8a]">{issue.id}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        issue.ectsImpact?.includes('Krytyczny')
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      }`}>
+                        {issue.ectsImpact}
+                      </span>
+                    </div>
+                    <p className="font-medium text-slate-800 line-clamp-2">{issue.description}</p>
+                    <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500">
+                      <span>{issue.platformArea}</span>
+                      <span className="font-semibold text-slate-700">{issue.status}</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -277,18 +289,24 @@ export default function DashboardTab({
             </div>
 
             <div className="space-y-2 text-xs">
-              {decisions.slice(0, 3).map((dec) => (
-                <div key={dec.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono font-bold text-[#1e3a8a]">{dec.id}</span>
-                    <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                      {dec.status}
-                    </span>
-                  </div>
-                  <p className="font-medium text-slate-800">{dec.topic}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Odp: {dec.responsible}</p>
+              {decisions.length === 0 ? (
+                <div className="py-6 text-center text-slate-400 text-xs font-medium">
+                  Brak ustaleń operacyjnych
                 </div>
-              ))}
+              ) : (
+                decisions.slice(0, 3).map((dec) => (
+                  <div key={dec.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono font-bold text-[#1e3a8a]">{dec.id}</span>
+                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                        {dec.status}
+                      </span>
+                    </div>
+                    <p className="font-medium text-slate-800">{dec.topic}</p>
+                    <p className="text-[11px] text-slate-500 mt-1">Odp: {dec.responsible}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

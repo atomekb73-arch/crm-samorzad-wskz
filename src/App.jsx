@@ -40,13 +40,6 @@ import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
 import { fetchAllData, AUTHORIZED_INDEXES } from './services/googleSheets';
 import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
-import { materials, initialMembers, initialMeetings } from './data/mockData';
-import {
-  initialCorrespondence,
-  initialItIssues,
-  initialDecisions,
-  initialOrganizations,
-} from './data/samorzadMockData';
 import { getRecordKey } from './utils/helpers';
 import { getAcademicYearKey } from './utils/academicYear';
 import { getCanonicalMeetingsForOrg, filterLegitimateMeetings } from './utils/canonicalMeetings';
@@ -62,21 +55,17 @@ import {
   setOrgStorage,
 } from './utils/storage';
 
-// Sanitization: Switch to row-ID based archiving (crm_archived_row_ids)
+// ── Hard Reset pamięci podręcznej do czystego startu Kancelarii Samorządu ──
+const APP_CLEAN_VERSION = 'samorzad_clean_slate_v1';
 if (typeof window !== 'undefined') {
-  if (localStorage.getItem('crm_archived_row_ids_v1') !== 'true') {
-    localStorage.removeItem('crm_archived_keys');
-    localStorage.setItem('crm_archived_row_ids', '[]');
-    const overrides = JSON.parse(localStorage.getItem('crm_custom_overrides') || '{}');
-    Object.keys(overrides).forEach(k => {
-      if (overrides[k]?.isArchived) {
-        delete overrides[k].isArchived;
-        delete overrides[k].status;
-        delete overrides[k].archiveReason;
-      }
-    });
-    localStorage.setItem('crm_custom_overrides', JSON.stringify(overrides));
-    localStorage.setItem('crm_archived_row_ids_v1', 'true');
+  try {
+    if (localStorage.getItem('kanc_crm_clean_version') !== APP_CLEAN_VERSION) {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem('kanc_crm_clean_version', APP_CLEAN_VERSION);
+    }
+  } catch (e) {
+    console.warn('Błąd czyszczenia pamięci podręcznej:', e);
   }
 }
 
@@ -143,43 +132,43 @@ export default function App() {
   const [correspondence, setCorrespondence] = useState(() => {
     try {
       const stored = localStorage.getItem('kanc_correspondence');
-      return stored ? JSON.parse(stored) : initialCorrespondence;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return initialCorrespondence;
+      return [];
     }
   });
 
   const [itIssues, setItIssues] = useState(() => {
     try {
       const stored = localStorage.getItem('kanc_it_issues');
-      return stored ? JSON.parse(stored) : initialItIssues;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return initialItIssues;
+      return [];
     }
   });
 
   const [decisions, setDecisions] = useState(() => {
     try {
       const stored = localStorage.getItem('kanc_decisions');
-      return stored ? JSON.parse(stored) : initialDecisions;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return initialDecisions;
+      return [];
     }
   });
 
   const [orgsList, setOrgsList] = useState(() => {
     try {
       const stored = localStorage.getItem('kanc_organizations');
-      return stored ? JSON.parse(stored) : initialOrganizations;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return initialOrganizations;
+      return [];
     }
   });
 
   const [selectedCorrespondenceItem, setSelectedCorrespondenceItem] = useState(null);
 
   // Master Data State for Koło / Members
-  const [members, setMembers]       = useState(initialMembers);
+  const [members, setMembers]       = useState([]);
   const [quarantine, setQuarantine] = useState([]);
   const [archivedQuarantine, setArchivedQuarantine] = useState([]);
   const [approvedKeys, setApprovedKeys] = useState([]);
@@ -187,7 +176,7 @@ export default function App() {
   const [resignedKeys, setResignedKeys] = useState([]);
 
   // Teamup Meetings State & Academic Year Filter
-  const [meetings, setMeetings]     = useState(initialMeetings || []);
+  const [meetings, setMeetings]     = useState([]);
   const [subcalendars, setSubcalendars] = useState([
     { id: DEFAULT_SUBCALENDAR_ID || '15520558', name: 'Samorząd Studentów WSKZ' },
   ]);
@@ -470,80 +459,36 @@ export default function App() {
       setQuarantine(uniquePendingQuarantine);
       setArchivedQuarantine(archivedList);
 
-      // Sync & merge correspondence log from Dziennik Korespondencji if present in Google Sheets
-      if (sheetsData.mailLog && Array.isArray(sheetsData.mailLog) && sheetsData.mailLog.length > 0) {
-        setCorrespondence(prev => {
-          const merged = [...prev];
-          sheetsData.mailLog.forEach(item => {
-            const idx = merged.findIndex(m => m.id === item.id || (m.hash && m.hash === item.hash));
-            if (idx === -1) {
-              merged.push(item);
-            } else {
-              merged[idx] = { ...merged[idx], ...item };
-            }
-          });
-          try {
-            localStorage.setItem('kanc_correspondence', JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+      // Sync correspondence log from Dziennik Korespondencji (Google Sheets)
+      if (Array.isArray(sheetsData.mailLog)) {
+        setCorrespondence(sheetsData.mailLog);
+        try {
+          localStorage.setItem('kanc_correspondence', JSON.stringify(sheetsData.mailLog));
+        } catch {}
       }
 
-      // Sync & merge IT issues from Rejestr Wad IT
-      if (sheetsData.itIssues && Array.isArray(sheetsData.itIssues) && sheetsData.itIssues.length > 0) {
-        setItIssues(prev => {
-          const merged = [...prev];
-          sheetsData.itIssues.forEach(item => {
-            const idx = merged.findIndex(i => i.id === item.id);
-            if (idx === -1) {
-              merged.push(item);
-            } else {
-              merged[idx] = { ...merged[idx], ...item };
-            }
-          });
-          try {
-            localStorage.setItem('kanc_it_issues', JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+      // Sync IT issues from Rejestr Wad IT
+      if (Array.isArray(sheetsData.itIssues)) {
+        setItIssues(sheetsData.itIssues);
+        try {
+          localStorage.setItem('kanc_it_issues', JSON.stringify(sheetsData.itIssues));
+        } catch {}
       }
 
-      // Sync & merge student organizations from Ewidencja Kół
-      if (sheetsData.clubs && Array.isArray(sheetsData.clubs) && sheetsData.clubs.length > 0) {
-        setOrgsList(prev => {
-          const merged = [...prev];
-          sheetsData.clubs.forEach(item => {
-            const idx = merged.findIndex(c => c.name === item.name || c.id === item.id);
-            if (idx === -1) {
-              merged.push(item);
-            } else {
-              merged[idx] = { ...merged[idx], ...item };
-            }
-          });
-          try {
-            localStorage.setItem('kanc_organizations', JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+      // Sync student organizations from Ewidencja Kół
+      if (Array.isArray(sheetsData.clubs)) {
+        setOrgsList(sheetsData.clubs);
+        try {
+          localStorage.setItem('kanc_organizations', JSON.stringify(sheetsData.clubs));
+        } catch {}
       }
 
-      // Sync & merge operational decisions from Ustalenia Operacyjne
-      if (sheetsData.decisions && Array.isArray(sheetsData.decisions) && sheetsData.decisions.length > 0) {
-        setDecisions(prev => {
-          const merged = [...prev];
-          sheetsData.decisions.forEach(item => {
-            const idx = merged.findIndex(d => d.id === item.id);
-            if (idx === -1) {
-              merged.push(item);
-            } else {
-              merged[idx] = { ...merged[idx], ...item };
-            }
-          });
-          try {
-            localStorage.setItem('kanc_decisions', JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+      // Sync operational decisions from Ustalenia Operacyjne
+      if (Array.isArray(sheetsData.decisions)) {
+        setDecisions(sheetsData.decisions);
+        try {
+          localStorage.setItem('kanc_decisions', JSON.stringify(sheetsData.decisions));
+        } catch {}
       }
 
       if (sheetsData?.syncWarning) {
@@ -561,10 +506,9 @@ export default function App() {
         }
       } catch {}
     } catch (err) {
-      console.warn('Sync error / mock fallback activated:', err);
+      console.warn('Sync error:', err);
       setError(err.message || 'Brak odpowiedzi z arkusza Google');
-      // Zapewnij załadowanie początkowych danych, aby aplikacja nie była pusta ani zablokowana
-      setMembers(prev => (prev && prev.length > 0 ? prev : initialMembers));
+      setMembers(prev => prev || []);
       try {
         await loadMeetings();
       } catch {}

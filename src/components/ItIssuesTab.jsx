@@ -219,8 +219,8 @@ export default function ItIssuesTab({
             <tbody className="divide-y divide-slate-100">
               {filteredIssues.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
-                    Brak zgłoszonych wad IT spełniających wybrane kryteria.
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
+                    Brak zarejestrowanych wad IT w Kancelarii
                   </td>
                 </tr>
               ) : (
