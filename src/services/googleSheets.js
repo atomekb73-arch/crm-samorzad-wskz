@@ -64,7 +64,32 @@ export async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FE
   }
 }
 
-/** Parsuje odpowiedź gviz/tq (opakowana w JS callback) i zwraca { cols, rows } */
+/**
+ * Precyzyjny parser odpowiedzi z Google Visualization API (tq).
+ * Odcina prefiks /*O_o* / google.visualization.Query.setResponse( oraz końcowe );
+ */
+export function parseGvizResponse(text) {
+  if (!text || typeof text !== 'string') return { cols: [], rows: [] };
+  if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
+    throw new Error('Brak uprawnień publicznych do odczytu arkusza (Google zwróciło stronę logowania zamiast danych JSON). Ustaw w Google Drive: Udostępnij -> Każda osoba mająca link (Przeglądający).');
+  }
+  const startIdx = text.indexOf('{');
+  const endIdx = text.lastIndexOf('}');
+  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+    throw new Error('Nieprawidłowy format odpowiedzi z Google Visualization API.');
+  }
+  const jsonStr = text.substring(startIdx, endIdx + 1);
+  const data = JSON.parse(jsonStr);
+  if (data.status === 'ok' && data.table) {
+    return data.table;
+  }
+  if (data.errors && data.errors.length > 0) {
+    throw new Error(data.errors.map(e => e.detailed_message || e.message).join('; '));
+  }
+  return { cols: [], rows: [] };
+}
+
+/** Pobiera arkusz poprzez GViz API i zwraca { cols, rows } */
 export async function fetchSheet(sheetTarget, sheetId = SHEET_ID, timeoutMs = DEFAULT_FETCH_TIMEOUT) {
   const cleanId = extractSheetId(sheetId) || SHEET_ID;
   if (!cleanId) return null;
@@ -103,14 +128,9 @@ export async function fetchSheet(sheetTarget, sheetId = SHEET_ID, timeoutMs = DE
         continue;
       }
       const text = await res.text();
-      // Ochrona przed odpowiedzią HTML (strona logowania Google)
-      if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
-        throw new Error('Arkusz wymaga uprawnień publicznych (Google zwróciło stronę logowania zamiast danych JSON).');
-      }
-      const jsonStr = text.replace(/^[^{]*/, '').replace(/\);?\s*$/, '');
-      const data = JSON.parse(jsonStr);
-      if (data.status === 'ok' && data.table) {
-        return data.table;
+      const table = parseGvizResponse(text);
+      if (table) {
+        return table;
       }
     } catch (e) {
       lastError = e;

@@ -406,10 +406,10 @@ export default function App() {
         return { ...item, ...override };
       };
 
-      // Process members from sheet or fallback to initialMembers
+      // Process members from sheet or fallback to empty array
       const rawMembers = (sheetsData.members && sheetsData.members.length > 0)
         ? sheetsData.members
-        : initialMembers;
+        : [];
       const processedMembers = rawMembers.map((m) => {
         const overridden = applyOverride(m);
         const isBlacklisted = isMemberBlacklisted(overridden, blacklist) || isMemberBlacklisted(m, blacklist);
@@ -507,7 +507,7 @@ export default function App() {
       } catch {}
     } catch (err) {
       console.warn('Sync error:', err);
-      setError(err.message || 'Brak odpowiedzi z arkusza Google');
+      setError('Nie udało się pobrać danych z Arkusza Samorządu. Sprawdź połączenie lub uprawnienia do arkusza.');
       setMembers(prev => prev || []);
       try {
         await loadMeetings();
