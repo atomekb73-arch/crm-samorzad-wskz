@@ -24,13 +24,13 @@ export const ROLES = {
 export const MASTER_ADMIN_EMAILS = [
   'atomekb73@gmail.com',
   'atonex73@gmail.com',
-  'psychoonkologia.wskz@gmail.com',
+  'kancelaria@samorzad.wskz.pl',
 ];
 
 export const MASTER_ADMIN_PASSWORDS = {
   'atomekb73@gmail.com': 'Ntx2t44V',
   'atonex73@gmail.com': 'Ntx2t44V',
-  'psychoonkologia.wskz@gmail.com': 'Ntx2t44V',
+  'kancelaria@samorzad.wskz.pl': 'Ntx2t44V',
 };
 
 export const DEFAULT_AUTHORIZED_ACCOUNTS = [
@@ -68,13 +68,13 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     addedAt: '2026-09-05',
   },
   {
-    id: 'usr_zarzad_01',
-    name: 'Zarząd SKN Psychoonkologii',
-    email: 'skn.psychoonkologia@wskz.pl',
+    id: 'usr_kancelaria_01',
+    name: 'Kancelaria Samorządu Studenckiego WSKZ',
+    email: 'kancelaria@samorzad.wskz.pl',
     role: 'ADMIN',
-    roleLabel: 'Dostęp zarządu',
+    roleLabel: 'Prezydium / Sekretariat',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    tempPassword: 'Psycho2026!',
+    tempPassword: 'Samorzad2026!',
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
@@ -84,16 +84,16 @@ export const STARTER_PASSWORDS = {
   'lajlasienkiewicz@gmail.com': 'Liliana123',
   'kasia.j.kubacka@gmail.com': 'Kasia123',
   'piotrniklas7@gmail.com': 'Piotr123',
-  'skn.psychoonkologia@wskz.pl': 'Psycho2026!',
-  'zarzad.psychoonkologia@wskz.pl': 'Psycho2026!',
-  'opiekun.psychoonkologia@wskz.pl': 'Psycho2026!',
+  'kancelaria@samorzad.wskz.pl': 'Samorzad2026!',
+  'koordynator@samorzad.wskz.pl': 'Samorzad2026!',
+  'audytor@samorzad.wskz.pl': 'Samorzad2026!',
 };
 
 export const ACCESS_PASSWORDS = [
-  'Psycho2026!',
-  'Psychoonkologia2026!',
+  'Samorzad2026!',
+  'Wskz2026!',
   'wskz2026',
-  'skn2026',
+  'samorzad2026',
   'Ntx2t44V',
   'Liliana123',
   'Kasia123',
@@ -102,8 +102,8 @@ export const ACCESS_PASSWORDS = [
 ].filter(Boolean);
 
 export const DEFAULT_USER = {
-  email: 'zarzad.psychoonkologia@wskz.pl',
-  name: 'Zarząd SKN Psychoonkologii',
+  email: 'kancelaria@samorzad.wskz.pl',
+  name: 'Kancelaria Samorządu Studenckiego WSKZ',
   avatarUrl: '',
   role: 'SUPER_ADMIN',
   accessibleOrgs: ['*'], // Pełne uprawnienia administracyjne
@@ -111,22 +111,22 @@ export const DEFAULT_USER = {
 
 export const DEMO_ACCOUNTS = [
   {
-    email: 'zarzad.psychoonkologia@wskz.pl',
-    name: 'Zarząd SKN Psychoonkologii',
+    email: 'kancelaria@samorzad.wskz.pl',
+    name: 'Kancelaria Samorządu Studenckiego WSKZ',
     role: 'SUPER_ADMIN',
     accessibleOrgs: ['*'],
-    description: 'Dostęp zarządu (pełne uprawnienia)',
+    description: 'Prezydium Samorządu / Sekretariat (pełne uprawnienia)',
   },
   {
-    email: 'opiekun.psychoonkologia@wskz.pl',
-    name: 'Opiekun Koła',
+    email: 'koordynator@samorzad.wskz.pl',
+    name: 'Koordynator ds. Kół i Projektów',
     role: 'COORDINATOR',
     accessibleOrgs: ['*'],
-    description: 'Opiekun naukowy koła',
+    description: 'Dostęp operacyjny do ewidencji i korespondencji',
   },
   {
-    email: 'audytor@wskz.pl',
-    name: 'Podgląd / Audyt',
+    email: 'audytor@samorzad.wskz.pl',
+    name: 'Komisja Rewizyjna / Audyt',
     role: 'VIEWER',
     accessibleOrgs: ['*'],
     description: 'Ewidencja i sprawozdania (tylko odczyt)',
@@ -140,7 +140,7 @@ export function getUserStoredPassword(email) {
   if (!email) return null;
   const clean = email.toLowerCase().trim();
   try {
-    const raw = localStorage.getItem('skn_user_passwords');
+    const raw = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
     if (raw) {
       const passwords = JSON.parse(raw);
       if (passwords && passwords[clean]) {
@@ -165,7 +165,7 @@ export function getUserFirstLoginStatus(email, userRecord = null) {
   }
 
   try {
-    const raw = localStorage.getItem('skn_user_first_login_status');
+    const raw = localStorage.getItem('samorzad_user_first_login_status') || localStorage.getItem('skn_user_first_login_status');
     if (raw) {
       const statusMap = JSON.parse(raw);
       if (statusMap && cleanEmail in statusMap) {
@@ -174,9 +174,9 @@ export function getUserFirstLoginStatus(email, userRecord = null) {
     }
   } catch {}
 
-  // Jeśli użytkownik ma już zapisane własne hasło w skn_user_passwords, to nie jest pierwsze logowanie
+  // Jeśli użytkownik ma już zapisane własne hasło w samorzad_user_passwords, to nie jest pierwsze logowanie
   try {
-    const rawPass = localStorage.getItem('skn_user_passwords');
+    const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
     if (rawPass) {
       const passwords = JSON.parse(rawPass);
       if (passwords && passwords[cleanEmail]) {
@@ -215,8 +215,8 @@ function parseJwtPayload(token) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const session = localStorage.getItem('crm_psychoonkologia_auth_session');
-      const saved = localStorage.getItem('crm_psychoonkologia_auth_user');
+      const session = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
+      const saved = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
       if (session && saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.email) {
@@ -225,7 +225,12 @@ export function AuthProvider({ children }) {
           if (name.includes('bratkowski') && !parsed.token) {
             return DEFAULT_USER;
           }
-          return parsed;
+          return {
+            ...parsed,
+            name: MASTER_ADMIN_EMAILS.some(m => m.toLowerCase() === email)
+              ? 'Kancelaria Samorządu Studenckiego WSKZ'
+              : (parsed.name || 'Kancelaria Samorządu Studenckiego WSKZ'),
+          };
         }
       }
     } catch {}
@@ -234,8 +239,8 @@ export function AuthProvider({ children }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      const session = localStorage.getItem('crm_psychoonkologia_auth_session');
-      const saved = localStorage.getItem('crm_psychoonkologia_auth_user');
+      const session = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
+      const saved = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
       return !!(session && saved);
     } catch {
       return false;
@@ -245,14 +250,16 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     try {
       if (user && isAuthenticated) {
-        localStorage.setItem('crm_psychoonkologia_auth_user', JSON.stringify(user));
-        localStorage.setItem('crm_psychoonkologia_auth_session', JSON.stringify({
+        localStorage.setItem('crm_samorzad_auth_user', JSON.stringify(user));
+        localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
           email: user.email,
           name: user.name,
           role: user.role,
           timestamp: Date.now(),
         }));
       } else if (!isAuthenticated) {
+        localStorage.removeItem('crm_samorzad_auth_user');
+        localStorage.removeItem('crm_samorzad_auth_session');
         localStorage.removeItem('crm_psychoonkologia_auth_user');
         localStorage.removeItem('crm_psychoonkologia_auth_session');
       }
@@ -290,37 +297,25 @@ export function AuthProvider({ children }) {
 
     // 1. Sprawdź czy konto jest w bazie uprawnionych
     const isMaster = MASTER_ADMIN_EMAILS.some(e => e.toLowerCase() === cleanEmail);
-    const isDefaultBoard = cleanEmail === 'zarzad.psychoonkologia@wskz.pl' || cleanEmail === 'skn.psychoonkologia@wskz.pl';
+    const isDefaultBoard = cleanEmail === 'kancelaria@samorzad.wskz.pl' || cleanEmail === 'samorzad@wskz.pl';
     const demoMatch = DEMO_ACCOUNTS.find(d => d.email.toLowerCase() === cleanEmail);
     const defaultAuthMatch = DEFAULT_AUTHORIZED_ACCOUNTS.find(d => d.email.toLowerCase() === cleanEmail);
 
     let accessUsers = [];
     try {
-      const savedUsers = localStorage.getItem('skn_access_users');
+      const savedUsers = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
       if (savedUsers) {
         accessUsers = JSON.parse(savedUsers);
-      }
-    } catch {}
-
-    let supervisors = [];
-    try {
-      const savedSup = localStorage.getItem('skn_faculty_supervisors');
-      if (savedSup) {
-        supervisors = JSON.parse(savedSup);
       }
     } catch {}
 
     const accessMatch = (Array.isArray(accessUsers) ? accessUsers : DEFAULT_AUTHORIZED_ACCOUNTS)
       .find(u => (u?.email || '').toLowerCase() === cleanEmail) || defaultAuthMatch;
 
-    const supervisorMatch = Array.isArray(supervisors)
-      ? supervisors.find(s => (s?.email || '').toLowerCase() === cleanEmail)
-      : null;
-
-    if (!isMaster && !isDefaultBoard && !demoMatch && !accessMatch && !supervisorMatch) {
+    if (!isMaster && !isDefaultBoard && !demoMatch && !accessMatch) {
       return {
         authorized: false,
-        error: 'Brak uprawnień dostępu. Twój adres nie został dodany przez zarząd koła.',
+        error: 'Brak uprawnień dostępu. Twój adres nie został dodany przez Kancelarię Samorządu.',
       };
     }
 
@@ -331,16 +326,13 @@ export function AuthProvider({ children }) {
 
     if (isMaster) {
       role = 'SUPER_ADMIN';
-      name = 'Zarząd SKN Psychoonkologii';
+      name = 'Kancelaria Samorządu Studenckiego WSKZ';
     } else if (isDefaultBoard) {
       role = 'SUPER_ADMIN';
-      name = 'Zarząd SKN Psychoonkologii';
+      name = 'Kancelaria Samorządu Studenckiego WSKZ';
     } else if (accessMatch) {
       role = accessMatch.role === 'ADMIN' ? 'SUPER_ADMIN' : (accessMatch.role || 'COORDINATOR');
       name = accessMatch.name || cleanEmail.split('@')[0];
-    } else if (supervisorMatch) {
-      role = 'COORDINATOR';
-      name = supervisorMatch.name || supervisorMatch.fullName || 'Opiekun Naukowy';
     } else if (demoMatch) {
       role = demoMatch.role || 'COORDINATOR';
       name = demoMatch.name;
@@ -389,24 +381,24 @@ export function AuthProvider({ children }) {
       // 1. Zapisz nowe hasło w rejestrze haseł użytkowników
       let passwords = {};
       try {
-        const rawPass = localStorage.getItem('skn_user_passwords');
+        const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
         if (rawPass) passwords = JSON.parse(rawPass);
       } catch {}
       passwords[cleanEmail] = p1;
-      localStorage.setItem('skn_user_passwords', JSON.stringify(passwords));
+      localStorage.setItem('samorzad_user_passwords', JSON.stringify(passwords));
 
       // 2. Oznacz isFirstLogin jako false
       let statusMap = {};
       try {
-        const rawStatus = localStorage.getItem('skn_user_first_login_status');
+        const rawStatus = localStorage.getItem('samorzad_user_first_login_status') || localStorage.getItem('skn_user_first_login_status');
         if (rawStatus) statusMap = JSON.parse(rawStatus);
       } catch {}
       statusMap[cleanEmail] = false;
-      localStorage.setItem('skn_user_first_login_status', JSON.stringify(statusMap));
+      localStorage.setItem('samorzad_user_first_login_status', JSON.stringify(statusMap));
 
-      // 3. Zaktualizuj rekord w skn_access_users jeśli istnieje
+      // 3. Zaktualizuj rekord w samorzad_access_users jeśli istnieje
       try {
-        const rawUsers = localStorage.getItem('skn_access_users');
+        const rawUsers = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
         if (rawUsers) {
           const accessUsers = JSON.parse(rawUsers);
           if (Array.isArray(accessUsers)) {
@@ -416,7 +408,7 @@ export function AuthProvider({ children }) {
               }
               return u;
             });
-            localStorage.setItem('skn_access_users', JSON.stringify(updatedUsers));
+            localStorage.setItem('samorzad_access_users', JSON.stringify(updatedUsers));
           }
         }
       } catch {}
@@ -424,8 +416,8 @@ export function AuthProvider({ children }) {
       // 4. Utwórz profil i zaloguj bezpośrednio do CRM
       const authUser = userData || {
         email: cleanEmail,
-        name: cleanEmail.split('@')[0],
-        role: cleanEmail.includes('zarzad') ? 'SUPER_ADMIN' : 'COORDINATOR',
+        name: cleanEmail.includes('kancelaria') ? 'Kancelaria Samorządu Studenckiego WSKZ' : cleanEmail.split('@')[0],
+        role: cleanEmail.includes('kancelaria') ? 'SUPER_ADMIN' : 'COORDINATOR',
         accessibleOrgs: ['*'],
         loggedAt: new Date().toISOString(),
       };
@@ -433,13 +425,13 @@ export function AuthProvider({ children }) {
       setUser(authUser);
       setIsAuthenticated(true);
 
-      localStorage.setItem('crm_psychoonkologia_auth_session', JSON.stringify({
+      localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
         email: cleanEmail,
         name: authUser.name,
         role: authUser.role,
         timestamp: Date.now(),
       }));
-      localStorage.setItem('crm_psychoonkologia_auth_user', JSON.stringify(authUser));
+      localStorage.setItem('crm_samorzad_auth_user', JSON.stringify(authUser));
 
       return { success: true, user: authUser };
     } catch (e) {
@@ -480,13 +472,13 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(true);
 
     try {
-      localStorage.setItem('crm_psychoonkologia_auth_session', JSON.stringify({
+      localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
         email: cleanEmail,
         name: status.user.name,
         role: status.user.role,
         timestamp: Date.now(),
       }));
-      localStorage.setItem('crm_psychoonkologia_auth_user', JSON.stringify(status.user));
+      localStorage.setItem('crm_samorzad_auth_user', JSON.stringify(status.user));
     } catch (e) {
       console.warn('Błąd zapisu sesji:', e);
     }
@@ -518,10 +510,10 @@ export function AuthProvider({ children }) {
     }
 
     const isStarter = [
-      'Psycho2026!',
-      'Psychoonkologia2026!',
+      'Samorzad2026!',
+      'Wskz2026!',
       'wskz2026',
-      'skn2026',
+      'samorzad2026',
       'Liliana123',
       'Kasia123',
       'Piotr123',
@@ -536,24 +528,24 @@ export function AuthProvider({ children }) {
       // 1. Zapisz nowe hasło w rejestrze haseł użytkowników
       let passwords = {};
       try {
-        const rawPass = localStorage.getItem('skn_user_passwords');
+        const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
         if (rawPass) passwords = JSON.parse(rawPass);
       } catch {}
       passwords[cleanEmail] = p1;
-      localStorage.setItem('skn_user_passwords', JSON.stringify(passwords));
+      localStorage.setItem('samorzad_user_passwords', JSON.stringify(passwords));
 
       // 2. Oznacz isFirstLogin jako false
       let statusMap = {};
       try {
-        const rawStatus = localStorage.getItem('skn_user_first_login_status');
+        const rawStatus = localStorage.getItem('samorzad_user_first_login_status') || localStorage.getItem('skn_user_first_login_status');
         if (rawStatus) statusMap = JSON.parse(rawStatus);
       } catch {}
       statusMap[cleanEmail] = false;
-      localStorage.setItem('skn_user_first_login_status', JSON.stringify(statusMap));
+      localStorage.setItem('samorzad_user_first_login_status', JSON.stringify(statusMap));
 
-      // 3. Zaktualizuj rekord w skn_access_users jeśli istnieje
+      // 3. Zaktualizuj rekord w samorzad_access_users jeśli istnieje
       try {
-        const rawUsers = localStorage.getItem('skn_access_users');
+        const rawUsers = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
         if (rawUsers) {
           const accessUsers = JSON.parse(rawUsers);
           if (Array.isArray(accessUsers)) {
@@ -563,7 +555,7 @@ export function AuthProvider({ children }) {
               }
               return u;
             });
-            localStorage.setItem('skn_access_users', JSON.stringify(updatedUsers));
+            localStorage.setItem('samorzad_access_users', JSON.stringify(updatedUsers));
           }
         }
       } catch {}
@@ -571,8 +563,8 @@ export function AuthProvider({ children }) {
       // 4. Utwórz obiekt zautoryzowanego użytkownika
       const authUser = userData || {
         email: cleanEmail,
-        name: cleanEmail.split('@')[0],
-        role: cleanEmail.includes('zarzad') ? 'SUPER_ADMIN' : 'COORDINATOR',
+        name: cleanEmail.includes('kancelaria') ? 'Kancelaria Samorządu Studenckiego WSKZ' : cleanEmail.split('@')[0],
+        role: cleanEmail.includes('kancelaria') ? 'SUPER_ADMIN' : 'COORDINATOR',
         accessibleOrgs: ['*'],
         loggedAt: new Date().toISOString(),
       };
@@ -580,13 +572,13 @@ export function AuthProvider({ children }) {
       setUser(authUser);
       setIsAuthenticated(true);
 
-      localStorage.setItem('crm_psychoonkologia_auth_session', JSON.stringify({
+      localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
         email: cleanEmail,
         name: authUser.name,
         role: authUser.role,
         timestamp: Date.now(),
       }));
-      localStorage.setItem('crm_psychoonkologia_auth_user', JSON.stringify(authUser));
+      localStorage.setItem('crm_samorzad_auth_user', JSON.stringify(authUser));
 
       return { success: true };
     } catch (e) {
@@ -613,10 +605,10 @@ export function AuthProvider({ children }) {
 
     const newUser = {
       email,
-      name: payload.name || payload.given_name || email.split('@')[0],
+      name: isMaster ? 'Kancelaria Samorządu Studenckiego WSKZ' : (payload.name || payload.given_name || email.split('@')[0]),
       avatarUrl: payload.picture || '',
       role: isMaster ? 'SUPER_ADMIN' : 'COORDINATOR',
-      accessibleOrgs: isMaster ? ['*'] : ['skn-psychoonkologia'],
+      accessibleOrgs: ['*'],
       token: credentialResponse.credential,
     };
 
@@ -658,7 +650,7 @@ export function AuthProvider({ children }) {
     } else {
       let accessUsers = [];
       try {
-        const savedUsers = localStorage.getItem('skn_access_users');
+        const savedUsers = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
         if (savedUsers) accessUsers = JSON.parse(savedUsers);
       } catch {}
       const accessMatch = (Array.isArray(accessUsers) ? accessUsers : DEFAULT_AUTHORIZED_ACCOUNTS)
@@ -685,6 +677,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     setIsAuthenticated(false);
     try {
+      localStorage.removeItem('crm_samorzad_auth_session');
+      localStorage.removeItem('crm_samorzad_auth_user');
       localStorage.removeItem('crm_psychoonkologia_auth_session');
       localStorage.removeItem('crm_psychoonkologia_auth_user');
       localStorage.removeItem('crm_auth_user');

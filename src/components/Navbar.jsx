@@ -30,7 +30,7 @@ export default function Navbar({
   };
 
   return (
-    <nav className="w-full flex items-center gap-1.5 justify-start overflow-x-auto py-1.5 px-2.5 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-sky-900/40 shadow-md print:hidden">
+    <nav className="w-full flex items-center gap-1.5 justify-start overflow-x-auto py-1.5 px-2 bg-white rounded-2xl border border-slate-200 shadow-xs print:hidden">
       {MAIN_TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = isTabActive(tab);
@@ -38,30 +38,32 @@ export default function Navbar({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 text-xs md:text-sm font-medium px-3.5 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-2 text-xs md:text-sm font-medium px-3.5 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer group ${
               isActive
-                ? 'bg-[#1e3a8a] text-white shadow-md shadow-blue-950/50 border border-blue-500/40 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                ? 'bg-[#1e3a8a] text-white shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Icon
               size={17}
               className={
                 isActive
-                  ? 'text-sky-300 shrink-0'
-                  : 'text-slate-400 group-hover:text-slate-200 shrink-0'
+                  ? 'text-white shrink-0'
+                  : 'text-slate-400 group-hover:text-slate-600 shrink-0'
               }
             />
             <span>{tab.label}</span>
 
             {/* Notification Badges */}
             {tab.id === 'correspondence' && pendingCorrespondenceCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-sky-500 text-slate-950 shadow-xs">
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold shadow-xs ${
+                isActive ? 'bg-sky-400 text-slate-950' : 'bg-blue-600 text-white'
+              }`}>
                 {pendingCorrespondenceCount}
               </span>
             )}
             {tab.id === 'it_issues' && pendingItCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 shadow-xs animate-pulse">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-xs animate-pulse">
                 {pendingItCount}
               </span>
             )}

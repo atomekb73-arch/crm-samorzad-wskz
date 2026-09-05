@@ -980,11 +980,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#0a192f] to-[#0f172a] text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
 
       {/* ── Toast Notification Banner ───────────────────────────────────────── */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-sky-800 animate-in slide-in-from-bottom-5 duration-200 text-xs print:hidden">
+        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-800 animate-in slide-in-from-bottom-5 duration-200 text-xs print:hidden">
           <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
@@ -994,40 +994,40 @@ export default function App() {
       )}
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="border-b border-sky-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 print:hidden shadow-sm">
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-30 print:hidden shadow-xs">
         <div className="w-[98vw] max-w-[1850px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
 
           {/* Logo & Multi-Tenant Organization Switcher */}
           <div className="flex items-center gap-3 shrink-0 relative">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-sky-600 flex items-center justify-center shadow-lg shadow-blue-900/30 text-white font-extrabold text-sm tracking-tight shrink-0 border border-sky-400/30">
+            <div className="w-10 h-10 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm text-white font-extrabold text-sm tracking-tight shrink-0 border border-blue-900/20">
               KSS
             </div>
             
             <div className="relative">
               <button
                 onClick={() => setIsOrgDropdownOpen(prev => !prev)}
-                className="flex items-center gap-1.5 text-left group hover:bg-slate-800/60 p-1.5 -m-1.5 rounded-xl transition cursor-pointer"
+                className="flex items-center gap-1.5 text-left group hover:bg-slate-100 p-1.5 -m-1.5 rounded-xl transition cursor-pointer"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-sm sm:text-base font-extrabold text-white group-hover:text-sky-300 transition leading-tight">
-                      Kancelaria Samorządu Studentów WSKZ
+                    <h1 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-[#1e3a8a] transition leading-tight">
+                      Kancelaria Samorządu Studenckiego WSKZ
                     </h1>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-800/60 font-mono">
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                       WSKZ
                     </span>
                   </div>
-                  <p className="text-[11px] text-sky-200/60">Kancelaria & System Ewidencji Zarządczej</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Kancelaria & System Ewidencji Zarządczej</p>
                 </div>
-                <ChevronDown size={14} className="text-slate-400 group-hover:text-sky-300 transition shrink-0 ml-0.5" />
+                <ChevronDown size={14} className="text-slate-400 group-hover:text-[#1e3a8a] transition shrink-0 ml-0.5" />
               </button>
 
               {/* Organization Dropdown Menu */}
               {isOrgDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsOrgDropdownOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-72 bg-slate-900 rounded-2xl shadow-2xl border border-sky-900/60 p-2 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-200">
-                    <div className="px-3 py-2 text-[10px] font-bold text-sky-300/70 uppercase tracking-wider border-b border-slate-800">
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800">
+                    <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                       Struktura Samorządu & Koła
                     </div>
                     <div className="space-y-1 py-1 max-h-60 overflow-y-auto">
@@ -1042,26 +1042,26 @@ export default function App() {
                             }}
                             className={`w-full flex items-center justify-between p-2 rounded-xl text-xs text-left transition cursor-pointer ${
                               isSelected
-                                ? 'bg-[#1e3a8a] text-white font-bold shadow-xs'
-                                : 'text-slate-300 hover:bg-slate-800'
+                                ? 'bg-blue-50 text-[#1e3a8a] font-bold border border-blue-200'
+                                : 'text-slate-700 hover:bg-slate-50'
                             }`}
                           >
                             <div className="min-w-0 pr-2">
                               <p className="truncate font-semibold">{org.name}</p>
-                              <p className="text-[10px] text-sky-300/60 font-mono">{org.tag || 'WSKZ'}</p>
+                              <p className="text-[10px] text-slate-400 font-mono">{org.tag || 'WSKZ'}</p>
                             </div>
-                            {isSelected && <CheckCircle2 size={14} className="text-sky-300 shrink-0" />}
+                            {isSelected && <CheckCircle2 size={14} className="text-[#1e3a8a] shrink-0" />}
                           </button>
                         );
                       })}
                     </div>
-                    <div className="border-t border-slate-800 pt-1 mt-1">
+                    <div className="border-t border-slate-100 pt-1 mt-1">
                       <button
                         onClick={() => {
                           setIsOrgDropdownOpen(false);
                           setIsSettingsOpen(true);
                         }}
-                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-bold text-sky-400 hover:bg-slate-800 transition cursor-pointer"
+                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-bold text-[#1e3a8a] hover:bg-slate-50 transition cursor-pointer"
                       >
                         <Settings size={14} />
                         <span>Zarządzaj strukturą…</span>
@@ -1078,12 +1078,12 @@ export default function App() {
             {/* Status pill (Single-line) */}
             <div className={`hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap shrink-0 ${
               error
-                ? 'bg-red-950/70 border-red-800/60 text-red-300'
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
                 : loading
-                ? 'bg-amber-950/70 border-amber-800/60 text-amber-300'
+                ? 'bg-amber-50 border-amber-200 text-amber-700'
                 : lastSync
-                ? 'bg-emerald-950/70 border-emerald-800/60 text-emerald-300'
-                : 'bg-slate-900 border-slate-800 text-slate-400'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-slate-100 border-slate-200 text-slate-600'
             }`}>
               {error
                 ? <><WifiOff size={12} /> <span>Błąd połączenia</span></>
@@ -1097,12 +1097,12 @@ export default function App() {
 
             {/* Record count (Single-line row) */}
             {lastSync && !error && (
-              <div className="hidden lg:flex items-center gap-3 text-xs text-sky-200/80 bg-slate-900/90 border border-sky-900/40 px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
-                <span>Pisma: <strong className="text-white font-semibold">{correspondence.length}</strong></span>
-                <span className="text-slate-600">•</span>
-                <span>Wady IT: <strong className="text-amber-400 font-semibold">{itIssues.length}</strong></span>
-                <span className="text-slate-600">•</span>
-                <span>Ustalenia: <strong className="text-sky-300 font-semibold">{decisions.length}</strong></span>
+              <div className="hidden lg:flex items-center gap-3 text-xs text-slate-600 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
+                <span>Pisma: <strong className="text-slate-900 font-semibold">{correspondence.length}</strong></span>
+                <span className="text-slate-300">•</span>
+                <span>Wady IT: <strong className="text-amber-700 font-semibold">{itIssues.length}</strong></span>
+                <span className="text-slate-300">•</span>
+                <span>Ustalenia: <strong className="text-[#1e3a8a] font-semibold">{decisions.length}</strong></span>
               </div>
             )}
 
@@ -1111,7 +1111,7 @@ export default function App() {
               onClick={loadData}
               disabled={loading}
               title="Odśwież dane z Google Sheets"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-md shadow-blue-950/50 cursor-pointer whitespace-nowrap border border-blue-500/30"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Odśwież dane</span>
@@ -1125,10 +1125,10 @@ export default function App() {
 
       {/* ── Error / Warning banner ────────────────────────────────────────── */}
       {error && (
-        <div className="bg-amber-950/70 border-b border-amber-800/60 px-4 sm:px-6 py-2.5 print:hidden">
-          <div className="w-[98vw] max-w-[1850px] mx-auto flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-200">
+        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5 print:hidden">
+          <div className="w-[98vw] max-w-[1850px] mx-auto flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900">
             <div className="flex items-center gap-2 min-w-0">
-              <WifiOff size={15} className="text-amber-400 shrink-0" />
+              <WifiOff size={15} className="text-amber-600 shrink-0" />
               <span className="truncate">
                 <strong>Status synchronizacji:</strong> {error} (załadowano lokalną bazę ewidencyjną)
               </span>
@@ -1136,7 +1136,7 @@ export default function App() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setError(null)}
-                className="text-amber-300 hover:text-white text-xs px-2 py-1 rounded bg-amber-900/60 hover:bg-amber-800 transition cursor-pointer"
+                className="text-amber-800 hover:text-amber-950 text-xs px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 transition cursor-pointer"
               >
                 Ukryj
               </button>

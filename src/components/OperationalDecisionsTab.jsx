@@ -22,7 +22,7 @@ export default function OperationalDecisionsTab({
   const [newDecision, setNewDecision] = useState({
     topic: '',
     details: '',
-    responsible: 'Zarząd Samorządu Studentów',
+    responsible: 'Zarząd Samorządu Studenckiego WSKZ',
     status: 'W realizacji',
   });
 
@@ -54,7 +54,7 @@ export default function OperationalDecisionsTab({
     setNewDecision({
       topic: '',
       details: '',
-      responsible: 'Zarząd Samorządu Studentów',
+      responsible: 'Zarząd Samorządu Studenckiego WSKZ',
       status: 'W realizacji',
     });
   };
@@ -62,20 +62,20 @@ export default function OperationalDecisionsTab({
   return (
     <div className="space-y-4">
       {/* ── Top Header ──────────────────────────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-sky-900/40 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-            <ClipboardList className="text-sky-400" size={20} />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <ClipboardList className="text-[#1e3a8a]" size={20} />
             Ustalenia Operacyjne i Protokoły Kancelarii
           </h2>
-          <p className="text-xs text-sky-200/60 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Ewidencja postanowień organów wykonawczych samorządu, harmonogramów dyżurów i dyspozycji organizacyjnych
           </p>
         </div>
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold shadow-md transition cursor-pointer self-start md:self-auto border border-blue-500/30"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold shadow-xs transition cursor-pointer self-start md:self-auto"
         >
           <Plus size={15} />
           <span>Dodaj ustalenie operacyjne</span>
@@ -83,7 +83,7 @@ export default function OperationalDecisionsTab({
       </div>
 
       {/* ── Search & Filter ─────────────────────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-sky-900/40 shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -91,15 +91,15 @@ export default function OperationalDecisionsTab({
             placeholder="Szukaj po temacie, treści lub osobie odpowiedzialnej..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-sky-950 bg-slate-950/60 text-slate-100 placeholder:text-slate-500 focus:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1e3a8a] transition"
           />
         </div>
 
-        <div className="flex items-center bg-slate-950/60 p-1 rounded-xl text-xs font-medium border border-sky-950">
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-              statusFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'
+              statusFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Wszystkie
@@ -107,7 +107,7 @@ export default function OperationalDecisionsTab({
           <button
             onClick={() => setStatusFilter('W realizacji')}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-              statusFilter === 'W realizacji' ? 'bg-amber-500 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+              statusFilter === 'W realizacji' ? 'bg-amber-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             W realizacji
@@ -115,7 +115,7 @@ export default function OperationalDecisionsTab({
           <button
             onClick={() => setStatusFilter('Zrealizowane')}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-              statusFilter === 'Zrealizowane' ? 'bg-emerald-600 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+              statusFilter === 'Zrealizowane' ? 'bg-emerald-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Zrealizowane
@@ -124,11 +124,11 @@ export default function OperationalDecisionsTab({
       </div>
 
       {/* ── Table of Operational Decisions ──────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-sky-900/40 shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-950/80 border-b border-sky-950 text-sky-200/80 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Numer</th>
                 <th className="py-3 px-3">Data</th>
                 <th className="py-3 px-4">Temat i postanowienie</th>
@@ -137,7 +137,7 @@ export default function OperationalDecisionsTab({
                 <th className="py-3 px-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {filteredDecisions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-slate-400">
@@ -146,27 +146,27 @@ export default function OperationalDecisionsTab({
                 </tr>
               ) : (
                 filteredDecisions.map((dec) => (
-                  <tr key={dec.id} className="hover:bg-slate-800/50 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-sky-300 whitespace-nowrap">
+                  <tr key={dec.id} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3.5 px-4 font-mono font-bold text-[#1e3a8a] whitespace-nowrap">
                       {dec.id}
                     </td>
-                    <td className="py-3.5 px-3 text-slate-400 whitespace-nowrap">
+                    <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
                       {dec.date}
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-white">
+                    <td className="py-3.5 px-4 font-semibold text-slate-900">
                       {dec.topic}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-300 leading-relaxed max-w-md">
+                    <td className="py-3.5 px-4 text-slate-600 leading-relaxed max-w-md">
                       {dec.details}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-200 font-medium whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
                       {dec.responsible}
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         dec.status === 'Zrealizowane'
-                          ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-800/50'
-                          : 'bg-amber-950/70 text-amber-300 border border-amber-800/50'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         {dec.status}
                       </span>
@@ -185,7 +185,7 @@ export default function OperationalDecisionsTab({
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus size={18} className="text-violet-600" />
+                <Plus size={18} className="text-[#1e3a8a]" />
                 Nowe ustalenie operacyjne
               </h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -252,7 +252,7 @@ export default function OperationalDecisionsTab({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-violet-600 hover:bg-violet-700 text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition"
                 >
                   Zapisz ustalenie
                 </button>

@@ -67,62 +67,62 @@ export default function AccessControlTab({
   return (
     <div className="space-y-6">
       {/* ── Top Header ──────────────────────────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-sky-900/40 shadow-md text-white">
-        <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-          <ShieldCheck className="text-sky-400" size={20} />
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs text-slate-900">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+          <ShieldCheck className="text-[#1e3a8a]" size={20} />
           Zarządzanie Dostępem, Uprawnieniami i Synchronizacją
         </h2>
-        <p className="text-xs text-sky-200/60 mt-0.5">
+        <p className="text-xs text-slate-500 mt-0.5">
           Konfiguracja bezpieczeństwa, obfuskacji kluczy, ról użytkowników oraz połączenia z arkuszem Kancelarii Samorządu
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Box 1: Integracja z Arkuszem Google (Zabezpieczenie ID) ─────── */}
-        <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-sky-900/40 p-5 shadow-md space-y-4 text-white">
-          <div className="flex items-center gap-2 border-b border-sky-950 pb-3">
-            <Database size={17} className="text-sky-400" />
-            <h3 className="text-sm font-bold text-white">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-slate-900">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <Database size={17} className="text-[#1e3a8a]" />
+            <h3 className="text-sm font-bold text-slate-900">
               Parametry Synchronizacji z Arkuszem Google
             </h3>
           </div>
 
           <div className="space-y-3 text-xs">
-            <div className="p-3 bg-slate-950/60 rounded-xl border border-sky-950 space-y-1.5">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Klucz arkusza:</span>
-                <span className="font-mono text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-800/50">
+                <span className="text-slate-500 font-medium">Klucz arkusza:</span>
+                <span className="font-mono text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   Zaszyfrowany w locie (Base64)
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Protokół odpytywania:</span>
-                <span className="font-mono text-slate-200">Google Visualization API (tq/gviz)</span>
+                <span className="text-slate-500 font-medium">Protokół odpytywania:</span>
+                <span className="font-mono text-slate-800">Google Visualization API (tq/gviz)</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium">Limit czasu odpowiedzi (Timeout):</span>
-                <span className="font-mono text-slate-200">8 000 ms (AbortController)</span>
+                <span className="text-slate-500 font-medium">Limit czasu odpowiedzi (Timeout):</span>
+                <span className="font-mono text-slate-800">8 000 ms (AbortController)</span>
               </div>
             </div>
 
             <div>
-              <h4 className="font-bold text-sky-200/80 mb-2">Zmapowane zakładki arkusza (GID):</h4>
+              <h4 className="font-bold text-slate-700 mb-2">Zmapowane zakładki arkusza (GID):</h4>
               <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between p-2 rounded-lg bg-slate-950/60 border border-sky-950">
-                  <span className="text-slate-300">Dziennik Korespondencji:</span>
-                  <span className="font-bold text-sky-400">gid={SAMORZAD_GIDS.KORESPONDENCJA}</span>
+                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-600">Dziennik Korespondencji:</span>
+                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.KORESPONDENCJA}</span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-950/60 border border-sky-950">
-                  <span className="text-slate-300">Rejestr Wad IT:</span>
-                  <span className="font-bold text-sky-400">gid={SAMORZAD_GIDS.WADY_IT}</span>
+                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-600">Rejestr Wad IT:</span>
+                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.WADY_IT}</span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-950/60 border border-sky-950">
-                  <span className="text-slate-300">Ewidencja Kół:</span>
-                  <span className="font-bold text-sky-400">gid={SAMORZAD_GIDS.EWIDENCJA_KOL}</span>
+                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-600">Ewidencja Kół:</span>
+                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.EWIDENCJA_KOL}</span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-950/60 border border-sky-950">
-                  <span className="text-slate-300">Ustalenia Operacyjne:</span>
-                  <span className="font-bold text-sky-400">gid={SAMORZAD_GIDS.USTALENIA_OPERACYJNE}</span>
+                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-slate-600">Ustalenia Operacyjne:</span>
+                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.USTALENIA_OPERACYJNE}</span>
                 </div>
               </div>
             </div>
@@ -132,7 +132,7 @@ export default function AccessControlTab({
               <button
                 onClick={handleTestConnection}
                 disabled={testing}
-                className="px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-md border border-blue-500/30"
+                className="px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
                 <RefreshCw size={13} className={testing ? 'animate-spin' : ''} />
                 <span>{testing ? 'Testowanie połączenia...' : 'Testuj połączenie z arkuszem'}</span>
@@ -140,7 +140,7 @@ export default function AccessControlTab({
 
               <button
                 onClick={onRefreshData}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition cursor-pointer border border-slate-700"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer border border-slate-200"
               >
                 Wymuś synchronizację
               </button>
@@ -149,17 +149,17 @@ export default function AccessControlTab({
             {testResult && (
               <div className={`p-3 rounded-xl border text-xs ${
                 testResult.ok
-                  ? 'bg-emerald-950/70 border-emerald-800/60 text-emerald-200'
-                  : 'bg-amber-950/70 border-amber-800/60 text-amber-200'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
               }`}>
                 {testResult.ok ? (
                   <p className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
                     {testResult.message}
                   </p>
                 ) : (
                   <p className="flex items-center gap-1.5 font-medium">
-                    <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                    <AlertTriangle size={14} className="text-amber-600 shrink-0" />
                     {testResult.error} (Aktywny tryb Mock Fallback)
                   </p>
                 )}
@@ -169,27 +169,27 @@ export default function AccessControlTab({
         </div>
 
         {/* ── Box 2: Role i Matryca Uprawnień ──────────────────────────────── */}
-        <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-sky-900/40 p-5 shadow-md space-y-4 text-white">
-          <div className="flex items-center gap-2 border-b border-sky-950 pb-3">
-            <KeyRound size={17} className="text-sky-400" />
-            <h3 className="text-sm font-bold text-white">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-slate-900">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <KeyRound size={17} className="text-[#1e3a8a]" />
+            <h3 className="text-sm font-bold text-slate-900">
               Role i Uprawnienia w Kancelarii
             </h3>
           </div>
 
           <div className="space-y-3">
             {roles.map((role, idx) => (
-              <div key={idx} className="p-3 rounded-xl border border-sky-950 bg-slate-950/60 space-y-1.5">
+              <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white text-xs">{role.name}</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-sky-950/70 text-sky-300 border-sky-800/50">
+                  <span className="font-bold text-slate-900 text-xs">{role.name}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-50 text-[#1e3a8a] border-blue-200">
                     {role.badge}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">{role.description}</p>
+                <p className="text-[11px] text-slate-500 leading-relaxed">{role.description}</p>
                 <div className="flex flex-wrap gap-1 pt-1">
                   {role.permissions.map((perm, pIdx) => (
-                    <span key={pIdx} className="text-[10px] bg-slate-900 border border-slate-700 text-slate-300 px-1.5 py-0.2 rounded">
+                    <span key={pIdx} className="text-[10px] bg-white border border-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-medium">
                       {perm}
                     </span>
                   ))}

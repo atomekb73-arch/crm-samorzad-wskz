@@ -60,7 +60,7 @@ export function OrgProvider({ children }) {
   // Load saved organizations or use defaults
   const [organizations, setOrganizations] = useState(() => {
     try {
-      const parsed = safeGetStorage('crm_psychoonkologia_organizations', null);
+      const parsed = safeGetStorage('crm_samorzad_organizations', null) || safeGetStorage('crm_psychoonkologia_organizations', null);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const merged = [...parsed];
         DEFAULT_ORGS.forEach(defOrg => {
@@ -91,7 +91,7 @@ export function OrgProvider({ children }) {
         return merged;
       }
     } catch (err) {
-      console.error('Błąd scalania crm_psychoonkologia_organizations z localStorage:', err);
+      console.error('Błąd scalania crm_samorzad_organizations z localStorage:', err);
     }
     return DEFAULT_ORGS;
   });
@@ -99,18 +99,18 @@ export function OrgProvider({ children }) {
   // Current active organization ID
   const [currentOrgId, setCurrentOrgIdState] = useState(() => {
     try {
-      const savedId = localStorage.getItem('crm_psychoonkologia_current_org_id');
-      if (savedId) return savedId;
+      const savedId = localStorage.getItem('crm_samorzad_current_org_id') || localStorage.getItem('crm_psychoonkologia_current_org_id');
+      if (savedId && savedId !== 'skn-psychoonkologia') return savedId;
     } catch {}
-    return 'skn-psychoonkologia';
+    return 'samorzad-wskz';
   });
 
   // Save organizations to localStorage whenever they change
   useEffect(() => {
     try {
-      localStorage.setItem('crm_psychoonkologia_organizations', JSON.stringify(organizations));
+      localStorage.setItem('crm_samorzad_organizations', JSON.stringify(organizations));
     } catch (err) {
-      console.error('Błąd zapisu crm_psychoonkologia_organizations:', err);
+      console.error('Błąd zapisu crm_samorzad_organizations:', err);
     }
   }, [organizations]);
 
@@ -131,6 +131,7 @@ export function OrgProvider({ children }) {
     if (!orgId) return;
     setCurrentOrgIdState(orgId);
     try {
+      localStorage.setItem('crm_samorzad_current_org_id', orgId);
       localStorage.setItem('crm_current_org_id', orgId);
     } catch {}
   }, []);
@@ -160,7 +161,7 @@ export function OrgProvider({ children }) {
       name: rawName,
       shortName: (orgData.shortName || rawName).trim(),
       tag: (orgData.tag || 'WSKZ').trim(),
-      unit: (orgData.unit || 'Instytut Psychologii WSKZ').trim(),
+      unit: (orgData.unit || 'Samorząd Studencki WSKZ').trim(),
       sheetId: (orgData.sheetId || '').trim(),
       calendarKey: (orgData.calendarKey || 'ks9aiux4jiza1ronpd').trim(),
       subcalendarId: (orgData.subcalendarId || 'all').trim(),
@@ -192,8 +193,8 @@ export function OrgProvider({ children }) {
 
   // Delete organization (cannot delete default org)
   const deleteOrganization = useCallback((id) => {
-    if (id === 'skn-psychoonkologia') {
-      alert('Nie można usunąć domyślnego Koła Naukowego Psychoonkologii.');
+    if (id === 'samorzad-wskz') {
+      alert('Nie można usunąć domyślnej jednostki Samorządu Studenckiego.');
       return false;
     }
 
@@ -202,7 +203,7 @@ export function OrgProvider({ children }) {
 
     setOrganizations(prev => prev.filter(o => o.id !== id));
     if (currentOrgId === id) {
-      switchOrg('skn-psychoonkologia');
+      switchOrg('samorzad-wskz');
     }
     return true;
   }, [currentOrgId, switchOrg]);

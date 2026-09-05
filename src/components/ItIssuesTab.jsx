@@ -32,7 +32,7 @@ export default function ItIssuesTab({
     status: 'Oczekuje / Do weryfikacji',
     severity: 'Wysoki',
     ectsImpact: 'Krytyczny / Blokujący',
-    reportedBy: 'Kancelaria Samorządu Studentów',
+    reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
     assignedTo: 'Dział IT',
     notes: '',
   });
@@ -90,7 +90,7 @@ export default function ItIssuesTab({
       status: 'Oczekuje / Do weryfikacji',
       severity: 'Wysoki',
       ectsImpact: 'Krytyczny / Blokujący',
-      reportedBy: 'Kancelaria Samorządu Studentów',
+      reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
       assignedTo: 'Dział IT',
       notes: '',
     });
@@ -99,13 +99,13 @@ export default function ItIssuesTab({
   return (
     <div className="space-y-4">
       {/* ── Top Header & Description ────────────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-sky-900/40 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-            <AlertTriangle className="text-amber-400" size={20} />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <AlertTriangle className="text-amber-600" size={20} />
             Rejestr Wad IT i Anomalii Systemowych WSKZ
           </h2>
-          <p className="text-xs text-sky-200/60 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Ewidencja błędów technicznych platformy e-learningowej, Wirtualnego Dziekanatu i ich bezpośredniego wpływu na punkty ECTS
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function ItIssuesTab({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md transition cursor-pointer border border-amber-500/30"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus size={15} />
             <span>Zgłoś anomalię IT</span>
@@ -122,7 +122,7 @@ export default function ItIssuesTab({
       </div>
 
       {/* ── Search and Filter Controls ──────────────────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-sky-900/40 shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -130,12 +130,12 @@ export default function ItIssuesTab({
             placeholder="Szukaj po ID błędu, kierunku, obszarze platformy lub opisie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-sky-950 bg-slate-950/60 text-slate-100 placeholder:text-slate-500 focus:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
               <X size={13} />
             </button>
@@ -144,11 +144,11 @@ export default function ItIssuesTab({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* ECTS Impact / Severity Filter */}
-          <div className="flex items-center bg-slate-950/60 p-1 rounded-xl text-xs font-medium border border-sky-950">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
             <button
               onClick={() => setSeverityFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                severityFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'
+                severityFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Wszystkie
@@ -156,7 +156,7 @@ export default function ItIssuesTab({
             <button
               onClick={() => setSeverityFilter('CRITICAL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 ${
-                severityFilter === 'CRITICAL' ? 'bg-red-600 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-red-300'
+                severityFilter === 'CRITICAL' ? 'bg-rose-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-rose-700'
               }`}
             >
               <ShieldAlert size={12} /> Krytyczne ECTS
@@ -164,11 +164,11 @@ export default function ItIssuesTab({
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center bg-slate-950/60 p-1 rounded-xl text-xs font-medium border border-sky-950">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
             <button
               onClick={() => setStatusFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                statusFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'
+                statusFilter === 'ALL' ? 'bg-[#1e3a8a] font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Status: Wszystkie
@@ -176,7 +176,7 @@ export default function ItIssuesTab({
             <button
               onClick={() => setStatusFilter('PENDING')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                statusFilter === 'PENDING' ? 'bg-amber-600 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+                statusFilter === 'PENDING' ? 'bg-amber-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Oczekujące
@@ -184,7 +184,7 @@ export default function ItIssuesTab({
             <button
               onClick={() => setStatusFilter('IN_PROGRESS')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                statusFilter === 'IN_PROGRESS' ? 'bg-blue-600 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+                statusFilter === 'IN_PROGRESS' ? 'bg-blue-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               W naprawie
@@ -192,7 +192,7 @@ export default function ItIssuesTab({
             <button
               onClick={() => setStatusFilter('RESOLVED')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                statusFilter === 'RESOLVED' ? 'bg-emerald-600 font-bold text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
+                statusFilter === 'RESOLVED' ? 'bg-emerald-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Rozwiązane
@@ -202,11 +202,11 @@ export default function ItIssuesTab({
       </div>
 
       {/* ── IT Issues Data Table with Highlight Rules ────────────────────── */}
-      <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-sky-900/40 shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-950/80 border-b border-sky-950 text-sky-200/80 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">ID Błędu</th>
                 <th className="py-3 px-3">Data</th>
                 <th className="py-3 px-4">Kierunek i Semestr</th>
@@ -216,7 +216,7 @@ export default function ItIssuesTab({
                 <th className="py-3 px-3">Wpływ na ECTS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {filteredIssues.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400">
@@ -235,39 +235,39 @@ export default function ItIssuesTab({
                       onClick={() => setSelectedIssue(item)}
                       className={`transition cursor-pointer ${
                         isCriticalEcts
-                          ? 'bg-red-950/40 hover:bg-red-950/70 text-slate-100'
+                          ? 'bg-rose-50/50 hover:bg-rose-50 text-slate-900'
                           : isPending
-                          ? 'bg-amber-950/30 hover:bg-amber-950/60 text-slate-100'
-                          : 'hover:bg-slate-800/50 text-slate-200'
+                          ? 'bg-amber-50/30 hover:bg-amber-50 text-slate-900'
+                          : 'hover:bg-slate-50/80 text-slate-800'
                       }`}
                     >
                       {/* ID Błędu */}
-                      <td className="py-3.5 px-4 font-mono font-extrabold text-white whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono font-extrabold whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          {isHighAlert && <AlertCircle size={14} className={isCriticalEcts ? 'text-red-400' : 'text-amber-400'} />}
-                          <span className="text-sky-300">{item.id}</span>
+                          {isHighAlert && <AlertCircle size={14} className={isCriticalEcts ? 'text-rose-600' : 'text-amber-600'} />}
+                          <span className="text-[#1e3a8a]">{item.id}</span>
                         </div>
                       </td>
 
                       {/* Data */}
-                      <td className="py-3.5 px-3 text-slate-400 whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
                         {item.date}
                       </td>
 
                       {/* Kierunek i Semestr */}
-                      <td className="py-3.5 px-4 font-medium text-slate-200 whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-medium text-slate-800 whitespace-nowrap">
                         {item.fieldAndSemester || 'Wszystkie kierunki'}
                       </td>
 
                       {/* Obszar Platformy */}
-                      <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-950/70 text-sky-200/90 font-mono text-[11px] border border-sky-950">
+                      <td className="py-3.5 px-4 text-slate-700 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px] border border-slate-200">
                           {item.platformArea}
                         </span>
                       </td>
 
                       {/* Opis Anomalii */}
-                      <td className="py-3.5 px-4 text-white font-medium max-w-md truncate" title={item.description}>
+                      <td className="py-3.5 px-4 text-slate-900 font-medium max-w-md truncate" title={item.description}>
                         {item.description}
                       </td>
 
@@ -275,10 +275,10 @@ export default function ItIssuesTab({
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
                           item.status === 'Rozwiązane'
-                            ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-800/50'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             : item.status?.includes('trakcie') || item.status?.includes('Przekazano')
-                            ? 'bg-blue-950/70 text-blue-300 border border-blue-800/50'
-                            : 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
+                            ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                            : 'bg-amber-50 text-amber-800 border border-amber-200'
                         }`}>
                           {item.status}
                         </span>
@@ -288,10 +288,10 @@ export default function ItIssuesTab({
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
                           isCriticalEcts
-                            ? 'bg-red-950/80 text-red-300 border border-red-800/60 animate-pulse'
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
                             : item.ectsImpact === 'Wysoki'
-                            ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
-                            : 'bg-slate-800 text-slate-300'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {isCriticalEcts && <AlertTriangle size={12} />}
                           {item.ectsImpact || 'Średni'}
@@ -305,8 +305,8 @@ export default function ItIssuesTab({
           </table>
         </div>
 
-        <div className="py-2.5 px-4 bg-slate-950/80 border-t border-sky-950 flex items-center justify-between text-xs text-sky-200/60">
-          <span>Łącznie w rejestrze: <strong className="text-white">{itIssues.length}</strong> zgłoszeń (w tym <strong className="text-red-400">{itIssues.filter(i => i.ectsImpact?.includes('Krytyczny')).length}</strong> o krytycznym wpływie na ECTS)</span>
+        <div className="py-2.5 px-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+          <span>Łącznie w rejestrze: <strong className="text-slate-900">{itIssues.length}</strong> zgłoszeń (w tym <strong className="text-rose-700">{itIssues.filter(i => i.ectsImpact?.includes('Krytyczny')).length}</strong> o krytycznym wpływie na ECTS)</span>
           <span className="text-[11px] text-slate-400">Wiersze czerwone/bursztynowe oznaczają sprawy priorytetowe</span>
         </div>
       </div>
