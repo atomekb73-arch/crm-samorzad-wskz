@@ -144,55 +144,51 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-[#0a192f] to-[#0f172a] text-slate-100 flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
       {/* Decorative background glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-md relative z-10 space-y-6">
         
         {/* Header Branding */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-900/60 border border-purple-500/30 text-purple-200 text-xs font-semibold backdrop-blur-md shadow-inner">
-            <span className="text-base leading-none">🎗️</span>
-            <span>Studenckie Koło Naukowe Psychoonkologii WSKZ</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-950/70 text-sky-300 border border-sky-800/50 text-xs font-semibold backdrop-blur-md shadow-inner">
+            <span className="text-base leading-none">🏛️</span>
+            <span>Samorząd Studentów WSKZ</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            System Ewidencji & CRM
+            Kancelaria & System Ewidencji Zarządczej
           </h1>
-          <p className="text-xs text-purple-200/70 max-w-xs mx-auto leading-relaxed">
-            Dostęp autoryzowany wyłącznie dla członków zarządu, opiekunów naukowych oraz uprawnionych koordynatorów.
+          <p className="text-xs text-sky-200/70 max-w-xs mx-auto leading-relaxed">
+            Dostęp autoryzowany wyłącznie dla członków Prezydium, Kancelarii oraz uprawnionych organów Samorządu WSKZ
           </p>
         </div>
 
         {/* Dynamic Card Container */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/20 text-slate-900 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-slate-900/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-sky-900/40 text-slate-100 space-y-5 animate-in fade-in zoom-in-95 duration-200">
           
           {/* Top Status Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-3 border-b border-sky-950/60">
             <div className="flex items-center gap-2.5">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-                step === 'activate' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                step === 'activate' ? 'bg-amber-950/70 text-amber-300 border border-amber-800/40' : 'bg-sky-950/70 text-sky-300 border border-sky-800/40'
               }`}>
                 {step === 'activate' ? <Key size={20} /> : <ShieldCheck size={20} />}
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  {step === 'email' && 'Autoryzacja Dostępowa'}
-                  {step === 'password' && 'Logowanie do Systemu'}
-                  {step === 'activate' && 'Pierwsze Logowanie'}
+                <h2 className="text-sm font-bold text-white">
+                  Logowanie do Kancelarii
                 </h2>
-                <p className="text-[11px] text-slate-500">
-                  {step === 'email' && 'Wprowadź swój uczelniany adres e-mail'}
-                  {step === 'password' && 'Podaj swoje hasło dostępowe'}
-                  {step === 'activate' && 'Nadaj swoje hasło dostępowe'}
+                <p className="text-[11px] text-sky-200/60">
+                  Uwierzytelnij dostęp do zasobów Samorządu
                 </p>
               </div>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-              step === 'activate' ? 'bg-amber-100 text-amber-800 font-mono' : 'bg-slate-100 text-slate-600 font-mono'
+              step === 'activate' ? 'bg-amber-950/70 text-amber-300 border border-amber-800/40 font-mono' : 'bg-slate-800/80 text-sky-200/80 font-mono border border-slate-700/50'
             }`}>
               {step === 'activate' ? 'Aktywacja' : '2026/2027'}
             </span>
@@ -200,11 +196,11 @@ export default function LoginScreen() {
 
           {/* Error Notice */}
           {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in zoom-in-95 duration-150">
-              <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-800/60 text-rose-200 text-xs flex items-start gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+              <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
               <div className="leading-snug">
                 <p className="font-bold">Odmowa dostępu</p>
-                <p className="text-[11px] text-rose-700 mt-0.5">{error}</p>
+                <p className="text-[11px] text-rose-300 mt-0.5">{error}</p>
               </div>
             </div>
           )}
@@ -213,7 +209,7 @@ export default function LoginScreen() {
           {step === 'email' && (
             <form onSubmit={handleEmailSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="auth-email" className="block text-xs font-bold text-slate-700">
+                <label htmlFor="auth-email" className="block text-xs font-bold text-sky-200/80">
                   Adres e-mail
                 </label>
                 <div className="relative">
@@ -230,8 +226,8 @@ export default function LoginScreen() {
                       setEmail(e.target.value);
                       setError(null);
                     }}
-                    placeholder="np. zarzad.psychoonkologia@wskz.pl"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition font-medium text-slate-800"
+                    placeholder="wpisz adres e-mail (np. imie.nazwisko@samorzad.wskz.pl)"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-950/60 border border-sky-950 rounded-xl focus:bg-slate-950 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 outline-none transition font-medium text-slate-100 placeholder:text-slate-500"
                   />
                 </div>
               </div>
@@ -239,14 +235,13 @@ export default function LoginScreen() {
               <button
                 type="submit"
                 disabled={loading || !email.trim()}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-800 hover:to-indigo-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                className="w-full py-3 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-bold text-xs shadow-lg shadow-blue-900/30 hover:shadow-blue-700/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] border border-blue-600/30"
               >
                 {loading ? (
                   <span>Weryfikacja uprawnień…</span>
                 ) : (
                   <>
-                    <span>Dalej</span>
-                    <ArrowRight size={15} />
+                    <span>Zaloguj →</span>
                   </>
                 )}
               </button>
@@ -257,15 +252,15 @@ export default function LoginScreen() {
           {step === 'password' && (
             <form onSubmit={handlePasswordSubmit} autoComplete="off" className="space-y-4">
               {/* Account Pill */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-slate-950/60 border border-sky-950 rounded-xl flex items-center justify-between">
                 <div className="min-w-0 pr-2">
-                  <p className="text-xs font-bold text-slate-800 truncate">{verifiedUser?.name}</p>
-                  <p className="text-[11px] text-slate-500 font-mono truncate">{email}</p>
+                  <p className="text-xs font-bold text-white truncate">{verifiedUser?.name}</p>
+                  <p className="text-[11px] text-sky-300/60 font-mono truncate">{email}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleResetToEmail}
-                  className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline shrink-0 cursor-pointer"
+                  className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 underline shrink-0 cursor-pointer"
                 >
                   Zmień
                 </button>
@@ -273,7 +268,7 @@ export default function LoginScreen() {
 
               {/* Password field */}
               <div className="space-y-1.5">
-                <label htmlFor="auth-password" className="block text-xs font-bold text-slate-700">
+                <label htmlFor="auth-password" className="block text-xs font-bold text-sky-200/80">
                   Hasło dostępowe
                 </label>
                 <div className="relative">
@@ -288,12 +283,12 @@ export default function LoginScreen() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Wprowadź swoje hasło..."
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-400 focus:border-purple-400 outline-none transition font-medium text-slate-800 font-mono"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-950/60 border border-sky-950 rounded-xl focus:bg-slate-950 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 outline-none transition font-medium text-slate-100 font-mono placeholder:text-slate-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -305,14 +300,13 @@ export default function LoginScreen() {
               <button
                 type="submit"
                 disabled={loading || !password.trim()}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-800 hover:to-indigo-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
+                className="w-full py-3 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-bold text-xs shadow-lg shadow-blue-900/30 hover:shadow-blue-700/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99] border border-blue-600/30"
               >
                 {loading ? (
                   <span>Logowanie…</span>
                 ) : (
                   <>
-                    <span>Zaloguj do systemu CRM</span>
-                    <ArrowRight size={15} />
+                    <span>Zaloguj →</span>
                   </>
                 )}
               </button>
@@ -320,7 +314,7 @@ export default function LoginScreen() {
               <button
                 type="button"
                 onClick={handleResetToEmail}
-                className="w-full py-1 text-xs text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer"
+                className="w-full py-1 text-xs text-sky-300/60 hover:text-sky-200 flex items-center justify-center gap-1 cursor-pointer"
               >
                 <ArrowLeft size={13} />
                 <span>Wróć do wpisywania e-maila</span>
@@ -333,30 +327,30 @@ export default function LoginScreen() {
             <form onSubmit={handleActivationSubmit} autoComplete="off" className="space-y-4">
               
               {/* Account welcome banner */}
-              <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl space-y-1.5">
+              <div className="p-3.5 bg-sky-950/60 border border-sky-800/40 rounded-2xl space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
-                    🎉 Pierwsze logowanie do koła
+                  <span className="text-[10px] font-bold text-sky-300 uppercase tracking-wider">
+                    🎉 Pierwsze logowanie do Kancelarii
                   </span>
                   <button
                     type="button"
                     onClick={handleResetToEmail}
-                    className="text-[10px] font-semibold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                    className="text-[10px] font-semibold text-sky-400 hover:text-sky-200 underline cursor-pointer"
                   >
                     Zmień e-mail
                   </button>
                 </div>
-                <p className="text-xs font-bold text-amber-950">
+                <p className="text-xs font-bold text-white">
                   Witaj, {verifiedUser?.name || 'Użytkowniku'}!
                 </p>
-                <p className="text-[11px] text-amber-800/90 leading-relaxed">
-                  Twoje konto zostało dodane przez Zarząd. Ustaw swoje własne, unikalne hasło dostępowe, aby wejść do CRM.
+                <p className="text-[11px] text-sky-200/80 leading-relaxed">
+                  Twoje konto zostało dodane przez Kancelarię Samorządu. Ustaw swoje własne, unikalne hasło dostępowe.
                 </p>
               </div>
 
               {/* New Password field */}
               <div className="space-y-1.5">
-                <label htmlFor="activate-password" className="block text-xs font-bold text-slate-700">
+                <label htmlFor="activate-password" className="block text-xs font-bold text-sky-200/80">
                   Wpisz hasło
                 </label>
                 <div className="relative">
@@ -371,12 +365,12 @@ export default function LoginScreen() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Minimum 8 znaków..."
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none transition font-medium text-slate-800 font-mono"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-950/60 border border-sky-950 rounded-xl focus:bg-slate-950 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 outline-none transition font-medium text-slate-100 font-mono placeholder:text-slate-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -386,7 +380,7 @@ export default function LoginScreen() {
 
               {/* Confirm Password field */}
               <div className="space-y-1.5">
-                <label htmlFor="activate-confirm-password" className="block text-xs font-bold text-slate-700">
+                <label htmlFor="activate-confirm-password" className="block text-xs font-bold text-sky-200/80">
                   Powtórz hasło
                 </label>
                 <div className="relative">
@@ -400,12 +394,12 @@ export default function LoginScreen() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Wpisz ponownie to samo hasło..."
-                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none transition font-medium text-slate-800 font-mono"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-950/60 border border-sky-950 rounded-xl focus:bg-slate-950 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 outline-none transition font-medium text-slate-100 font-mono placeholder:text-slate-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -414,25 +408,25 @@ export default function LoginScreen() {
               </div>
 
               {/* Real-time Checklist */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5 text-[11px]">
+              <div className="bg-slate-950/60 p-3 rounded-xl border border-sky-950 space-y-1.5 text-[11px]">
                 <div className="flex items-center gap-2">
                   {hasMinLength ? (
-                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    <CheckCircle2 size={13} className="text-emerald-400" />
                   ) : (
-                    <div className="w-3 h-3 rounded-full border border-slate-300" />
+                    <div className="w-3 h-3 rounded-full border border-slate-600" />
                   )}
-                  <span className={hasMinLength ? 'text-emerald-700 font-semibold' : 'text-slate-500'}>
+                  <span className={hasMinLength ? 'text-emerald-300 font-semibold' : 'text-slate-400'}>
                     Co najmniej 8 znaków
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {passwordsMatch ? (
-                    <CheckCircle2 size={13} className="text-emerald-600" />
+                    <CheckCircle2 size={13} className="text-emerald-400" />
                   ) : (
-                    <div className="w-3 h-3 rounded-full border border-slate-300" />
+                    <div className="w-3 h-3 rounded-full border border-slate-600" />
                   )}
-                  <span className={passwordsMatch ? 'text-emerald-700 font-semibold' : 'text-slate-500'}>
+                  <span className={passwordsMatch ? 'text-emerald-300 font-semibold' : 'text-slate-400'}>
                     Hasła są identyczne
                   </span>
                 </div>
@@ -442,14 +436,13 @@ export default function LoginScreen() {
               <button
                 type="submit"
                 disabled={loading || !isActivationValid}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                className="w-full py-3 px-4 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white font-bold text-xs shadow-lg shadow-blue-900/30 hover:shadow-blue-700/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] border border-blue-600/30"
               >
                 {loading ? (
                   <span>Zapisywanie hasła…</span>
                 ) : (
                   <>
-                    <span>Zapisz hasło i wejdź</span>
-                    <ArrowRight size={15} />
+                    <span>Zapisz hasło i wejdź →</span>
                   </>
                 )}
               </button>
@@ -457,7 +450,7 @@ export default function LoginScreen() {
               <button
                 type="button"
                 onClick={handleResetToEmail}
-                className="w-full py-1 text-xs text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer"
+                className="w-full py-1 text-xs text-sky-300/60 hover:text-sky-200 flex items-center justify-center gap-1 cursor-pointer"
               >
                 <ArrowLeft size={13} />
                 <span>Wróć do wpisywania e-maila</span>
@@ -468,9 +461,9 @@ export default function LoginScreen() {
         </div>
 
         {/* Footer info */}
-        <div className="text-center text-[11px] text-purple-200/50 space-y-1">
-          <p>Instytut Psychologii WSKZ • Bezpieczne połączenie szyfrowane</p>
-          <p className="text-[10px]">W razie trudności z logowaniem zgłoś się do administratora koła.</p>
+        <div className="text-center text-[11px] text-sky-200/50 space-y-1">
+          <p>Kancelaria Samorządu Studentów WSKZ | Bezpieczne połączenie szyfrowane</p>
+          <p className="text-[10px]">W razie problemów z logowaniem skontaktuj się z administratorem systemu Kancelarii</p>
         </div>
 
       </div>

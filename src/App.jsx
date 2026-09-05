@@ -29,12 +29,24 @@ import SettingsModal from './components/SettingsModal';
 import ProfileMenu   from './components/ProfileMenu';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoginScreen from './components/LoginScreen';
+import DashboardTab from './components/DashboardTab';
+import CorrespondenceTab from './components/CorrespondenceTab';
+import ItIssuesTab from './components/ItIssuesTab';
+import OperationalDecisionsTab from './components/OperationalDecisionsTab';
+import OrganizationsTab from './components/OrganizationsTab';
+import AccessControlTab from './components/AccessControlTab';
 import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
 import { fetchAllData, AUTHORIZED_INDEXES } from './services/googleSheets';
 import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
 import { materials, initialMembers, initialMeetings } from './data/mockData';
+import {
+  initialCorrespondence,
+  initialItIssues,
+  initialDecisions,
+  initialOrganizations,
+} from './data/samorzadMockData';
 import { getRecordKey } from './utils/helpers';
 import { getAcademicYearKey } from './utils/academicYear';
 import { getCanonicalMeetingsForOrg, filterLegitimateMeetings } from './utils/canonicalMeetings';
@@ -49,17 +61,6 @@ import {
   getCorrespondenceLog,
   setOrgStorage,
 } from './utils/storage';
-
-const TABS = [
-  { id: 'management', label: 'Zarządzanie',                   icon: LayoutDashboard },
-  { id: 'quarantine', label: 'Kwarantanna',                    icon: ShieldAlert },
-  { id: 'meetings',   label: 'Spotkania & Obecność',           icon: CalendarDays },
-  { id: 'documents',  label: '📁 Dokumenty & Uchwały',         icon: FolderKanban },
-  { id: 'research',   label: '🔬 Dorobek & Badania',           icon: Microscope },
-  { id: 'reports',    label: '📄 Sprawozdawczość & Dokumenty', icon: FileText },
-  { id: 'tools',      label: 'Narzędzia & Mailing',            icon: Wrench },
-  { id: 'settings',   label: '⚙️ Ustawienia & Dostęp',         icon: Settings },
-];
 
 // Sanitization: Switch to row-ID based archiving (crm_archived_row_ids)
 if (typeof window !== 'undefined') {
@@ -84,15 +85,15 @@ export default function App() {
   const { currentOrg, organizations, switchOrg, getStorageKey } = useOrg();
   const [activeTab, setActiveTabState] = useState(() => {
     try {
-      return sessionStorage.getItem('crm_psychoonkologia_active_tab') || 'members';
+      return sessionStorage.getItem('crm_samorzad_active_tab') || 'dashboard';
     } catch {
-      return 'members';
+      return 'dashboard';
     }
   });
   const setActiveTab = useCallback((tab) => {
     setActiveTabState(tab);
     try {
-      sessionStorage.setItem('crm_psychoonkologia_active_tab', tab);
+      sessionStorage.setItem('crm_samorzad_active_tab', tab);
     } catch {}
   }, []);
 
@@ -138,7 +139,46 @@ export default function App() {
     } catch {}
   }, []);
 
-  // Master Data State
+  // ── Kancelaria Samorządu Master Data State ─────────────────────────────
+  const [correspondence, setCorrespondence] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kanc_correspondence');
+      return stored ? JSON.parse(stored) : initialCorrespondence;
+    } catch {
+      return initialCorrespondence;
+    }
+  });
+
+  const [itIssues, setItIssues] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kanc_it_issues');
+      return stored ? JSON.parse(stored) : initialItIssues;
+    } catch {
+      return initialItIssues;
+    }
+  });
+
+  const [decisions, setDecisions] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kanc_decisions');
+      return stored ? JSON.parse(stored) : initialDecisions;
+    } catch {
+      return initialDecisions;
+    }
+  });
+
+  const [orgsList, setOrgsList] = useState(() => {
+    try {
+      const stored = localStorage.getItem('kanc_organizations');
+      return stored ? JSON.parse(stored) : initialOrganizations;
+    } catch {
+      return initialOrganizations;
+    }
+  });
+
+  const [selectedCorrespondenceItem, setSelectedCorrespondenceItem] = useState(null);
+
+  // Master Data State for Koło / Members
   const [members, setMembers]       = useState(initialMembers);
   const [quarantine, setQuarantine] = useState([]);
   const [archivedQuarantine, setArchivedQuarantine] = useState([]);
@@ -149,7 +189,7 @@ export default function App() {
   // Teamup Meetings State & Academic Year Filter
   const [meetings, setMeetings]     = useState(initialMeetings || []);
   const [subcalendars, setSubcalendars] = useState([
-    { id: DEFAULT_SUBCALENDAR_ID || '15520558', name: 'Koła Naukowe > 07 🎗️ SKN Psychoonkologii' },
+    { id: DEFAULT_SUBCALENDAR_ID || '15520558', name: 'Samorząd Studentów WSKZ' },
   ]);
   const [selectedSubcalendar, setSelectedSubcalendar] = useState(DEFAULT_SUBCALENDAR_ID || '15520558');
 
@@ -175,6 +215,54 @@ export default function App() {
     setActiveTab('documentation');
     setDocumentationSubTab('reports');
   }, [setActiveTab, setDocumentationSubTab]);
+
+  const handleAddCorrespondence = useCallback((entry) => {
+    setCorrespondence(prev => {
+      const updated = [entry, ...prev];
+      try {
+        localStorage.setItem('kanc_correspondence', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zarejestrowano pismo ${entry.id}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
+
+  const handleAddItIssue = useCallback((issue) => {
+    setItIssues(prev => {
+      const updated = [issue, ...prev];
+      try {
+        localStorage.setItem('kanc_it_issues', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zgłoszono anomalię IT ${issue.id}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
+
+  const handleAddDecision = useCallback((decision) => {
+    setDecisions(prev => {
+      const updated = [decision, ...prev];
+      try {
+        localStorage.setItem('kanc_decisions', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zapisano ustalenie ${decision.id}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
+
+  const handleAddOrganization = useCallback((org) => {
+    setOrgsList(prev => {
+      const updated = [org, ...prev];
+      try {
+        localStorage.setItem('kanc_organizations', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zarejestrowano organizację ${org.name}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
 
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
@@ -382,23 +470,84 @@ export default function App() {
       setQuarantine(uniquePendingQuarantine);
       setArchivedQuarantine(archivedList);
 
-      // Sync & merge correspondence log from Ewidencja_Poczty if present in Google Sheets
-      if (sheetsData.mailLog && Array.isArray(sheetsData.mailLog) && sheetsData.mailLog.length > 0 && currentOrg?.id) {
-        try {
-          const currentLog = getCorrespondenceLog(currentOrg.id);
-          const mergedLog = [...currentLog];
+      // Sync & merge correspondence log from Dziennik Korespondencji if present in Google Sheets
+      if (sheetsData.mailLog && Array.isArray(sheetsData.mailLog) && sheetsData.mailLog.length > 0) {
+        setCorrespondence(prev => {
+          const merged = [...prev];
           sheetsData.mailLog.forEach(item => {
-            const idx = mergedLog.findIndex(m => m.id === item.id || (m.hash && m.hash === item.hash));
+            const idx = merged.findIndex(m => m.id === item.id || (m.hash && m.hash === item.hash));
             if (idx === -1) {
-              mergedLog.push(item);
+              merged.push(item);
             } else {
-              mergedLog[idx] = { ...mergedLog[idx], ...item };
+              merged[idx] = { ...merged[idx], ...item };
             }
           });
-          setOrgStorage(currentOrg.id, 'correspondence_log', mergedLog);
-        } catch (e) {
-          console.warn('Błąd aktualizacji correspondence_log ze Sheets:', e);
-        }
+          try {
+            localStorage.setItem('kanc_correspondence', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+
+      // Sync & merge IT issues from Rejestr Wad IT
+      if (sheetsData.itIssues && Array.isArray(sheetsData.itIssues) && sheetsData.itIssues.length > 0) {
+        setItIssues(prev => {
+          const merged = [...prev];
+          sheetsData.itIssues.forEach(item => {
+            const idx = merged.findIndex(i => i.id === item.id);
+            if (idx === -1) {
+              merged.push(item);
+            } else {
+              merged[idx] = { ...merged[idx], ...item };
+            }
+          });
+          try {
+            localStorage.setItem('kanc_it_issues', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+
+      // Sync & merge student organizations from Ewidencja Kół
+      if (sheetsData.clubs && Array.isArray(sheetsData.clubs) && sheetsData.clubs.length > 0) {
+        setOrgsList(prev => {
+          const merged = [...prev];
+          sheetsData.clubs.forEach(item => {
+            const idx = merged.findIndex(c => c.name === item.name || c.id === item.id);
+            if (idx === -1) {
+              merged.push(item);
+            } else {
+              merged[idx] = { ...merged[idx], ...item };
+            }
+          });
+          try {
+            localStorage.setItem('kanc_organizations', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+
+      // Sync & merge operational decisions from Ustalenia Operacyjne
+      if (sheetsData.decisions && Array.isArray(sheetsData.decisions) && sheetsData.decisions.length > 0) {
+        setDecisions(prev => {
+          const merged = [...prev];
+          sheetsData.decisions.forEach(item => {
+            const idx = merged.findIndex(d => d.id === item.id);
+            if (idx === -1) {
+              merged.push(item);
+            } else {
+              merged[idx] = { ...merged[idx], ...item };
+            }
+          });
+          try {
+            localStorage.setItem('kanc_decisions', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+
+      if (sheetsData?.syncWarning) {
+        setError(`Ostrzeżenie arkusza: ${sheetsData.syncWarning}`);
       }
 
       await loadMeetings();
@@ -412,7 +561,13 @@ export default function App() {
         }
       } catch {}
     } catch (err) {
-      setError(err.message);
+      console.warn('Sync error / mock fallback activated:', err);
+      setError(err.message || 'Brak odpowiedzi z arkusza Google');
+      // Zapewnij załadowanie początkowych danych, aby aplikacja nie była pusta ani zablokowana
+      setMembers(prev => (prev && prev.length > 0 ? prev : initialMembers));
+      try {
+        await loadMeetings();
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -825,11 +980,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#0a192f] to-[#0f172a] text-slate-100">
 
       {/* ── Toast Notification Banner ───────────────────────────────────────── */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5 duration-200 text-xs print:hidden">
+        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-sky-800 animate-in slide-in-from-bottom-5 duration-200 text-xs print:hidden">
           <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
@@ -839,41 +994,41 @@ export default function App() {
       )}
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-30 print:hidden">
+      <header className="border-b border-sky-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 print:hidden shadow-sm">
         <div className="w-[98vw] max-w-[1850px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
 
           {/* Logo & Multi-Tenant Organization Switcher */}
           <div className="flex items-center gap-3 shrink-0 relative">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center shadow-md text-white font-bold text-sm tracking-tight shrink-0">
-              {currentOrg.shortName ? currentOrg.shortName.slice(0, 3).toUpperCase() : 'SKN'}
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-sky-600 flex items-center justify-center shadow-lg shadow-blue-900/30 text-white font-extrabold text-sm tracking-tight shrink-0 border border-sky-400/30">
+              KSS
             </div>
             
             <div className="relative">
               <button
                 onClick={() => setIsOrgDropdownOpen(prev => !prev)}
-                className="flex items-center gap-1.5 text-left group hover:bg-slate-100/70 p-1.5 -m-1.5 rounded-xl transition cursor-pointer"
+                className="flex items-center gap-1.5 text-left group hover:bg-slate-800/60 p-1.5 -m-1.5 rounded-xl transition cursor-pointer"
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition leading-tight">
-                      {currentOrg.name}
+                    <h1 className="text-sm sm:text-base font-extrabold text-white group-hover:text-sky-300 transition leading-tight">
+                      Kancelaria Samorządu Studentów WSKZ
                     </h1>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
-                      {currentOrg.tag || 'WSKZ'}
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-800/60 font-mono">
+                      WSKZ
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">System Ewidencyjno-Sprawozdawczy</p>
+                  <p className="text-[11px] text-sky-200/60">Kancelaria & System Ewidencji Zarządczej</p>
                 </div>
-                <ChevronDown size={14} className="text-slate-400 group-hover:text-indigo-600 transition shrink-0 ml-0.5" />
+                <ChevronDown size={14} className="text-slate-400 group-hover:text-sky-300 transition shrink-0 ml-0.5" />
               </button>
 
               {/* Organization Dropdown Menu */}
               {isOrgDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsOrgDropdownOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                      Wybierz Koło Naukowe
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-slate-900 rounded-2xl shadow-2xl border border-sky-900/60 p-2 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-200">
+                    <div className="px-3 py-2 text-[10px] font-bold text-sky-300/70 uppercase tracking-wider border-b border-slate-800">
+                      Struktura Samorządu & Koła
                     </div>
                     <div className="space-y-1 py-1 max-h-60 overflow-y-auto">
                       {organizations.map(org => {
@@ -887,29 +1042,29 @@ export default function App() {
                             }}
                             className={`w-full flex items-center justify-between p-2 rounded-xl text-xs text-left transition cursor-pointer ${
                               isSelected
-                                ? 'bg-indigo-50 text-indigo-900 font-bold'
-                                : 'text-slate-700 hover:bg-slate-50'
+                                ? 'bg-[#1e3a8a] text-white font-bold shadow-xs'
+                                : 'text-slate-300 hover:bg-slate-800'
                             }`}
                           >
                             <div className="min-w-0 pr-2">
                               <p className="truncate font-semibold">{org.name}</p>
-                              <p className="text-[10px] text-slate-400 font-mono">{org.tag || 'WSKZ'}</p>
+                              <p className="text-[10px] text-sky-300/60 font-mono">{org.tag || 'WSKZ'}</p>
                             </div>
-                            {isSelected && <CheckCircle2 size={14} className="text-indigo-600 shrink-0" />}
+                            {isSelected && <CheckCircle2 size={14} className="text-sky-300 shrink-0" />}
                           </button>
                         );
                       })}
                     </div>
-                    <div className="border-t border-slate-100 pt-1 mt-1">
+                    <div className="border-t border-slate-800 pt-1 mt-1">
                       <button
                         onClick={() => {
                           setIsOrgDropdownOpen(false);
                           setIsSettingsOpen(true);
                         }}
-                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-bold text-sky-400 hover:bg-slate-800 transition cursor-pointer"
                       >
                         <Settings size={14} />
-                        <span>Zarządzaj kołami naukowymi…</span>
+                        <span>Zarządzaj strukturą…</span>
                       </button>
                     </div>
                   </div>
@@ -923,12 +1078,12 @@ export default function App() {
             {/* Status pill (Single-line) */}
             <div className={`hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap shrink-0 ${
               error
-                ? 'bg-red-50 border-red-100 text-red-600'
+                ? 'bg-red-950/70 border-red-800/60 text-red-300'
                 : loading
-                ? 'bg-amber-50 border-amber-100 text-amber-600'
+                ? 'bg-amber-950/70 border-amber-800/60 text-amber-300'
                 : lastSync
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-slate-50 border-slate-100 text-slate-500'
+                ? 'bg-emerald-950/70 border-emerald-800/60 text-emerald-300'
+                : 'bg-slate-900 border-slate-800 text-slate-400'
             }`}>
               {error
                 ? <><WifiOff size={12} /> <span>Błąd połączenia</span></>
@@ -942,12 +1097,12 @@ export default function App() {
 
             {/* Record count (Single-line row) */}
             {lastSync && !error && (
-              <div className="hidden lg:flex items-center gap-3 text-xs text-slate-500 bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
-                <span>Aktywni: <strong className="text-slate-800 font-semibold">{activeMembersCount}</strong></span>
-                <span className="text-slate-300">•</span>
-                <span>Kwarantanna: <strong className="text-amber-700 font-semibold">{quarantine.length}</strong></span>
-                <span className="text-slate-300">•</span>
-                <span>Spotkania: <strong className="text-slate-800 font-semibold">{meetings.length}</strong></span>
+              <div className="hidden lg:flex items-center gap-3 text-xs text-sky-200/80 bg-slate-900/90 border border-sky-900/40 px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
+                <span>Pisma: <strong className="text-white font-semibold">{correspondence.length}</strong></span>
+                <span className="text-slate-600">•</span>
+                <span>Wady IT: <strong className="text-amber-400 font-semibold">{itIssues.length}</strong></span>
+                <span className="text-slate-600">•</span>
+                <span>Ustalenia: <strong className="text-sky-300 font-semibold">{decisions.length}</strong></span>
               </div>
             )}
 
@@ -955,8 +1110,8 @@ export default function App() {
             <button
               onClick={loadData}
               disabled={loading}
-              title="Odśwież dane z Google Sheets i Teamup"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-sm cursor-pointer whitespace-nowrap"
+              title="Odśwież dane z Google Sheets"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-md shadow-blue-950/50 cursor-pointer whitespace-nowrap border border-blue-500/30"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Odśwież dane</span>
@@ -968,13 +1123,30 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Error banner ───────────────────────────────────────────────────── */}
+      {/* ── Error / Warning banner ────────────────────────────────────────── */}
       {error && (
-        <div className="bg-red-50 border-b border-red-100 px-4 sm:px-6 py-2 print:hidden">
-          <div className="w-[98vw] max-w-[1850px] mx-auto flex items-center gap-2 text-sm text-red-700">
-            <WifiOff size={14} className="shrink-0" />
-            <span>Błąd pobierania danych: <strong>{error}</strong></span>
-            <button onClick={loadData} className="ml-auto underline text-xs">Spróbuj ponownie</button>
+        <div className="bg-amber-950/70 border-b border-amber-800/60 px-4 sm:px-6 py-2.5 print:hidden">
+          <div className="w-[98vw] max-w-[1850px] mx-auto flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <WifiOff size={15} className="text-amber-400 shrink-0" />
+              <span className="truncate">
+                <strong>Status synchronizacji:</strong> {error} (załadowano lokalną bazę ewidencyjną)
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setError(null)}
+                className="text-amber-300 hover:text-white text-xs px-2 py-1 rounded bg-amber-900/60 hover:bg-amber-800 transition cursor-pointer"
+              >
+                Ukryj
+              </button>
+              <button
+                onClick={loadData}
+                className="text-white font-medium text-xs px-3 py-1 rounded bg-[#1e3a8a] hover:bg-[#1d4ed8] transition cursor-pointer"
+              >
+                Ponów
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -982,36 +1154,99 @@ export default function App() {
       {/* ── Main Content Area ───────────────────────────────────────────────── */}
       <main className="w-[98vw] max-w-[1850px] mx-auto px-4 sm:px-6 py-4 space-y-6">
 
-        {/* Navigation Bar with Condensed 5 Tabs and Sub-Tabs */}
+        {/* Navigation Bar with 6 Tabs */}
         <Navbar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          pendingCount={pendingCount}
-          membersSubTab={membersSubTab}
-          setMembersSubTab={setMembersSubTab}
-          documentationSubTab={documentationSubTab}
-          setDocumentationSubTab={setDocumentationSubTab}
-          settingsToolsSubTab={settingsToolsSubTab}
-          setSettingsToolsSubTab={setSettingsToolsSubTab}
+          pendingCorrespondenceCount={correspondence.filter(c => c.status === 'W toku' || c.weryfikacjaFormalna === 'Weryfikacja').length}
+          pendingItCount={itIssues.filter(i => i.ectsImpact?.includes('Krytyczny') || i.status?.includes('Oczekuje')).length}
         />
 
         {/* Skeleton loading state on first load */}
-        {loading && members.length === 0 && quarantine.length === 0 && (
+        {loading && correspondence.length === 0 && itIssues.length === 0 && (
           <div className="space-y-4 animate-pulse">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1,2,3].map(i => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-24" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-28" />
               ))}
             </div>
-            <div className="bg-white rounded-2xl border border-slate-100 h-64" />
+            <div className="bg-white rounded-2xl border border-slate-100 h-80" />
           </div>
         )}
 
-        {/* Tabs */}
-        {(!loading || members.length > 0 || quarantine.length > 0) && (
+        {/* Tabs Router */}
+        {(!loading || correspondence.length > 0 || itIssues.length > 0 || members.length > 0) && (
           <ErrorBoundary>
             {(() => {
               switch (activeTab) {
+                case 'dashboard':
+                  return (
+                    <DashboardTab
+                      correspondence={correspondence}
+                      itIssues={itIssues}
+                      organizations={orgsList}
+                      decisions={decisions}
+                      onNavigateTab={setActiveTab}
+                      onSelectCorrespondence={(item) => {
+                        setSelectedCorrespondenceItem(item);
+                        setActiveTab('correspondence');
+                      }}
+                    />
+                  );
+
+                case 'correspondence':
+                case 'mail':
+                case 'poczta':
+                  return (
+                    <CorrespondenceTab
+                      correspondence={correspondence}
+                      onAddCorrespondence={handleAddCorrespondence}
+                      selectedItem={selectedCorrespondenceItem}
+                      onSelectItem={setSelectedCorrespondenceItem}
+                    />
+                  );
+
+                case 'it_issues':
+                case 'wady':
+                case 'it':
+                  return (
+                    <ItIssuesTab
+                      itIssues={itIssues}
+                      onAddItIssue={handleAddItIssue}
+                    />
+                  );
+
+                case 'decisions':
+                case 'protokoly':
+                case 'ustalenia':
+                  return (
+                    <OperationalDecisionsTab
+                      decisions={decisions}
+                      onAddDecision={handleAddDecision}
+                    />
+                  );
+
+                case 'organizations':
+                case 'kola':
+                case 'clubs':
+                  return (
+                    <OrganizationsTab
+                      organizations={orgsList}
+                      onAddOrganization={handleAddOrganization}
+                    />
+                  );
+
+                case 'access_control':
+                case 'settings':
+                case 'uprawnienia':
+                case 'settings_tools':
+                  return (
+                    <AccessControlTab
+                      onRefreshData={loadData}
+                    />
+                  );
+
+                // Fallback support for legacy tabs
                 case 'members':
                   if (membersSubTab === 'quarantine') {
                     return (
@@ -1045,39 +1280,6 @@ export default function App() {
                     />
                   );
 
-                case 'management':
-                  return (
-                    <ManagementTab
-                      members={members}
-                      meetings={meetings}
-                      isLoading={loading}
-                      onToggleStatus={handleToggleStatus}
-                      onRevertToQuarantine={handleRevertToQuarantine}
-                      onSaveMember={handleSaveMember}
-                      onArchiveMember={handleArchiveMember}
-                      onBulkMarkGraduates={handleBulkMarkGraduates}
-                      onBulkArchiveGraduates={handleBulkArchiveGraduates}
-                      onNavigateToReports={handleNavigateToReports}
-                    />
-                  );
-
-                case 'quarantine':
-                  return (
-                    <QuarantineTab
-                      members={members}
-                      quarantine={quarantine}
-                      archivedQuarantine={archivedQuarantine}
-                      onApprove={handleApprove}
-                      onBulkApprove={handleBulkApprove}
-                      onArchive={handleArchive}
-                      onBulkArchive={handleBulkArchive}
-                      onRestoreArchive={handleRestoreArchive}
-                      onBulkRestoreArchive={handleBulkRestoreArchive}
-                      onPermanentDeleteArchive={handlePermanentDeleteArchive}
-                      onSaveMember={handleSaveMember}
-                    />
-                  );
-
                 case 'meetings':
                   return (
                     <MeetingsTab
@@ -1097,87 +1299,18 @@ export default function App() {
                     />
                   );
 
-                case 'documentation':
-                  if (documentationSubTab === 'documents') {
-                    return <DocumentsRepositoryTab />;
-                  }
-                  return (
-                    <ReportsTab
-                      members={members}
-                      meetings={meetings}
-                      initialMember={reportsTarget.member}
-                      initialDocType={reportsTarget.docType}
-                    />
-                  );
-
-                case 'reports':
-                  return (
-                    <ReportsTab
-                      members={members}
-                      meetings={meetings}
-                      initialMember={reportsTarget.member}
-                      initialDocType={reportsTarget.docType}
-                    />
-                  );
-
-                case 'documents':
-                case 'repository':
-                  return <DocumentsRepositoryTab />;
-
-                case 'research':
-                  return <ResearchTab />;
-
-                case 'settings_tools':
-                  if (settingsToolsSubTab === 'tools') {
-                    return (
-                      <ToolsTab
-                        members={members}
-                        materials={materials}
-                        meetings={meetings}
-                        onBulkMarkGraduates={handleBulkMarkGraduates}
-                        onBulkArchiveGraduates={handleBulkArchiveGraduates}
-                      />
-                    );
-                  }
-                  return (
-                    <SettingsTab
-                      members={members}
-                      meetings={meetings}
-                    />
-                  );
-
-                case 'settings':
-                  return (
-                    <SettingsTab
-                      members={members}
-                      meetings={meetings}
-                    />
-                  );
-
-                case 'tools':
-                  return (
-                    <ToolsTab
-                      members={members}
-                      materials={materials}
-                      meetings={meetings}
-                      onBulkMarkGraduates={handleBulkMarkGraduates}
-                      onBulkArchiveGraduates={handleBulkArchiveGraduates}
-                    />
-                  );
-
                 default:
                   return (
-                    <ManagementTab
-                      members={members}
-                      meetings={meetings}
-                      isLoading={loading}
-                      onToggleStatus={handleToggleStatus}
-                      onRevertToQuarantine={handleRevertToQuarantine}
-                      onSaveMember={handleSaveMember}
-                      onArchiveMember={handleArchiveMember}
-                      onBulkMarkGraduates={handleBulkMarkGraduates}
-                      onBulkArchiveGraduates={handleBulkArchiveGraduates}
-                      onNavigateToReports={handleNavigateToReports}
+                    <DashboardTab
+                      correspondence={correspondence}
+                      itIssues={itIssues}
+                      organizations={orgsList}
+                      decisions={decisions}
+                      onNavigateTab={setActiveTab}
+                      onSelectCorrespondence={(item) => {
+                        setSelectedCorrespondenceItem(item);
+                        setActiveTab('correspondence');
+                      }}
                     />
                   );
               }

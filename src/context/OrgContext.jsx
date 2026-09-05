@@ -20,24 +20,25 @@ import {
   getMeetingOverrides,
   saveMeetingOverride,
 } from '../utils/storage';
+import { SHEET_ID } from '../services/googleSheets';
 
 export const DEFAULT_ORGS = [
   {
-    id: 'skn-psychoonkologia',
-    name: 'Studenckie Koło Naukowe Psychoonkologii WSKZ',
-    shortName: 'SKN Psychoonkologii',
+    id: 'samorzad-wskz',
+    name: 'Samorząd Studencki WSKZ',
+    shortName: 'Samorząd WSKZ',
     tag: 'WSKZ',
-    faculty: 'Instytut Psychologii WSKZ',
-    unit: 'Instytut Psychologii WSKZ',
+    faculty: 'Wyższa Szkoła Kształcenia Zawodowego',
+    unit: 'Samorząd Studencki WSKZ',
     academicYear: '2026/2027',
-    sheetId: '1HbpVQkKdtKqsg0Ew5d3AigZBq-wvQYmJ-vpSIIWLFpg',
+    sheetId: SHEET_ID,
     calendarKey: 'ks9aiux4jiza1ronpd',
     calendarId: 'ks9aiux4jiza1ronpd',
     teamupApiKey: '20dc4242d0d74be314e5ee108dc618cf3f6fbcb7647865568775fe4d9a89c112',
     teamupToken: '20dc4242d0d74be314e5ee108dc618cf3f6fbcb7647865568775fe4d9a89c112',
     subcalendarId: '15520558',
-    subcalendarName: 'Koła Naukowe: > 07 🎗️ SKN Psychoonkologii',
-    description: 'Studenckie Koło Naukowe Psychoonkologii WSKZ - Oficjalna ewidencja i harmonogram',
+    subcalendarName: 'Samorząd Studencki WSKZ',
+    description: 'Samorząd Studencki WSKZ - Oficjalny system ewidencyjno-sprawozdawczy',
     isDefault: true,
     supervisors: [],
   },
@@ -70,7 +71,7 @@ export function OrgProvider({ children }) {
             merged[idx] = {
               ...defOrg,
               ...merged[idx],
-              sheetId: (merged[idx].sheetId && merged[idx].sheetId.length > 5 && merged[idx].sheetId !== '1xIJDJP2PpIJY8EfaY2gf6Qcq3YBcSCKX3BW-oO92u6Y') ? merged[idx].sheetId : defOrg.sheetId,
+              sheetId: (merged[idx].sheetId && merged[idx].sheetId.length > 5 && merged[idx].sheetId !== '1xIJDJP2PpIJY8EfaY2gf6Qcq3YBcSCKX3BW-oO92u6Y' && merged[idx].sheetId !== '1HbpVQkKdtKqsg0Ew5d3AigZBq-wvQYmJ-vpSIIWLFpg') ? merged[idx].sheetId : defOrg.sheetId,
               calendarKey: defOrg.calendarKey || merged[idx].calendarKey,
               calendarId: defOrg.calendarId || merged[idx].calendarId,
               teamupApiKey: defOrg.teamupApiKey || merged[idx].teamupApiKey,

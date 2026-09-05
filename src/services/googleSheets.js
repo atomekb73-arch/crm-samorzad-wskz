@@ -8,15 +8,66 @@ export function extractSheetId(input) {
   return str;
 }
 
-// ─── Google Sheets gviz/tq fetcher with strict WHITELIST ────────────────────
-// Domyślny arkusz dla Studenckiego Koła Naukowego Psychoonkologii WSKZ
+// ─── Obfuskacja ID arkusza Samorządu Studenckiego WSKZ (Base64) ─────────────
+const OBFUSCATED_SHEET_KEY = "MTAtNml0ajd3WVZYMWFsWEpLdEVRTi1SaEtnR2xyaW0tdkNvM0t3TWFYN3c=";
+
+export function decodeSheetKey(b64 = OBFUSCATED_SHEET_KEY) {
+  try {
+    if (typeof atob === 'function') {
+      return atob(b64);
+    }
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(b64, 'base64').toString('utf-8');
+    }
+  } catch (e) {
+    console.warn('Błąd dekodowania klucza arkusza:', e);
+  }
+  return '';
+}
+
 const envSheetInput = import.meta.env?.VITE_GOOGLE_SHEET_ID || import.meta.env?.VITE_SHEETS_URL;
-export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : '1HbpVQkKdtKqsg0Ew5d3AigZBq-wvQYmJ-vpSIIWLFpg';
+export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : decodeSheetKey(OBFUSCATED_SHEET_KEY);
+
+// ─── Identyfikatory zakładek arkusza samorządowego (GID) ──────────────────────
+export const SAMORZAD_GIDS = {
+  KORESPONDENCJA: '1036939049',       // Dziennik Korespondencji
+  WADY_IT: '271506483',               // Rejestr Wad IT
+  EWIDENCJA_KOL: '1223057939',         // Ewidencja Kół
+  USTALENIA_OPERACYJNE: '1095771824', // Ustalenia Operacyjne
+};
+
+export const SAMORZAD_TABS = {
+  KORESPONDENCJA: { gid: '1036939049', name: 'Dziennik Korespondencji' },
+  WADY_IT: { gid: '271506483', name: 'Rejestr Wad IT' },
+  EWIDENCJA_KOL: { gid: '1223057939', name: 'Ewidencja Kół' },
+  USTALENIA_OPERACYJNE: { gid: '1095771824', name: 'Ustalenia Operacyjne' },
+};
+
+// ─── Konfiguracja limitu czasu (Timeout: 8s) ──────────────────────────────────
+export const DEFAULT_FETCH_TIMEOUT = 8000;
+
+export async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error(`Przekroczono limit czasu odpowiedzi (${timeoutMs / 1000}s)`);
+    }
+    throw err;
+  }
+}
 
 // ─── Data graniczna (Cut-off Watermark) dla nowych zgłoszeń w kwarantannie ──
 // Parser ignoruje zgłoszenia starsze niż 5 września 2026 r. 00:00:00
 export const CUTOFF_DATE = new Date('2026-09-05T00:00:00');
-
 
 export const AUTHORIZED_INDEXES = new Set([]);
 
@@ -27,77 +78,98 @@ function buildUrl(sheetName, sheetId = SHEET_ID) {
 }
 
 /** Parsuje odpowiedź gviz/tq (opakowana w JS callback) i zwraca { cols, rows } */
-export async function fetchSheet(sheetName, sheetId = SHEET_ID) {
+export async function fetchSheet(sheetTarget, sheetId = SHEET_ID, timeoutMs = DEFAULT_FETCH_TIMEOUT) {
   const cleanId = extractSheetId(sheetId) || SHEET_ID;
   if (!cleanId) return null;
-  const candidates = sheetName
-    ? [sheetName, 'Aktualna_lista_KN', 'Baza_Kwarantanna', 'Zarz%C4%85dzanie', 'Zarządzanie', 'Zarzadzanie', 'Arkusz1', 'Sheet1']
-    : ['Aktualna_lista_KN', 'Baza_Kwarantanna', 'Zarz%C4%85dzanie', 'Zarządzanie', 'Arkusz1', 'Sheet1'];
+
+  const urlsToTry = [];
+
+  if (typeof sheetTarget === 'object' && sheetTarget !== null) {
+    if (sheetTarget.gid) {
+      urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&gid=${sheetTarget.gid}`);
+    }
+    if (sheetTarget.name) {
+      urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetTarget.name)}`);
+    }
+  } else if (typeof sheetTarget === 'string' && /^\d+$/.test(sheetTarget.trim())) {
+    urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&gid=${sheetTarget.trim()}`);
+  } else if (typeof sheetTarget === 'string' && sheetTarget.trim()) {
+    const name = sheetTarget.trim();
+    urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`);
+  }
+
+  // Kandydaci fallback
+  if (urlsToTry.length === 0) {
+    const candidates = ['Dziennik Korespondencji', 'Ewidencja Kół', 'Rejestr Wad IT', 'Ustalenia Operacyjne', 'Aktualna_lista_KN', 'Baza_Kwarantanna', 'Zarządzanie', 'Zarz%C4%85dzanie', 'Arkusz1', 'Sheet1'];
+    candidates.forEach(c => {
+      urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(c)}`);
+    });
+    urlsToTry.push(`https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json`);
+  }
 
   let lastStatus = 0;
-  for (const name of candidates) {
+  let lastError = null;
+
+  for (const url of urlsToTry) {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, {}, timeoutMs);
       if (!res.ok) {
         lastStatus = res.status;
-        if (res.status === 401) {
-          throw new Error(`Odmowa dostępu (HTTP 401) do arkusza ${cleanId}. Włącz w Google Drive: Udostępnij -> Każda osoba mająca link (Przeglądający).`);
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(`Brak uprawnień publicznych do odczytu arkusza (HTTP ${res.status}). Ustaw w Google Drive: Udostępnij -> Każda osoba mająca link (Przeglądający).`);
         }
         continue;
       }
       const text = await res.text();
+      // Ochrona przed odpowiedzią HTML (strona logowania Google)
+      if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
+        throw new Error('Arkusz wymaga uprawnień publicznych (Google zwróciło stronę logowania zamiast danych JSON).');
+      }
       const jsonStr = text.replace(/^[^{]*/, '').replace(/\);?\s*$/, '');
       const data = JSON.parse(jsonStr);
       if (data.status === 'ok' && data.table) {
         return data.table;
       }
     } catch (e) {
-      if (e.message.includes('401')) throw e;
-    }
-  }
-
-  // Fallback bez parametru sheet (domyślny pierwszy arkusz / gid=0)
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${cleanId}/gviz/tq?tqx=out:json`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error(`Odmowa dostępu (HTTP 401) do arkusza ${cleanId}. Włącz w Google Drive: Udostępnij -> Każda osoba mająca link (Przeglądający).`);
+      lastError = e;
+      if (e.message.includes('uprawnień') || e.message.includes('401') || e.message.includes('403') || e.message.includes('publicznych')) {
+        throw e;
       }
-      throw new Error(`HTTP ${res.status}`);
     }
-    const text = await res.text();
-    const jsonStr = text.replace(/^[^{]*/, '').replace(/\);?\s*$/, '');
-    const data = JSON.parse(jsonStr);
-    if (data.status === 'ok' && data.table) {
-      return data.table;
-    }
-  } catch (e) {
-    throw e;
   }
 
-  throw new Error(`Nie znaleziono danych w arkuszu "${sheetName || cleanId}" (HTTP ${lastStatus || 'błąd'})`);
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error(`Nie znaleziono danych w arkuszu (HTTP ${lastStatus || 'brak odpowiedzi'})`);
 }
 
-export async function testSheetConnection(sheetId) {
+export async function testSheetConnection(sheetId, timeoutMs = 5000) {
   try {
-    const cleanId = extractSheetId(sheetId);
+    const cleanId = extractSheetId(sheetId) || SHEET_ID;
     if (!cleanId) return { ok: false, error: 'Brak ID arkusza' };
-    const candidates = ['Aktualna_lista_KN', 'Baza_Kwarantanna', 'Zarządzanie', 'Zarz%C4%85dzanie', 'Arkusz1', 'Sheet1'];
+    const candidates = [
+      { gid: SAMORZAD_GIDS.KORESPONDENCJA, name: 'Dziennik Korespondencji' },
+      { gid: SAMORZAD_GIDS.EWIDENCJA_KOL, name: 'Ewidencja Kół' },
+      'Aktualna_lista_KN',
+      'Baza_Kwarantanna',
+      'Zarządzanie',
+      'Arkusz1',
+      'Sheet1',
+    ];
     let table = null;
     let foundTab = '';
     for (const tab of candidates) {
       try {
-        table = await fetchSheet(tab, cleanId);
+        table = await fetchSheet(tab, cleanId, timeoutMs);
         if (table?.rows?.length > 0) {
-          foundTab = tab;
+          foundTab = typeof tab === 'object' ? (tab.name || tab.gid) : tab;
           break;
         }
       } catch {}
     }
     if (!table) {
-      table = await fetchSheet('', cleanId);
+      table = await fetchSheet('', cleanId, timeoutMs);
     }
     const rowCount = table?.rows?.length || 0;
     return { ok: true, rowCount, message: `Połączono pomyślnie! Znaleziono ${rowCount} wierszy w arkuszu${foundTab ? ` (${foundTab})` : ''}.` };
@@ -202,203 +274,240 @@ function formatDate(d) {
 export async function fetchAllData(sheetId = SHEET_ID) {
   const cleanId = extractSheetId(sheetId) || SHEET_ID;
   if (!cleanId) {
-    return { members: seedMembers, quarantine: [] };
+    return { members: seedMembers, quarantine: [], mailLog: [], itIssues: [], clubs: [], decisions: [] };
   }
 
-  // ── Dedykowany parser dla SKN Psychoonkologii WSKZ ────────────────────────
-  // Arkusz: 1HbpVQkKdtKqsg0Ew5d3AigZBq-wvQYmJ-vpSIIWLFpg
-  // Zakładka z aktywnymi członkami: Aktualna_lista_KN (165 członków)
-  // Zakładka z nowymi zgłoszeniami: Baza_Kwarantanna (Cut-off Date: 2026-09-05 00:00:00)
-  if (cleanId === '1HbpVQkKdtKqsg0Ew5d3AigZBq-wvQYmJ-vpSIIWLFpg' || cleanId === SHEET_ID) {
-    let members = [];
-    let quarantine = [];
+  let members = [];
+  let quarantine = [];
+  let mailLog = [];
+  let itIssues = [];
+  let clubs = [];
+  let decisions = [];
+  let syncWarning = null;
 
-    // 1. Pobierz aktualną listę aktywnych członków koła z Zarządzanie lub Aktualna_lista_KN
+  // 1. Pobierz Dziennik Korespondencji (GID: 1036939049) / Ewidencja_Poczty
+  try {
+    const mailRes = await fetchMailRegistryFromSheet(cleanId);
+    if (mailRes.ok && Array.isArray(mailRes.entries) && mailRes.entries.length > 0) {
+      mailLog = mailRes.entries;
+    }
+  } catch (err) {
+    console.warn('Błąd pobierania Dziennik Korespondencji:', err);
+    syncWarning = err.message;
+  }
+
+  // 2. Pobierz Rejestr Wad IT (GID: 271506483)
+  try {
+    const itRes = await fetchItIssuesFromSheet(cleanId);
+    if (itRes.ok && Array.isArray(itRes.issues) && itRes.issues.length > 0) {
+      itIssues = itRes.issues;
+    }
+  } catch (err) {
+    console.warn('Błąd pobierania Rejestru Wad IT:', err);
+  }
+
+  // 3. Pobierz Ewidencję Kół (GID: 1223057939)
+  try {
+    const clubsRes = await fetchClubsFromSheet(cleanId);
+    if (clubsRes.ok && Array.isArray(clubsRes.clubs) && clubsRes.clubs.length > 0) {
+      clubs = clubsRes.clubs;
+    }
+  } catch (err) {
+    console.warn('Błąd pobierania Ewidencji Kół:', err);
+  }
+
+  // 4. Pobierz Ustalenia Operacyjne (GID: 1095771824)
+  try {
+    const decRes = await fetchOperationalDecisionsFromSheet(cleanId);
+    if (decRes.ok && Array.isArray(decRes.decisions) && decRes.decisions.length > 0) {
+      decisions = decRes.decisions;
+    }
+  } catch (err) {
+    console.warn('Błąd pobierania Ustaleń Operacyjnych:', err);
+  }
+
+  // 5. Pobierz aktualną listę aktywnych członków z zakładek Zarządzanie / Aktualna_lista_KN / Ewidencja Kół
+  try {
+    let activeTable = null;
+    let usedTab = 'Zarządzanie';
     try {
-      let activeTable = null;
-      let usedTab = 'Zarządzanie';
+      activeTable = await fetchSheet('Zarządzanie', cleanId);
+    } catch {}
+    if (!activeTable || !activeTable.rows || activeTable.rows.length === 0) {
       try {
-        activeTable = await fetchSheet('Zarządzanie', cleanId);
+        activeTable = await fetchSheet('Aktualna_lista_KN', cleanId);
+        usedTab = 'Aktualna_lista_KN';
       } catch {}
-      if (!activeTable || !activeTable.rows || activeTable.rows.length === 0) {
-        try {
-          activeTable = await fetchSheet('Aktualna_lista_KN', cleanId);
-          usedTab = 'Aktualna_lista_KN';
-        } catch {}
-      }
-
-      if (activeTable && activeTable.rows && activeTable.rows.length > 0) {
-        const rawRows = activeTable.rows.filter(r => r && r.c);
-        members = rawRows.map((row, index) => {
-          if (usedTab === 'Zarządzanie' && index < 2) return null; // Pomiń wiersz 0 (KPI) oraz wiersz 1 (Nagłówki)
-          const c = row.c || [];
-
-          let fullName = '';
-          let rawIndex = '';
-          let phone = '';
-          let email = '';
-          let field = 'Psychologia';
-          let year = 'Rok 1-5';
-          let status = 'active';
-
-          if (usedTab === 'Zarządzanie') {
-            email = cellStr(c[0]);
-            fullName = cellStr(c[1]);
-            phone = cellStr(c[2]);
-            rawIndex = String(cellNum(c[3]) ?? cellStr(c[3]) ?? '');
-            const statusColText = cellStr(c[6]).toLowerCase();
-            if (/rezygnacja|byli|rezygn/i.test(statusColText)) {
-              status = 'resigned';
-            }
-          } else {
-            fullName = cellStr(c[0]);
-            rawIndex = String(cellNum(c[1]) ?? cellStr(c[1]) ?? '');
-            phone = cellStr(c[2]);
-            email = cellStr(c[3]);
-            field = cellStr(c[4]) || 'Psychologia';
-            year = cellStr(c[5]) || '';
-          }
-
-          if (!fullName || fullName.toLowerCase().includes('imię i nazwisko') || fullName.toLowerCase().includes('- wpisz -')) {
-            return null;
-          }
-          if (!email && !rawIndex) return null;
-
-          const cleanIndex = normalizeIndex(rawIndex);
-
-          // Odczyt statusu zgody na mailing bezpośrednio z kolumny M (indeks 12) zakładki Zarządzanie
-          const rawColM = cellStr(c[12]);
-          const rawColL = cellStr(c[11]);
-          const colMailing = rawColM || rawColL;
-          const isExplicitConsent = colMailing.trim() === 'Zgoda na mailing' || colMailing.toLowerCase() === 'zgoda na mailing';
-          const isExplicitNoConsent = colMailing.trim() === 'Brak zgody' || colMailing.toLowerCase() === 'brak zgody';
-
-          let zgodaNaMailing = 'Zgoda na mailing';
-          let mailingConsent = true;
-
-          if (isExplicitNoConsent) {
-            zgodaNaMailing = 'Brak zgody';
-            mailingConsent = false;
-          } else if (isExplicitConsent) {
-            zgodaNaMailing = 'Zgoda na mailing';
-            mailingConsent = true;
-          } else if (colMailing.trim()) {
-            zgodaNaMailing = colMailing.trim();
-            mailingConsent = zgodaNaMailing === 'Zgoda na mailing';
-          }
-
-          const parts = fullName.split(' ');
-          const firstName = parts[0] || '';
-          const lastName = parts.slice(1).join(' ') || '';
-
-          return {
-            id: `psy_m_${index + 1}`,
-            memberKey: cleanIndex ? `idx_${cleanIndex}` : (email ? `email_${email.toLowerCase().trim()}` : `psy_m_${index + 1}`),
-            fullName,
-            firstName,
-            lastName,
-            index: cleanIndex || rawIndex,
-            cleanIndex,
-            email: email ? email.toLowerCase().trim() : '',
-            phone,
-            field,
-            year,
-            status,
-            mailingConsent,
-            zgodaNaMailing,
-            consentStatus: mailingConsent ? 'Zgody OK' : 'Brak zgody',
-            points: 0,
-            present: 0,
-            absent: 0,
-            attendancePercent: 0,
-            certStatus: 'W toku',
-            timestamp: '2026-09-04',
-            fromSheet: usedTab,
-          };
-        }).filter(Boolean);
-      }
-    } catch (err) {
-      console.warn('Błąd pobierania członków z Google Sheets, używam bazy seed:', err);
+    }
+    if (!activeTable || !activeTable.rows || activeTable.rows.length === 0) {
+      try {
+        activeTable = await fetchSheet({ gid: SAMORZAD_GIDS.EWIDENCJA_KOL, name: 'Ewidencja Kół' }, cleanId);
+        usedTab = 'Ewidencja Kół';
+      } catch {}
     }
 
-    if (!members || members.length === 0) {
-      members = seedMembers;
-    }
+    if (activeTable && activeTable.rows && activeTable.rows.length > 0) {
+      const rawRows = activeTable.rows.filter(r => r && r.c);
+      members = rawRows.map((row, index) => {
+        if (usedTab === 'Zarządzanie' && index < 2) return null; // Pomiń wiersz 0 (KPI) oraz wiersz 1 (Nagłówki)
+        const c = row.c || [];
 
-    // 2. Pobierz zgłoszenia z Baza_Kwarantanna (z uwzględnieniem Cut-off Date 2026-09-05 00:00:00)
-    try {
-      const kwarantannaTable = await fetchSheet('Baza_Kwarantanna', cleanId);
-      if (kwarantannaTable && kwarantannaTable.rows && kwarantannaTable.rows.length > 0) {
-        const rows = kwarantannaTable.rows.filter(r => r && r.c);
-        const cutoffTime = CUTOFF_DATE.getTime();
+        let fullName = '';
+        let rawIndex = '';
+        let phone = '';
+        let email = '';
+        let field = 'Samorząd Studencki / Wszystkie kierunki';
+        let year = 'Rok 1-5';
+        let status = 'active';
 
-        quarantine = rows.map((row, index) => {
-          const c = row.c || [];
-          // c[1] to sygnatura czasowa
-          const rawDate = parseGvizDate(c[1]);
-          if (!rawDate) return null;
-
-          // Ignoruj zgłoszenia sprzed daty granicznej 2026-09-05 00:00:00
-          if (rawDate.getTime() < cutoffTime) {
-            return null;
+        if (usedTab === 'Zarządzanie') {
+          email = cellStr(c[0]);
+          fullName = cellStr(c[1]);
+          phone = cellStr(c[2]);
+          rawIndex = String(cellNum(c[3]) ?? cellStr(c[3]) ?? '');
+          const statusColText = cellStr(c[6]).toLowerCase();
+          if (/rezygnacja|byli|rezygn/i.test(statusColText)) {
+            status = 'resigned';
           }
+        } else {
+          fullName = cellStr(c[0]);
+          rawIndex = String(cellNum(c[1]) ?? cellStr(c[1]) ?? '');
+          phone = cellStr(c[2]);
+          email = cellStr(c[3]);
+          field = cellStr(c[4]) || 'Psychologia';
+          year = cellStr(c[5]) || '';
+        }
 
-          const email = cellStr(c[5]) || cellStr(c[2]);
-          const firstName = cellStr(c[3]);
-          const lastName = cellStr(c[4]);
-          const fullName = `${firstName} ${lastName}`.trim() || firstName;
-          const rawIndex = String(cellNum(c[6]) ?? cellStr(c[6]) ?? '');
-          const cleanIndex = normalizeIndex(rawIndex);
-          const field = cellStr(c[7]) || 'Psychologia';
-          const year = cellStr(c[8]) || '';
-          const phone = cellStr(c[9]) || '';
-          const supervisorVerif = cellStr(c[19]);
-          const uniStatus = cellStr(c[21]);
-          const rodoConsent = cellStr(c[11]);
+        if (!fullName || fullName.toLowerCase().includes('imię i nazwisko') || fullName.toLowerCase().includes('- wpisz -')) {
+          return null;
+        }
+        if (!email && !rawIndex) return null;
 
-          const isConsented = /zgody ok|zgoda/i.test(supervisorVerif) || /wyrażam zgodę/i.test(rodoConsent);
-          const isExplicitDupe = /duplikat/i.test(supervisorVerif) || /duplikat/i.test(uniStatus);
-          const isResignation = /rezygnacja|rezygn/i.test(`${fullName} ${supervisorVerif} ${uniStatus}`);
+        const cleanIndex = normalizeIndex(rawIndex);
 
-          return {
-            id: `psy_q_${index + 1}`,
-            memberKey: cleanIndex ? `idx_${cleanIndex}` : (email ? `email_${email.toLowerCase().trim()}` : `psy_q_${index + 1}`),
-            fullName,
-            firstName,
-            lastName,
-            index: cleanIndex || rawIndex,
-            cleanIndex,
-            email: email ? email.toLowerCase().trim() : '',
-            phone,
-            field,
-            year,
-            consentStatus: isConsented ? 'Zgody OK' : 'Oczekuje na weryfikację',
-            isDuplicate: isExplicitDupe,
-            isResignation,
-            status: uniStatus || 'Oczekiwanie 💬',
-            timestamp: formatDate(rawDate),
-            rawTimestamp: rawDate,
-            fromSheet: 'Baza_Kwarantanna',
-          };
-        }).filter(Boolean);
-      }
-    } catch (err) {
-      console.warn('Błąd pobierania Baza_Kwarantanna z Google Sheets:', err);
+        // Odczyt statusu zgody na mailing
+        const rawColM = cellStr(c[12]);
+        const rawColL = cellStr(c[11]);
+        const colMailing = rawColM || rawColL;
+        const isExplicitConsent = colMailing.trim() === 'Zgoda na mailing' || colMailing.toLowerCase() === 'zgoda na mailing';
+        const isExplicitNoConsent = colMailing.trim() === 'Brak zgody' || colMailing.toLowerCase() === 'brak zgody';
+
+        let zgodaNaMailing = 'Zgoda na mailing';
+        let mailingConsent = true;
+
+        if (isExplicitNoConsent) {
+          zgodaNaMailing = 'Brak zgody';
+          mailingConsent = false;
+        } else if (isExplicitConsent) {
+          zgodaNaMailing = 'Zgoda na mailing';
+          mailingConsent = true;
+        } else if (colMailing.trim()) {
+          zgodaNaMailing = colMailing.trim();
+          mailingConsent = zgodaNaMailing === 'Zgoda na mailing';
+        }
+
+        const parts = fullName.split(' ');
+        const firstName = parts[0] || '';
+        const lastName = parts.slice(1).join(' ') || '';
+
+        return {
+          id: `sam_m_${index + 1}`,
+          memberKey: cleanIndex ? `idx_${cleanIndex}` : (email ? `email_${email.toLowerCase().trim()}` : `sam_m_${index + 1}`),
+          fullName,
+          firstName,
+          lastName,
+          index: cleanIndex || rawIndex,
+          cleanIndex,
+          email: email ? email.toLowerCase().trim() : '',
+          phone,
+          field,
+          year,
+          status,
+          mailingConsent,
+          zgodaNaMailing,
+          consentStatus: mailingConsent ? 'Zgody OK' : 'Brak zgody',
+          points: 0,
+          present: 0,
+          absent: 0,
+          attendancePercent: 0,
+          certStatus: 'W toku',
+          timestamp: '2026-09-05',
+          fromSheet: usedTab,
+        };
+      }).filter(Boolean);
     }
-
-    // 3. Pobierz ewidencję poczty z dedykowanej zakładki Ewidencja_Poczty
-    let mailLog = [];
-    try {
-      const mailRes = await fetchMailRegistryFromSheet(cleanId);
-      if (mailRes.ok && Array.isArray(mailRes.entries) && mailRes.entries.length > 0) {
-        mailLog = mailRes.entries;
-      }
-    } catch (err) {
-      console.warn('Błąd pobierania Ewidencja_Poczty z Google Sheets:', err);
-    }
-
-    return { members, quarantine, mailLog };
+  } catch (err) {
+    console.warn('Błąd pobierania listy członków z arkusza:', err);
+    if (!syncWarning) syncWarning = err.message;
   }
+
+  // Bezpieczny fallback do bazy początkowej (seedMembers) jeśli arkusz jest pusty lub niedostępny
+  if (!members || members.length === 0) {
+    members = seedMembers;
+  }
+
+  // 6. Pobierz zgłoszenia z Baza_Kwarantanna (z uwzględnieniem Cut-off Date 2026-09-05 00:00:00)
+  try {
+    const kwarantannaTable = await fetchSheet('Baza_Kwarantanna', cleanId);
+    if (kwarantannaTable && kwarantannaTable.rows && kwarantannaTable.rows.length > 0) {
+      const rows = kwarantannaTable.rows.filter(r => r && r.c);
+      const cutoffTime = CUTOFF_DATE.getTime();
+
+      quarantine = rows.map((row, index) => {
+        const c = row.c || [];
+        const rawDate = parseGvizDate(c[1]);
+        if (!rawDate) return null;
+
+        // Ignoruj zgłoszenia sprzed daty granicznej 2026-09-05 00:00:00
+        if (rawDate.getTime() < cutoffTime) {
+          return null;
+        }
+
+        const email = cellStr(c[5]) || cellStr(c[2]);
+        const firstName = cellStr(c[3]);
+        const lastName = cellStr(c[4]);
+        const fullName = `${firstName} ${lastName}`.trim() || firstName;
+        const rawIndex = String(cellNum(c[6]) ?? cellStr(c[6]) ?? '');
+        const cleanIndex = normalizeIndex(rawIndex);
+        const field = cellStr(c[7]) || 'Psychologia';
+        const year = cellStr(c[8]) || '';
+        const phone = cellStr(c[9]) || '';
+        const supervisorVerif = cellStr(c[19]);
+        const uniStatus = cellStr(c[21]);
+        const rodoConsent = cellStr(c[11]);
+
+        const isConsented = /zgody ok|zgoda/i.test(supervisorVerif) || /wyrażam zgodę/i.test(rodoConsent);
+        const isExplicitDupe = /duplikat/i.test(supervisorVerif) || /duplikat/i.test(uniStatus);
+        const isResignation = /rezygnacja|rezygn/i.test(`${fullName} ${supervisorVerif} ${uniStatus}`);
+
+        return {
+          id: `sam_q_${index + 1}`,
+          memberKey: cleanIndex ? `idx_${cleanIndex}` : (email ? `email_${email.toLowerCase().trim()}` : `sam_q_${index + 1}`),
+          fullName,
+          firstName,
+          lastName,
+          index: cleanIndex || rawIndex,
+          cleanIndex,
+          email: email ? email.toLowerCase().trim() : '',
+          phone,
+          field,
+          year,
+          consentStatus: isConsented ? 'Zgody OK' : 'Oczekuje na weryfikację',
+          isDuplicate: isExplicitDupe,
+          isResignation,
+          status: uniStatus || 'Oczekiwanie 💬',
+          timestamp: formatDate(rawDate),
+          rawTimestamp: rawDate,
+          fromSheet: 'Baza_Kwarantanna',
+        };
+      }).filter(Boolean);
+    }
+  } catch (err) {
+    console.warn('Błąd pobierania Baza_Kwarantanna z Google Sheets:', err);
+  }
+
+  return { members, quarantine, mailLog, itIssues, clubs, decisions, syncWarning };
+}
 
   const zarzadzanieTable = await fetchSheet('Zarz%C4%85dzanie', cleanId);
   if (!zarzadzanieTable) {
@@ -747,45 +856,208 @@ export async function fetchMeetingSheetAttendance(meetingCode, sheetId = SHEET_I
   return { ok: false, error: `Nie znaleziono arkusza dla spotkania "${meetingCode}"` };
 }
 
-// ─── 4. EWIDENCJA POCZTY (Google Sheets Sync: Ewidencja_Poczty) ───────────────
+// ─── 4. EWIDENCJA POCZTY (Google Sheets Sync: Dziennik Korespondencji / Ewidencja_Poczty) ───
 
-export const MAIL_REGISTRY_TAB = 'Ewidencja_Poczty';
+export const MAIL_REGISTRY_TAB = 'Dziennik Korespondencji';
 
 /**
- * Pobiera i parsuje wpisy korespondencji / ewidencji poczty z dedykowanej zakładki Ewidencja_Poczty w arkuszu Google.
- * Gwarantuje ścisłe powiązanie z zakładką "Ewidencja_Poczty", bez tworzenia nowych zakładek i bez ingerencji w pozostałe arkusze.
+ * Pobiera i parsuje wpisy korespondencji / ewidencji poczty z dedykowanej zakładki w arkuszu Google (GID 1036939049 / Dziennik Korespondencji / Ewidencja_Poczty).
  */
 export async function fetchMailRegistryFromSheet(sheetId = SHEET_ID) {
   const cleanId = extractSheetId(sheetId) || SHEET_ID;
   if (!cleanId) return { ok: false, error: 'Brak ID arkusza', entries: [] };
 
-  try {
-    const table = await fetchSheet('Ewidencja_Poczty', cleanId);
-    if (!table || !table.rows || table.rows.length === 0) {
-      return { ok: true, tabName: 'Ewidencja_Poczty', entries: [] };
+  const candidates = [
+    { gid: SAMORZAD_GIDS.KORESPONDENCJA, name: 'Dziennik Korespondencji' },
+    'Dziennik Korespondencji',
+    'Ewidencja_Poczty',
+    'Ewidencja Poczty',
+  ];
+
+  for (const target of candidates) {
+    try {
+      const table = await fetchSheet(target, cleanId);
+      if (table && table.rows && table.rows.length > 0) {
+        const rows = table.rows.filter(r => r && r.c);
+        const entries = [];
+
+        rows.forEach((row, idx) => {
+          const c = row.c || [];
+          const col0 = cellStr(c[0]);
+          const col1 = cellStr(c[1]);
+          const col2 = cellStr(c[2]);
+          const col3 = cellStr(c[3]);
+          const col4 = cellStr(c[4]);
+          const col5 = cellStr(c[5]);
+          const col6 = cellStr(c[6]);
+          const col7 = cellStr(c[7]);
+          const col8 = cellStr(c[8]);
+
+          // Sprawdź czy to wiersz nagłówka
+          const isHeader = /sygnatura|data|kierunek|nadawca|odbiorca|temat|lp\./i.test(`${col0} ${col1} ${col2} ${col5}`);
+          if (isHeader && idx === 0) return;
+
+          // Jeśli wiersz jest pusty
+          if (!col0 && !col1 && !col2 && !col3 && !col4 && !col5 && !col6) return;
+
+          const parsedDate = parseGvizDate(c[1]);
+          const dateStr = parsedDate ? formatDate(parsedDate).slice(0, 10) : (col1 || new Date().toISOString().slice(0, 10));
+
+          const dirCandidate = (col2 || '').toUpperCase();
+          const direction = (dirCandidate.includes('OUT') || dirCandidate.includes('WYCHOD')) ? 'OUT' : 'IN';
+
+          const id = col0 || `KANC/SAM/${direction}/${String(idx + 1).padStart(2, '0')}/2026`;
+          const sender = col3 || (direction === 'OUT' ? 'Samorząd Studencki WSKZ' : 'Władze Uczelni WSKZ');
+          const recipient = col4 || (direction === 'IN' ? 'Samorząd Studencki WSKZ' : 'Studenci WSKZ');
+          const subject = col5 || col6 || 'Pismo urzędowe';
+          const summary = col6 || col5 || '';
+          const status = col7 || 'Zarejestrowane / Zrealizowane';
+          const hash = col8 || `${id}_${dateStr}`;
+
+          entries.push({
+            id,
+            direction,
+            date: dateStr,
+            sender,
+            recipient,
+            subject,
+            summary,
+            status,
+            hash,
+            fromSheet: typeof target === 'object' ? target.name : target,
+            createdAt: parsedDate ? parsedDate.toISOString() : new Date().toISOString(),
+          });
+        });
+
+        return { ok: true, tabName: typeof target === 'object' ? target.name : target, entries };
+      }
+    } catch (err) {
+      // Spróbuj kolejnego kandydata lub zgłoś błąd
     }
+  }
 
-    const rows = table.rows.filter(r => r && r.c);
-    const entries = [];
+  return { ok: true, tabName: 'Dziennik Korespondencji', entries: [] };
+}
 
-    rows.forEach((row, idx) => {
-      const c = row.c || [];
-      const col0 = cellStr(c[0]);
-      const col1 = cellStr(c[1]);
-      const col2 = cellStr(c[2]);
-      const col3 = cellStr(c[3]);
-      const col4 = cellStr(c[4]);
-      const col5 = cellStr(c[5]);
-      const col6 = cellStr(c[6]);
-      const col7 = cellStr(c[7]);
-      const col8 = cellStr(c[8]);
+/**
+ * Pobiera i parsuje Rejestr Wad IT (GID 271506483).
+ */
+export async function fetchItIssuesFromSheet(sheetId = SHEET_ID) {
+  const cleanId = extractSheetId(sheetId) || SHEET_ID;
+  if (!cleanId) return { ok: false, error: 'Brak ID arkusza', issues: [] };
 
-      // Sprawdź czy to wiersz nagłówka
-      const isHeader = /sygnatura|data|kierunek|nadawca|odbiorca|temat|lp\./i.test(`${col0} ${col1} ${col2} ${col5}`);
-      if (isHeader && idx === 0) return;
+  const candidates = [
+    { gid: SAMORZAD_GIDS.WADY_IT, name: 'Rejestr Wad IT' },
+    'Rejestr Wad IT',
+    'Wady IT',
+  ];
 
-      // Jeśli wiersz jest pusty
-      if (!col0 && !col1 && !col2 && !col3 && !col4 && !col5 && !col6) return;
+  for (const target of candidates) {
+    try {
+      const table = await fetchSheet(target, cleanId);
+      if (table && table.rows && table.rows.length > 0) {
+        const rows = table.rows.filter(r => r && r.c);
+        const issues = rows.map((row, idx) => {
+          const c = row.c || [];
+          const col0 = cellStr(c[0]);
+          if (/lp\.|id|zgłoszenie|data/i.test(col0) && idx === 0) return null;
+          return {
+            id: col0 || `IT_${idx + 1}`,
+            date: formatDate(parseGvizDate(c[1])) || cellStr(c[1]),
+            title: cellStr(c[2]) || cellStr(c[3]),
+            description: cellStr(c[3]) || cellStr(c[2]),
+            severity: cellStr(c[4]) || 'Średni',
+            status: cellStr(c[5]) || 'Otwarte',
+            reportedBy: cellStr(c[6]) || 'Samorząd',
+            assignedTo: cellStr(c[7]) || 'Dział IT',
+          };
+        }).filter(Boolean);
+        return { ok: true, tabName: typeof target === 'object' ? target.name : target, issues };
+      }
+    } catch (e) {}
+  }
+
+  return { ok: true, tabName: 'Rejestr Wad IT', issues: [] };
+}
+
+/**
+ * Pobiera i parsuje Ewidencję Kół (GID 1223057939).
+ */
+export async function fetchClubsFromSheet(sheetId = SHEET_ID) {
+  const cleanId = extractSheetId(sheetId) || SHEET_ID;
+  if (!cleanId) return { ok: false, error: 'Brak ID arkusza', clubs: [] };
+
+  const candidates = [
+    { gid: SAMORZAD_GIDS.EWIDENCJA_KOL, name: 'Ewidencja Kół' },
+    'Ewidencja Kół',
+    'Ewidencja_Kol',
+  ];
+
+  for (const target of candidates) {
+    try {
+      const table = await fetchSheet(target, cleanId);
+      if (table && table.rows && table.rows.length > 0) {
+        const rows = table.rows.filter(r => r && r.c);
+        const clubs = rows.map((row, idx) => {
+          const c = row.c || [];
+          const col0 = cellStr(c[0]);
+          if (/lp\.|nazwa|koło|nr/i.test(col0) && idx === 0) return null;
+          return {
+            id: `club_${idx + 1}`,
+            name: cellStr(c[0]) || cellStr(c[1]),
+            leader: cellStr(c[2]) || '',
+            email: cellStr(c[3]) || '',
+            supervisor: cellStr(c[4]) || '',
+            status: cellStr(c[5]) || 'Aktywne',
+            membersCount: cellNum(c[6]) || 0,
+          };
+        }).filter(Boolean);
+        return { ok: true, tabName: typeof target === 'object' ? target.name : target, clubs };
+      }
+    } catch (e) {}
+  }
+
+  return { ok: true, tabName: 'Ewidencja Kół', clubs: [] };
+}
+
+/**
+ * Pobiera i parsuje Ustalenia Operacyjne (GID 1095771824).
+ */
+export async function fetchOperationalDecisionsFromSheet(sheetId = SHEET_ID) {
+  const cleanId = extractSheetId(sheetId) || SHEET_ID;
+  if (!cleanId) return { ok: false, error: 'Brak ID arkusza', decisions: [] };
+
+  const candidates = [
+    { gid: SAMORZAD_GIDS.USTALENIA_OPERACYJNE, name: 'Ustalenia Operacyjne' },
+    'Ustalenia Operacyjne',
+    'Ustalenia_Operacyjne',
+  ];
+
+  for (const target of candidates) {
+    try {
+      const table = await fetchSheet(target, cleanId);
+      if (table && table.rows && table.rows.length > 0) {
+        const rows = table.rows.filter(r => r && r.c);
+        const decisions = rows.map((row, idx) => {
+          const c = row.c || [];
+          const col0 = cellStr(c[0]);
+          if (/lp\.|nr|data|ustalenie|temat/i.test(col0) && idx === 0) return null;
+          return {
+            id: col0 || `DEC_${idx + 1}`,
+            date: formatDate(parseGvizDate(c[1])) || cellStr(c[1]),
+            topic: cellStr(c[2]) || cellStr(c[3]),
+            details: cellStr(c[3]) || cellStr(c[4]),
+            responsible: cellStr(c[5]) || '',
+            status: cellStr(c[6]) || 'W realizacji',
+          };
+        }).filter(Boolean);
+        return { ok: true, tabName: typeof target === 'object' ? target.name : target, decisions };
+      }
+    } catch (e) {}
+  }
+
+  return { ok: true, tabName: 'Ustalenia Operacyjne', decisions: [] };
+}
 
       const parsedDate = parseGvizDate(c[1]);
       const dateStr = parsedDate ? formatDate(parsedDate).slice(0, 10) : (col1 || new Date().toISOString().slice(0, 10));
