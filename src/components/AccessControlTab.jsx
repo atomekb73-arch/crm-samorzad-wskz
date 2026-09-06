@@ -12,7 +12,7 @@ import {
   HardDrive,
   Trash2,
 } from 'lucide-react';
-import { SAMORZAD_GIDS, SHEET_ID, testSheetConnection } from '../services/googleSheets';
+import { PUBLIC_SHEET_GID, SAMORZAD_GIDS, SHEET_ID, testSheetConnection } from '../services/googleSheets';
 
 export default function AccessControlTab({
   onRefreshData = () => {},
@@ -106,23 +106,14 @@ export default function AccessControlTab({
             </div>
 
             <div>
-              <h4 className="font-bold text-slate-700 mb-2">Zmapowane zakładki arkusza (GID):</h4>
+              <h4 className="font-bold text-slate-700 mb-2">Zunifikowana Fasada Danych (Public API):</h4>
               <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-600">Dziennik Korespondencji:</span>
-                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.KORESPONDENCJA}</span>
+                <div className="flex justify-between p-2 rounded-lg bg-blue-50/60 border border-blue-200">
+                  <span className="text-slate-800 font-semibold">Kancelaria_API_Public:</span>
+                  <span className="font-bold text-[#1e3a8a]">gid={PUBLIC_SHEET_GID}</span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-600">Rejestr Wad IT:</span>
-                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.WADY_IT}</span>
-                </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-600">Ewidencja Kół:</span>
-                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.EWIDENCJA_KOL}</span>
-                </div>
-                <div className="flex justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-600">Ustalenia Operacyjne:</span>
-                  <span className="font-bold text-[#1e3a8a]">gid={SAMORZAD_GIDS.USTALENIA_OPERACYJNE}</span>
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] leading-relaxed">
+                  Agreguje kategorie: Korespondencja, Ustalenia Operacyjne, Zgłoszenia IT, Koła i Organizacje, Projekty i Kampanie.
                 </div>
               </div>
             </div>
