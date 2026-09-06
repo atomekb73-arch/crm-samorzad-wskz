@@ -296,6 +296,29 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
       .filter(r => r.kategoria === 'Zgłoszenia IT' || /^IT\//i.test(r.sygnatura))
       .map(r => {
         const isCritical = /krytycz|eskalow/i.test(r.status);
+        const rawJednostka = r.jednostka && r.jednostka !== 'Kancelaria Samorządu Studenckiego WSKZ' ? r.jednostka : '';
+        let fieldAndSemester = rawJednostka || 'Wszystkie kierunki';
+        let platformArea = 'Platforma e-learningowa';
+
+        if (rawJednostka.includes(' / ')) {
+          const parts = rawJednostka.split(' / ').map(p => p.trim());
+          if (parts.length >= 2) {
+            if (/platforma|dziekanat|testy|poczta|moodle|teams|system|serwer|baza/i.test(parts[1])) {
+              fieldAndSemester = parts[0];
+              platformArea = parts[1];
+            } else if (/platforma|dziekanat|testy|poczta|moodle|teams|system|serwer|baza/i.test(parts[0])) {
+              platformArea = parts[0];
+              fieldAndSemester = parts[1];
+            } else {
+              fieldAndSemester = parts[0];
+              platformArea = parts[1];
+            }
+          }
+        } else if (/platforma|dziekanat|testy|poczta|moodle|teams|system|serwer/i.test(rawJednostka)) {
+          platformArea = rawJednostka;
+          fieldAndSemester = 'Wszystkie kierunki';
+        }
+
         return {
           id: r.sygnatura || r.id,
           sygnatura: r.sygnatura,
@@ -304,11 +327,12 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
           data: r.data,
           description: r.przedmiot,
           przedmiot: r.przedmiot,
-          fieldAndSemester: 'Wszystkie kierunki',
-          platformArea: r.jednostka || 'Platforma e-learningowa',
+          fieldAndSemester,
+          platformArea,
+          jednostka: r.jednostka,
           status: sanitizeStatus(r.status),
           reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
-          assignedTo: r.jednostka || 'Dział IT WSKZ',
+          assignedTo: platformArea || 'Dział IT WSKZ',
           severity: isCritical ? 'Krytyczny' : 'Średni',
           ectsImpact: isCritical ? 'Wpływ na tok studiów' : 'Standardowy',
           fromSheet: 'Kancelaria_API_Public',

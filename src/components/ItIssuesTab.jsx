@@ -207,32 +207,32 @@ export default function ItIssuesTab({
       </div>
 
       {/* ── IT Issues Data Table with Highlight Rules ────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full">
+        <div className="w-full">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4">SYGNATURA ZGŁOSZENIA</th>
-                <th className="py-3 px-3">DATA</th>
-                <th className="py-3 px-4">KIERUNEK I SEMESTR</th>
-                <th className="py-3 px-4">OBSZAR PLATFORMY</th>
-                <th className="py-3 px-4">TREŚĆ ZGŁOSZENIA</th>
-                <th className="py-3 px-3">STATUS OBSŁUGI</th>
-                <th className="py-3 px-3">WPŁYW NA TOK STUDIÓW</th>
+                <th className="w-[12%] py-3 px-3">SYGNATURA</th>
+                <th className="w-[10%] py-3 px-2">DATA</th>
+                <th className="w-[20%] py-3 px-3">KIERUNEK I MODUŁ</th>
+                <th className="w-[38%] py-3 px-3">TREŚĆ ZGŁOSZENIA</th>
+                <th className="w-[12%] py-3 px-2 text-center">STATUS OBSŁUGI</th>
+                <th className="w-[8%] py-3 px-2 text-center">WPŁYW NA STUDIA</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredIssues.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
                     Brak zarejestrowanych zgłoszeń technicznych w Kancelarii
                   </td>
                 </tr>
               ) : (
                 filteredIssues.map((item) => {
-                  const isCriticalEcts = item.ectsImpact?.includes('Krytyczny') || item.severity === 'Krytyczny';
+                  const isCriticalEcts = item.ectsImpact?.includes('Krytyczny') || item.ectsImpact?.includes('Wpływ na tok studiów') || item.severity === 'Krytyczny';
                   const isPending = item.status?.includes('Oczekuje');
                   const isHighAlert = isCriticalEcts || isPending;
+                  const statusText = sanitizeStatus(item.status);
 
                   return (
                     <tr
@@ -246,60 +246,63 @@ export default function ItIssuesTab({
                           : 'hover:bg-slate-50/80 text-slate-800'
                       }`}
                     >
-                      {/* Sygnatura Zgłoszenia */}
-                      <td className="py-3.5 px-4 font-mono font-extrabold whitespace-nowrap">
+                      {/* Sygnatura: 12% */}
+                      <td className="w-[12%] py-3.5 px-3 font-mono font-extrabold break-words">
                         <div className="flex items-center gap-1.5">
-                          {isHighAlert && <AlertCircle size={14} className={isCriticalEcts ? 'text-rose-600' : 'text-amber-600'} />}
-                          <span className="text-[#1e3a8a]">{item.id}</span>
+                          {isHighAlert && (
+                            <AlertCircle
+                              size={13}
+                              className={`${isCriticalEcts ? 'text-rose-600' : 'text-amber-600'} shrink-0`}
+                            />
+                          )}
+                          <span className="text-[#1e3a8a] text-xs leading-tight break-all">{item.id}</span>
                         </div>
                       </td>
 
-                      {/* Data */}
-                      <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
+                      {/* Data: 10% */}
+                      <td className="w-[10%] py-3.5 px-2 text-slate-500 text-xs whitespace-nowrap">
                         {item.date}
                       </td>
 
-                      {/* Kierunek i Semestr */}
-                      <td className="py-3.5 px-4 font-medium text-slate-800 whitespace-nowrap">
-                        {item.fieldAndSemester || 'Wszystkie kierunki'}
+                      {/* Kierunek i Moduł: 20% */}
+                      <td className="w-[20%] py-3.5 px-3">
+                        <div className="font-medium text-slate-800 break-words leading-tight">
+                          {item.fieldAndSemester || item.jednostka || 'Wszystkie kierunki'}
+                        </div>
+                        <div className="text-slate-500 text-xs mt-0.5 break-words">
+                          {item.platformArea || 'Platforma e-learningowa'}
+                        </div>
                       </td>
 
-                      {/* Obszar Platformy */}
-                      <td className="py-3.5 px-4 text-slate-700 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px] border border-slate-200">
-                          {item.platformArea}
-                        </span>
-                      </td>
-
-                      {/* Treść Zgłoszenia */}
-                      <td className="py-3.5 px-4 text-slate-900 font-medium max-w-md truncate" title={item.description}>
+                      {/* Treść Zgłoszenia: 38% */}
+                      <td className="w-[38%] py-3.5 px-3 text-slate-900 text-sm break-words whitespace-normal leading-relaxed">
                         {item.description}
                       </td>
 
-                      {/* Status Obsługi */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          sanitizeStatus(item.status) === 'Rozwiązane'
+                      {/* Status Obsługi: 12% */}
+                      <td className="w-[12%] py-3.5 px-2 text-center">
+                        <span className={`inline-block w-full px-2 py-1 rounded-full text-[11px] font-bold break-words whitespace-normal leading-tight text-center ${
+                          statusText === 'Rozwiązane'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : sanitizeStatus(item.status)?.includes('trakcie') || sanitizeStatus(item.status)?.includes('Przekazano') || sanitizeStatus(item.status)?.includes('właściwości')
+                            : statusText?.includes('trakcie') || statusText?.includes('Przekazano') || statusText?.includes('właściwości')
                             ? 'bg-blue-50 text-blue-800 border border-blue-200'
                             : 'bg-amber-50 text-amber-800 border border-amber-200'
                         }`}>
-                          {sanitizeStatus(item.status)}
+                          {statusText}
                         </span>
                       </td>
 
-                      {/* Wpływ na tok studiów */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
+                      {/* Wpływ na studia: 8% */}
+                      <td className="w-[8%] py-3.5 px-2 text-center">
+                        <span className={`inline-flex items-center justify-center gap-1 w-full px-1.5 py-1 rounded-full text-[10px] font-extrabold break-words whitespace-normal leading-tight text-center ${
                           isCriticalEcts
                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
                             : item.ectsImpact === 'Wysoki'
                             ? 'bg-amber-100 text-amber-800 border border-amber-200'
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
-                          {isCriticalEcts && <AlertTriangle size={12} />}
-                          {item.ectsImpact || 'Standardowy'}
+                          {isCriticalEcts && <AlertTriangle size={11} className="shrink-0" />}
+                          <span>{isCriticalEcts ? 'Krytyczny' : item.ectsImpact || 'Standard'}</span>
                         </span>
                       </td>
                     </tr>
