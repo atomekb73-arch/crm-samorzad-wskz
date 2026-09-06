@@ -83,6 +83,16 @@ export const formatDate = (val) => {
   return String(str).trim() || "—";
 };
 
+// ─── Sanityzacja Statusów (Standard Urzędowo-Dyplomatyczny) ──────────────────
+export const sanitizeStatus = (status) => {
+  if (!status) return 'Zarejestrowane';
+  const str = String(status).trim();
+  if (/odbijanie\s+odpowiedzialno[sś]ci/i.test(str)) {
+    return 'Przekazano wg właściwości';
+  }
+  return str;
+};
+
 /**
  * Precyzyjny parser odpowiedzi z Google Visualization API (tq).
  * Odcina prefiks /*O_o* / google.visualization.Query.setResponse( oraz końcowe );
@@ -211,7 +221,8 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
       const rawDate = c[2]?.f || cellStr(c[2]);
       const data = formatDate(rawDate);
       const przedmiot = cellStr(c[3]);
-      const status = cellStr(c[4]) || 'Zarejestrowane';
+      const rawStatus = cellStr(c[4]);
+      const status = sanitizeStatus(rawStatus);
       const jednostka = cellStr(c[5]) || 'Kancelaria Samorządu Studenckiego WSKZ';
 
       // Pomiń wiersz nagłówka jeśli występuje
@@ -248,12 +259,12 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
           data: r.data,
           subject: r.przedmiot,
           przedmiot: r.przedmiot,
-          status: r.status,
+          status: sanitizeStatus(r.status),
           jednostka: r.jednostka,
           sender: isOut ? 'Kancelaria Samorządu Studenckiego WSKZ' : r.jednostka,
           recipient: isOut ? r.jednostka : 'Kancelaria Samorządu Studenckiego WSKZ',
           direction: isOut ? 'OUT' : 'IN',
-          statusUjednolicenia: r.status,
+          statusUjednolicenia: sanitizeStatus(r.status),
           weryfikacjaFormalna: 'Zatwierdzone',
           summary: r.przedmiot,
           notes: r.przedmiot,
@@ -274,7 +285,7 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
         topic: r.przedmiot,
         przedmiot: r.przedmiot,
         details: r.przedmiot,
-        status: r.status,
+        status: sanitizeStatus(r.status),
         responsible: r.jednostka,
         jednostka: r.jednostka,
         fromSheet: 'Kancelaria_API_Public',
@@ -295,11 +306,11 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
           przedmiot: r.przedmiot,
           fieldAndSemester: 'Wszystkie kierunki',
           platformArea: r.jednostka || 'Platforma e-learningowa',
-          status: r.status,
+          status: sanitizeStatus(r.status),
           reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
           assignedTo: r.jednostka || 'Dział IT WSKZ',
           severity: isCritical ? 'Krytyczny' : 'Średni',
-          ectsImpact: isCritical ? 'Krytyczny ECTS' : 'Standardowy',
+          ectsImpact: isCritical ? 'Wpływ na tok studiów' : 'Standardowy',
           fromSheet: 'Kancelaria_API_Public',
         };
       });

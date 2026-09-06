@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
+import { sanitizeStatus } from '../services/googleSheets';
 
 export default function DashboardTab({
   correspondence = [],
@@ -82,14 +83,14 @@ export default function DashboardTab({
           </p>
         </div>
 
-        {/* KPI 3: Zgłoszone wady IT */}
+        {/* KPI 3: Zgłoszenia techniczne */}
         <div
           onClick={() => onNavigateTab('it_issues')}
           className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 hover:shadow-md transition cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Zgłoszone wady IT
+              Zgłoszenia techniczne
             </span>
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center group-hover:scale-105 transition">
               <AlertTriangle size={20} />
@@ -99,12 +100,12 @@ export default function DashboardTab({
             <span className="text-2xl sm:text-3xl font-extrabold text-amber-700">{itIssues.length}</span>
             {criticalItCount > 0 && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold">
-                {criticalItCount} krytycznych ECTS
+                {criticalItCount} z wpływem na tok studiów
               </span>
             )}
           </div>
           <p className="text-[11px] text-amber-700 font-semibold mt-2 flex items-center gap-1 group-hover:underline">
-            Zobacz Rejestr Wad IT <ChevronRight size={13} />
+            Zobacz rejestr zgłoszeń technicznych <ChevronRight size={13} />
           </p>
         </div>
 
@@ -213,7 +214,7 @@ export default function DashboardTab({
         {/* Right 1 Col: Ważne anomalie IT & Ustalenia Operacyjne ────────── */}
         <div className="space-y-6">
           
-          {/* Critical IT Defects Card */}
+          {/* Urgent Tech Issues Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -221,7 +222,7 @@ export default function DashboardTab({
                   <AlertTriangle size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Pilne anomalie IT (Wpływ ECTS)
+                  Pilne zgłoszenia techniczne (Wpływ na tok studiów)
                 </h3>
               </div>
               <button
@@ -235,7 +236,7 @@ export default function DashboardTab({
             <div className="space-y-2.5">
               {recentItIssues.length === 0 ? (
                 <div className="py-6 text-center text-slate-400 text-xs font-medium">
-                  Brak zgłoszonych wad IT
+                  Brak aktywnych zgłoszeń technicznych
                 </div>
               ) : (
                 recentItIssues.map((issue) => (
@@ -243,7 +244,7 @@ export default function DashboardTab({
                     key={issue.id}
                     onClick={() => onNavigateTab('it_issues')}
                     className={`p-3 rounded-xl border text-xs transition cursor-pointer hover:shadow-xs ${
-                      issue.ectsImpact?.includes('Krytyczny')
+                      issue.ectsImpact?.includes('Krytyczny') || issue.ectsImpact?.includes('Wpływ na tok studiów')
                         ? 'bg-rose-50/60 border-rose-200 hover:bg-rose-50 text-slate-900'
                         : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80 text-slate-900'
                     }`}
@@ -251,7 +252,7 @@ export default function DashboardTab({
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono font-bold text-[#1e3a8a]">{issue.id}</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        issue.ectsImpact?.includes('Krytyczny')
+                        issue.ectsImpact?.includes('Krytyczny') || issue.ectsImpact?.includes('Wpływ na tok studiów')
                           ? 'bg-rose-100 text-rose-800 border border-rose-200'
                           : 'bg-amber-100 text-amber-800 border border-amber-200'
                       }`}>
@@ -261,7 +262,7 @@ export default function DashboardTab({
                     <p className="font-medium text-slate-800 line-clamp-2">{issue.description}</p>
                     <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500">
                       <span>{issue.platformArea}</span>
-                      <span className="font-semibold text-slate-700">{issue.status}</span>
+                      <span className="font-semibold text-slate-700">{sanitizeStatus(issue.status)}</span>
                     </div>
                   </div>
                 ))

@@ -225,7 +225,7 @@ export default function App() {
       } catch {}
       return updated;
     });
-    setToastMessage(`Zgłoszono anomalię IT ${issue.id}`);
+    setToastMessage(`Zarejestrowano zgłoszenie techniczne ${issue.id}`);
     setTimeout(() => setToastMessage(null), 4000);
   }, []);
 

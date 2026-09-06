@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ShieldAlert,
 } from 'lucide-react';
+import { sanitizeStatus } from '../services/googleSheets';
 
 export default function ItIssuesTab({
   itIssues = [],
@@ -31,16 +32,19 @@ export default function ItIssuesTab({
     description: '',
     status: 'Oczekuje / Do weryfikacji',
     severity: 'Wysoki',
-    ectsImpact: 'Krytyczny / Blokujący',
+    ectsImpact: 'Wpływ na tok studiów',
     reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
     assignedTo: 'Dział IT',
     notes: '',
   });
 
   const filteredIssues = useMemo(() => {
-    return itIssues.filter(item => {
+    return itIssues.map(item => ({
+      ...item,
+      status: sanitizeStatus(item.status),
+    })).filter(item => {
       if (severityFilter !== 'ALL') {
-        if (severityFilter === 'CRITICAL' && !item.ectsImpact?.includes('Krytyczny') && item.severity !== 'Krytyczny') {
+        if (severityFilter === 'CRITICAL' && !item.ectsImpact?.includes('Krytyczny') && !item.ectsImpact?.includes('Wpływ na tok studiów') && item.severity !== 'Krytyczny') {
           return false;
         }
         if (severityFilter === 'HIGH' && item.severity !== 'Wysoki') {
@@ -52,7 +56,7 @@ export default function ItIssuesTab({
         if (statusFilter === 'PENDING' && !item.status?.includes('Oczekuje')) {
           return false;
         }
-        if (statusFilter === 'IN_PROGRESS' && !item.status?.includes('trakcie') && !item.status?.includes('Przekazano')) {
+        if (statusFilter === 'IN_PROGRESS' && !item.status?.includes('trakcie') && !item.status?.includes('Przekazano') && !item.status?.includes('właściwości')) {
           return false;
         }
         if (statusFilter === 'RESOLVED' && !item.status?.includes('Rozwiązane') && !item.status?.includes('Zakończone')) {
@@ -62,7 +66,7 @@ export default function ItIssuesTab({
 
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
-        const searchable = `${item.id || ''} ${item.fieldAndSemester || ''} ${item.platformArea || ''} ${item.description || ''} ${item.reportedBy || ''} ${item.assignedTo || ''}`.toLowerCase();
+        const searchable = `${item.id || ''} ${item.fieldAndSemester || ''} ${item.platformArea || ''} ${item.description || ''} ${item.reportedBy || ''} ${item.assignedTo || ''} ${item.status || ''}`.toLowerCase();
         if (!searchable.includes(term)) return false;
       }
 
@@ -79,6 +83,7 @@ export default function ItIssuesTab({
       ...newIssue,
       id: nextId,
       date: new Date().toISOString().slice(0, 10),
+      status: sanitizeStatus(newIssue.status),
     };
 
     onAddItIssue(issueToSave);
@@ -89,7 +94,7 @@ export default function ItIssuesTab({
       description: '',
       status: 'Oczekuje / Do weryfikacji',
       severity: 'Wysoki',
-      ectsImpact: 'Krytyczny / Blokujący',
+      ectsImpact: 'Wpływ na tok studiów',
       reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
       assignedTo: 'Dział IT',
       notes: '',
@@ -103,10 +108,10 @@ export default function ItIssuesTab({
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <AlertTriangle className="text-amber-600" size={20} />
-            Rejestr Wad IT i Anomalii Systemowych WSKZ
+            Rejestr Zgłoszeń Technicznych i Wsparcia Platformy
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Ewidencja błędów technicznych platformy e-learningowej, Wirtualnego Dziekanatu i ich bezpośredniego wpływu na punkty ECTS
+            Ewidencja zgłoszeń technicznych platformy e-learningowej, Wirtualnego Dziekanatu i wsparcia procesu kształcenia
           </p>
         </div>
 
@@ -116,7 +121,7 @@ export default function ItIssuesTab({
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus size={15} />
-            <span>Zgłoś anomalię IT</span>
+            <span>+ Nowe Zgłoszenie Techniczne</span>
           </button>
         </div>
       </div>
@@ -127,7 +132,7 @@ export default function ItIssuesTab({
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Szukaj po ID błędu, kierunku, obszarze platformy lub opisie..."
+            placeholder="Szukaj po sygnaturze zgłoszenia, kierunku, obszarze platformy lub treści..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -143,7 +148,7 @@ export default function ItIssuesTab({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* ECTS Impact / Severity Filter */}
+          {/* Priority / Impact Filter */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
             <button
               onClick={() => setSeverityFilter('ALL')}
@@ -159,7 +164,7 @@ export default function ItIssuesTab({
                 severityFilter === 'CRITICAL' ? 'bg-rose-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-rose-700'
               }`}
             >
-              <ShieldAlert size={12} /> Krytyczne ECTS
+              <ShieldAlert size={12} /> Wpływ na tok studiów
             </button>
           </div>
 
@@ -187,7 +192,7 @@ export default function ItIssuesTab({
                 statusFilter === 'IN_PROGRESS' ? 'bg-blue-600 font-bold text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              W naprawie
+              W realizacji
             </button>
             <button
               onClick={() => setStatusFilter('RESOLVED')}
@@ -207,20 +212,20 @@ export default function ItIssuesTab({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4">ID Błędu</th>
-                <th className="py-3 px-3">Data</th>
-                <th className="py-3 px-4">Kierunek i Semestr</th>
-                <th className="py-3 px-4">Obszar Platformy</th>
-                <th className="py-3 px-4">Opis Anomalii</th>
-                <th className="py-3 px-3">Status Zgłoszenia</th>
-                <th className="py-3 px-3">Wpływ na ECTS</th>
+                <th className="py-3 px-4">SYGNATURA ZGŁOSZENIA</th>
+                <th className="py-3 px-3">DATA</th>
+                <th className="py-3 px-4">KIERUNEK I SEMESTR</th>
+                <th className="py-3 px-4">OBSZAR PLATFORMY</th>
+                <th className="py-3 px-4">TREŚĆ ZGŁOSZENIA</th>
+                <th className="py-3 px-3">STATUS OBSŁUGI</th>
+                <th className="py-3 px-3">WPŁYW NA TOK STUDIÓW</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredIssues.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
-                    Brak zarejestrowanych wad IT w Kancelarii
+                    Brak zarejestrowanych zgłoszeń technicznych w Kancelarii
                   </td>
                 </tr>
               ) : (
@@ -241,7 +246,7 @@ export default function ItIssuesTab({
                           : 'hover:bg-slate-50/80 text-slate-800'
                       }`}
                     >
-                      {/* ID Błędu */}
+                      {/* Sygnatura Zgłoszenia */}
                       <td className="py-3.5 px-4 font-mono font-extrabold whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           {isHighAlert && <AlertCircle size={14} className={isCriticalEcts ? 'text-rose-600' : 'text-amber-600'} />}
@@ -266,25 +271,25 @@ export default function ItIssuesTab({
                         </span>
                       </td>
 
-                      {/* Opis Anomalii */}
+                      {/* Treść Zgłoszenia */}
                       <td className="py-3.5 px-4 text-slate-900 font-medium max-w-md truncate" title={item.description}>
                         {item.description}
                       </td>
 
-                      {/* Status Zgłoszenia */}
+                      {/* Status Obsługi */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                          item.status === 'Rozwiązane'
+                          sanitizeStatus(item.status) === 'Rozwiązane'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : item.status?.includes('trakcie') || item.status?.includes('Przekazano')
+                            : sanitizeStatus(item.status)?.includes('trakcie') || sanitizeStatus(item.status)?.includes('Przekazano') || sanitizeStatus(item.status)?.includes('właściwości')
                             ? 'bg-blue-50 text-blue-800 border border-blue-200'
                             : 'bg-amber-50 text-amber-800 border border-amber-200'
                         }`}>
-                          {item.status}
+                          {sanitizeStatus(item.status)}
                         </span>
                       </td>
 
-                      {/* Wpływ na ECTS */}
+                      {/* Wpływ na tok studiów */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
                           isCriticalEcts
@@ -294,7 +299,7 @@ export default function ItIssuesTab({
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {isCriticalEcts && <AlertTriangle size={12} />}
-                          {item.ectsImpact || 'Średni'}
+                          {item.ectsImpact || 'Standardowy'}
                         </span>
                       </td>
                     </tr>
@@ -306,21 +311,21 @@ export default function ItIssuesTab({
         </div>
 
         <div className="py-2.5 px-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <span>Łącznie w rejestrze: <strong className="text-slate-900">{itIssues.length}</strong> zgłoszeń (w tym <strong className="text-rose-700">{itIssues.filter(i => i.ectsImpact?.includes('Krytyczny')).length}</strong> o krytycznym wpływie na ECTS)</span>
-          <span className="text-[11px] text-slate-400">Wiersze czerwone/bursztynowe oznaczają sprawy priorytetowe</span>
+          <span>Łącznie w rejestrze: <strong className="text-slate-900">{itIssues.length}</strong> zgłoszeń (w tym <strong className="text-rose-700">{itIssues.filter(i => i.ectsImpact?.includes('Krytyczny') || i.ectsImpact?.includes('Wpływ na tok studiów')).length}</strong> z bezpośrednim wpływem na tok studiów)</span>
+          <span className="text-[11px] text-slate-400">Wiersze wyróżnione oznaczają zgłoszenia priorytetowe</span>
         </div>
       </div>
 
-      {/* ── Modal: Szczegóły Zgłoszenia IT ─────────────────────────────────── */}
+      {/* ── Modal: Szczegóły Zgłoszenia Technicznego ──────────────────────── */}
       {selectedIssue && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-extrabold bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">
+                <span className="font-mono text-sm font-extrabold bg-blue-50 text-[#1e3a8a] px-2 py-0.5 rounded border border-blue-200">
                   {selectedIssue.id}
                 </span>
-                <span className="text-sm font-bold text-slate-900">Szczegóły wady IT</span>
+                <span className="text-sm font-bold text-slate-900">Szczegóły zgłoszenia technicznego</span>
               </div>
               <button
                 onClick={() => setSelectedIssue(null)}
@@ -341,12 +346,12 @@ export default function ItIssuesTab({
                   <span className="font-semibold text-slate-800">{selectedIssue.fieldAndSemester}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Wpływ na ECTS:</span>
+                  <span className="text-slate-400">Wpływ na tok studiów:</span>
                   <span className="font-bold text-red-700">{selectedIssue.ectsImpact}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Status zgłoszenia:</span>
-                  <span className="font-semibold text-slate-800">{selectedIssue.status}</span>
+                  <span className="text-slate-400">Status obsługi:</span>
+                  <span className="font-semibold text-slate-800">{sanitizeStatus(selectedIssue.status)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Zgłaszający:</span>
@@ -355,7 +360,7 @@ export default function ItIssuesTab({
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-800 mb-1">Opis anomalii technicznej</h4>
+                <h4 className="font-bold text-slate-800 mb-1">Opis techniczny zgłoszenia</h4>
                 <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 leading-relaxed">
                   {selectedIssue.description}
                 </p>
@@ -383,14 +388,14 @@ export default function ItIssuesTab({
         </div>
       )}
 
-      {/* ── Modal: Nowe Zgłoszenie Wad IT ─────────────────────────────────── */}
+      {/* ── Modal: Nowe Zgłoszenie Techniczne ─────────────────────────────── */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus size={18} className="text-amber-600" />
-                Zgłoszenie nowej wady IT / anomalii
+                Nowe Zgłoszenie Techniczne
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -418,12 +423,13 @@ export default function ItIssuesTab({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Wpływ na ECTS *</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Wpływ na tok studiów *</label>
                   <select
                     value={newIssue.ectsImpact}
                     onChange={(e) => setNewIssue({ ...newIssue, ectsImpact: e.target.value })}
                     className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
                   >
+                    <option value="Wpływ na tok studiów">Wpływ na tok studiów</option>
                     <option value="Krytyczny / Blokujący">Krytyczny / Blokujący</option>
                     <option value="Wysoki">Wysoki</option>
                     <option value="Średni">Średni</option>
@@ -445,11 +451,11 @@ export default function ItIssuesTab({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Opis anomalii technicznej *</label>
+                <label className="block font-semibold text-slate-700 mb-1">Opis techniczny zgłoszenia *</label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Dokładny opis błędu, zachowanie systemu, kody błędów..."
+                  placeholder="Dokładny opis zgłoszenia technicznego, zachowanie platformy, kody błędów..."
                   value={newIssue.description}
                   onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
                   className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
@@ -488,7 +494,7 @@ export default function ItIssuesTab({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-blue-800 text-white shadow-xs transition"
                 >
                   Dodaj zgłoszenie
                 </button>
