@@ -572,18 +572,18 @@ export default function CorrespondenceTab({
 
       {/* ── Correspondence Data Table ────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <table className="w-full min-w-[1000px] text-left text-xs border-collapse">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-100/90 border-b border-slate-300 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 {/* SYGNATURA */}
                 <th
                   onClick={() => handleSort('sygnatura')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap min-w-[140px]"
+                  className="w-36 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left truncate"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span>SYGNATURA</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'sygnatura' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -596,11 +596,11 @@ export default function CorrespondenceTab({
                 {/* DATA WPŁYWU */}
                 <th
                   onClick={() => handleSort('dataWplywu')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap min-w-[140px]"
+                  className="w-32 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-2.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>DATA WPŁYWU</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'dataWplywu' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -613,11 +613,11 @@ export default function CorrespondenceTab({
                 {/* TYP */}
                 <th
                   onClick={() => handleSort('typ')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap min-w-[110px]"
+                  className="w-24 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-2.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
                     <span>TYP</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'typ' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -630,11 +630,11 @@ export default function CorrespondenceTab({
                 {/* NADAWCA */}
                 <th
                   onClick={() => handleSort('nadawca')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left min-w-[150px] max-w-[220px]"
+                  className="w-40 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left truncate"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span>NADAWCA</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'nadawca' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -647,11 +647,11 @@ export default function CorrespondenceTab({
                 {/* ODBIORCA / DW */}
                 <th
                   onClick={() => handleSort('odbiorca')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left min-w-[150px] max-w-[220px]"
+                  className="w-40 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left truncate"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span>ODBIORCA / DW</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'odbiorca' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -664,11 +664,11 @@ export default function CorrespondenceTab({
                 {/* TEMAT */}
                 <th
                   onClick={() => handleSort('temat')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left min-w-[200px]"
+                  className="w-auto cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left truncate"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 truncate">
                     <span>TEMAT</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'temat' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -678,14 +678,14 @@ export default function CorrespondenceTab({
                   </div>
                 </th>
 
-                {/* STATUS UJEDNOLICENIA */}
+                {/* STATUS */}
                 <th
                   onClick={() => handleSort('status')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap min-w-[150px]"
+                  className="w-32 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-2.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>STATUS UJEDNOLICENIA</span>
-                    <span className="text-[11px] text-slate-500">
+                    <span>STATUS</span>
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'status' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -698,11 +698,11 @@ export default function CorrespondenceTab({
                 {/* WERYFIKACJA FORMALNA */}
                 <th
                   onClick={() => handleSort('weryfikacja')}
-                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 pl-3 pr-6 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left whitespace-nowrap min-w-[160px]"
+                  className="w-28 cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-2.5 text-slate-700 font-semibold text-xs uppercase tracking-wider text-center whitespace-nowrap"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>WERYFIKACJA FORMALNA</span>
-                    <span className="text-[11px] text-slate-500">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>WERYFIKACJA</span>
+                    <span className="text-[11px] text-slate-500 shrink-0">
                       {sortConfig.key === 'weryfikacja' ? (
                         sortConfig.direction === 'desc' ? '▼' : '▲'
                       ) : (
@@ -725,6 +725,8 @@ export default function CorrespondenceTab({
                   const isIncoming = item.direction === 'IN';
                   const isSelected = activeDrawerItem?.id === item.id;
                   const itemDate = getItemDate(item);
+                  const currentStatus = item.statusUjednolicenia || item.status || 'Ujednolicone';
+                  const currentFormal = item.weryfikacjaFormalna || 'Zatwierdzone';
                   return (
                     <tr
                       key={item.id}
@@ -734,16 +736,16 @@ export default function CorrespondenceTab({
                       }`}
                     >
                       {/* Sygnatura */}
-                      <td className="py-3.5 px-3.5 font-mono font-bold text-[#1e3a8a] whitespace-nowrap">
+                      <td className="w-36 py-3 px-3 font-mono font-bold text-[#1e3a8a] truncate" title={item.id}>
                         {item.id}
                       </td>
 
                       {/* Data wpływu */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
+                      <td className="w-32 py-3 px-2.5 whitespace-nowrap">
                         {(() => {
                           const dt = formatTableDateTime(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
                           return (
-                            <span className="text-xs font-mono font-medium text-slate-800">
+                            <span className="text-[11px] font-mono font-medium text-slate-800">
                               {dt.time ? `${dt.date} ${dt.time}` : dt.date}
                             </span>
                           );
@@ -751,55 +753,55 @@ export default function CorrespondenceTab({
                       </td>
 
                       {/* Typ (Badge) */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
+                      <td className="w-24 py-3 px-2.5 whitespace-nowrap">
                         {isIncoming ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
-                            <ArrowDownLeft size={12} /> Wchodzące
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+                            <ArrowDownLeft size={11} /> Wchodz.
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <ArrowUpRight size={12} /> Wychodzące
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <ArrowUpRight size={11} /> Wychodz.
                           </span>
                         )}
                       </td>
 
                       {/* Nadawca */}
-                      <td className="py-3.5 px-3.5 text-slate-800 font-medium max-w-[200px] truncate" title={item.sender || item.nadawca}>
+                      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.sender || item.nadawca}>
                         {item.sender || item.nadawca}
                       </td>
 
                       {/* Odbiorca/DW */}
-                      <td className="py-3.5 px-3.5 text-slate-800 font-medium max-w-[200px] truncate" title={item.recipient || item.odbiorca}>
+                      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.recipient || item.odbiorca}>
                         {item.recipient || item.odbiorca}
                       </td>
 
                       {/* Temat */}
-                      <td className="py-3.5 px-3.5 text-slate-900 font-semibold max-w-[300px] truncate" title={item.subject || item.przedmiot}>
+                      <td className="w-auto py-3 px-3 text-slate-900 font-semibold truncate" title={item.subject || item.przedmiot}>
                         {item.subject || item.przedmiot}
                       </td>
 
-                      {/* Status Ujednolicenia */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold ${
-                          item.statusUjednolicenia === 'Ujednolicone' || item.status === 'Zatwierdzone'
+                      {/* Status */}
+                      <td className="w-32 py-3 px-2.5" title={currentStatus}>
+                        <span className={`block max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold text-center ${
+                          currentStatus === 'Ujednolicone' || currentStatus === 'Zatwierdzone'
                             ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            : item.statusUjednolicenia === 'W trakcie' || item.status === 'W toku'
+                            : currentStatus === 'W trakcie' || currentStatus === 'W toku'
                             ? 'bg-amber-100 text-amber-900 border border-amber-300'
                             : 'bg-slate-100 text-slate-700 border border-slate-300'
                         }`}>
-                          {item.statusUjednolicenia || item.status || 'Ujednolicone'}
+                          {currentStatus}
                         </span>
                       </td>
 
                       {/* Weryfikacja Formalna */}
-                      <td className="py-3.5 pl-3 pr-6 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold shadow-2xs ${
-                          item.weryfikacjaFormalna === 'Zatwierdzone' || item.weryfikacjaFormalna === 'Zgodna ze statutem' || !item.weryfikacjaFormalna
+                      <td className="w-28 py-3 px-2.5 text-center" title={currentFormal}>
+                        <span className={`inline-flex items-center justify-center gap-1 max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-2xs ${
+                          currentFormal === 'Zatwierdzone' || currentFormal === 'Zgodna ze statutem'
                             ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                             : 'bg-sky-100 text-sky-900 border border-sky-300'
                         }`}>
-                          <ShieldCheck size={13} className="text-emerald-700 shrink-0" />
-                          <span>{item.weryfikacjaFormalna || 'Zatwierdzone'}</span>
+                          <ShieldCheck size={11} className="text-emerald-700 shrink-0" />
+                          <span className="truncate">{currentFormal}</span>
                         </span>
                       </td>
                     </tr>
