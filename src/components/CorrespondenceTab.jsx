@@ -20,6 +20,9 @@ import {
   User,
   Hash,
   ShieldCheck,
+  Sparkles,
+  Zap,
+  Check,
 } from 'lucide-react';
 
 export default function CorrespondenceTab({
@@ -35,6 +38,9 @@ export default function CorrespondenceTab({
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, Zatwierdzone, W toku, Weryfikacja
   const [activeDrawerItem, setActiveDrawerItem] = useState(selectedItem);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('parser'); // 'parser' | 'form'
+  const [rawPastedText, setRawPastedText] = useState('');
+  const [parseNotice, setParseNotice] = useState(null);
 
   // Form state for adding new correspondence
   const [newEntry, setNewEntry] = useState({
@@ -87,6 +93,112 @@ export default function CorrespondenceTab({
     onSelectItem(null);
   };
 
+  const handleParsePastedText = () => {
+    if (!rawPastedText.trim()) return;
+
+    const text = rawPastedText.trim();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    let detectedSender = '';
+    let detectedRecipient = 'Kancelaria Samorządu Studenckiego WSKZ';
+    let detectedSubject = '';
+    let detectedSignature = '';
+    let detectedDirection = 'IN';
+    let detectedStatus = 'W toku';
+    let bodyLines = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Nadawca / Od / From / Zgłaszający / Wnioskodawca
+      const senderMatch = line.match(/^(?:Od|Nadawca|From|Zgłaszający|Wnioskodawca|Autor)\s*[:\-]\s*(.+)$/i);
+      if (senderMatch) {
+        detectedSender = senderMatch[1].trim();
+        continue;
+      }
+
+      // Odbiorca / Do / To / Adresat / DW
+      const recipientMatch = line.match(/^(?:Do|Odbiorca|To|Adresat|DW|Otrzymują)\s*[:\-]\s*(.+)$/i);
+      if (recipientMatch) {
+        detectedRecipient = recipientMatch[1].trim();
+        continue;
+      }
+
+      // Temat / Dotyczy / Subject / Re / Tytuł / Przedmiot
+      const subjectMatch = line.match(/^(?:Temat|Dotyczy|Subject|Re|Tytuł|Przedmiot)\s*[:\-]\s*(.+)$/i);
+      if (subjectMatch) {
+        detectedSubject = subjectMatch[1].trim();
+        continue;
+      }
+
+      // Sygnatura / Znak sprawy / Ref / Numer
+      const sigMatch = line.match(/^(?:Sygnatura|Znak(?:\s+sprawy)?|Sygn\.?|Ref\.?|Numer(?:\s+pisma)?)\s*[:\-]\s*([A-Za-z0-9\/\-_\.\s]+)$/i);
+      if (sigMatch) {
+        detectedSignature = sigMatch[1].trim();
+        continue;
+      }
+
+      // Status
+      const statusMatch = line.match(/^(?:Status)\s*[:\-]\s*(.+)$/i);
+      if (statusMatch) {
+        const rawStatus = statusMatch[1].trim();
+        if (/zatwierdz/i.test(rawStatus)) detectedStatus = 'Zatwierdzone';
+        else if (/weryfikac/i.test(rawStatus)) detectedStatus = 'Weryfikacja';
+        else detectedStatus = 'W toku';
+        continue;
+      }
+
+      bodyLines.push(line);
+    }
+
+    // Heurystyka: wykrycie sygnatury w treści (np. DK/2026/..., D-WNS/412/2026, KSS/2026/01)
+    if (!detectedSignature) {
+      const inlineSigMatch = text.match(/\b([A-Z]{2,6}\/[0-9]{4}\/[0-9]{1,4}(?:\/[0-9]{1,4})?|[A-Z]{1,4}-[A-Z0-9]+\/[0-9]{1,4}\/[0-9]{4})\b/);
+      if (inlineSigMatch) {
+        detectedSignature = inlineSigMatch[1];
+      }
+    }
+
+    // Heurystyka: temat z pierwszej linii jeśli nie wykryto etykiety
+    if (!detectedSubject && bodyLines.length > 0) {
+      detectedSubject = bodyLines[0];
+      bodyLines = bodyLines.slice(1);
+    }
+
+    // Heurystyka: nadawca ze słów kluczowych
+    if (!detectedSender) {
+      if (/dziekanat/i.test(text)) detectedSender = 'Dziekanat WSKZ';
+      else if (/rektor|prorektor/i.test(text)) detectedSender = 'Rektorat WSKZ';
+      else if (/kwestura|płatnośc/i.test(text)) detectedSender = 'Kwestura WSKZ';
+      else if (/samorząd/i.test(text)) detectedSender = 'Zarząd Samorządu Studenckiego';
+      else detectedSender = 'Dziekanat / Koło Naukowe';
+    }
+
+    // Heurystyka: kierunek pisma
+    if (/kancelaria samorządu|zarząd samorządu|prezydium samorządu/i.test(detectedSender) || /wychodzące|wysłano z kancelarii/i.test(text)) {
+      detectedDirection = 'OUT';
+      if (detectedRecipient === 'Kancelaria Samorządu Studenckiego WSKZ') {
+        detectedRecipient = 'Dziekanat / Organy Uczelni';
+      }
+    }
+
+    const bodySummary = bodyLines.join('\n\n').trim();
+
+    setNewEntry(prev => ({
+      ...prev,
+      direction: detectedDirection,
+      sender: detectedSender,
+      recipient: detectedRecipient,
+      subject: detectedSubject,
+      summary: bodySummary || prev.summary,
+      sourceCitation: detectedSignature || prev.sourceCitation,
+      status: detectedStatus,
+    }));
+
+    setParseNotice('Pomyślnie rozpoznano dane pisma! Zweryfikuj i uzupełnij poniższe pola.');
+    setModalMode('form');
+  };
+
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     if (!newEntry.subject || !newEntry.sender) return;
@@ -120,6 +232,9 @@ export default function CorrespondenceTab({
 
     onAddCorrespondence(entryToSave);
     setIsAddModalOpen(false);
+    setParseNotice(null);
+    setRawPastedText('');
+    setModalMode('parser');
     setNewEntry({
       direction: 'IN',
       sender: '',
@@ -537,138 +652,272 @@ export default function CorrespondenceTab({
 
       {/* ── Modal: Rejestracja Nowego Pisma ──────────────────────────────── */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 bg-white flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus size={18} className="text-[#1e3a8a]" />
                 Rejestracja nowego pisma w Dzienniku Korespondencji
               </h3>
               <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setParseNotice(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-5 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Kierunek pisma</label>
-                  <select
-                    value={newEntry.direction}
-                    onChange={(e) => setNewEntry({ ...newEntry, direction: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  >
-                    <option value="IN">Wchodzące (Wpływ do Kancelarii)</option>
-                    <option value="OUT">Wychodzące (Wysłane z Kancelarii)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status sprawy</label>
-                  <select
-                    value={newEntry.status}
-                    onChange={(e) => setNewEntry({ ...newEntry, status: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  >
-                    <option value="W toku">W toku</option>
-                    <option value="Zatwierdzone">Zatwierdzone</option>
-                    <option value="Weryfikacja">Weryfikacja formalna</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nadawca *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="np. Dziekanat WNS / Koło Naukowe"
-                    value={newEntry.sender}
-                    onChange={(e) => setNewEntry({ ...newEntry, sender: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Odbiorca / DW *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="np. Kancelaria Samorządu Studenckiego WSKZ"
-                    value={newEntry.recipient}
-                    onChange={(e) => setNewEntry({ ...newEntry, recipient: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Temat sprawy *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Krótki, precyzyjny tytuł pisma lub wniosku"
-                  value={newEntry.subject}
-                  onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Streszczenie / Treść</label>
-                <textarea
-                  rows={3}
-                  placeholder="Kluczowe ustalenia, opis sprawy, wnioski..."
-                  value={newEntry.summary}
-                  onChange={(e) => setNewEntry({ ...newEntry, summary: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Cytat źródłowy / Sygnatura oryginału</label>
-                  <input
-                    type="text"
-                    placeholder="np. Pismo D-WNS/412/2026"
-                    value={newEntry.sourceCitation}
-                    onChange={(e) => setNewEntry({ ...newEntry, sourceCitation: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Lokalizacja Drive / Link do skanu</label>
-                  <input
-                    type="url"
-                    placeholder="https://drive.google.com/..."
-                    value={newEntry.lokalizacjaDrive}
-                    onChange={(e) => setNewEntry({ ...newEntry, lokalizacjaDrive: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+            {/* Modal Segmented Switcher */}
+            <div className="px-5 pt-4 pb-2 bg-white">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-300">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+                  onClick={() => setModalMode('parser')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    modalMode === 'parser'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  Anuluj
+                  <Sparkles size={14} className={modalMode === 'parser' ? 'text-blue-600' : 'text-slate-400'} />
+                  <span>📋 Wklej i Rozpoznaj (Parser)</span>
                 </button>
                 <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
+                  type="button"
+                  onClick={() => setModalMode('form')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    modalMode === 'form'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  Zarejestruj pismo
+                  <span>✍️ Formularz ręczny</span>
+                  {newEntry.subject && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  )}
                 </button>
               </div>
-            </form>
+            </div>
+
+            {parseNotice && (
+              <div className="mx-5 my-2 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-medium flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Check size={15} className="text-emerald-600 shrink-0" />
+                  {parseNotice}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setParseNotice(null)}
+                  className="text-emerald-600 hover:text-emerald-800 text-xs font-bold ml-2 cursor-pointer"
+                >
+                  &times;
+                </button>
+              </div>
+            )}
+
+            {/* TAB 1: PARSER KOLESPONDENCJI */}
+            {modalMode === 'parser' ? (
+              <div className="p-5 pt-2 space-y-4 text-xs">
+                <div className="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200 text-slate-800 space-y-1">
+                  <p className="font-semibold text-[#1e3a8a] flex items-center gap-1.5">
+                    <Zap size={14} className="text-blue-600" />
+                    Automatyczne rozpoznawanie treści pism i wiadomości
+                  </p>
+                  <p className="text-slate-600 leading-relaxed text-[11.5px]">
+                    Wklej poniżej surową treść otrzymanego maila, pismo urzędowe lub zgłoszenie. Parser automatycznie wyodrębni nadawcę, adresata, temat, sygnaturę oraz treść.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    Treść do rozpoznania
+                  </label>
+                  <textarea
+                    rows={6}
+                    value={rawPastedText}
+                    onChange={(e) => setRawPastedText(e.target.value)}
+                    placeholder="Wklej tutaj surową treść maila, nagłówek pisma urzędowego lub zgłoszenie (np. Od: Dziekanat, Do: Samorząd, Temat: ..., Sygnatura: ...)..."
+                    className="w-full min-h-[140px] p-3.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 text-xs leading-relaxed"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRawPastedText(`Od: Dziekanat Kolegium Nauk Społecznych WSKZ\nDo: Kancelaria Samorządu Studenckiego WSKZ\nTemat: Wniosek o zaopiniowanie regulaminu dyżurów semestralnych\nSygnatura: D-WNS/412/2026\n\nSzanowni Państwo,\nZwracamy się z uprzejmą prośbą o przedstawienie opinii Samorządu Studenckiego w sprawie harmonogramu.`);
+                    }}
+                    className="text-[11px] text-[#1e3a8a] font-semibold hover:underline cursor-pointer"
+                  >
+                    Wstaw przykładową treść
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModalOpen(false);
+                        setParseNotice(null);
+                      }}
+                      className="px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-300 font-medium transition cursor-pointer"
+                    >
+                      Anuluj
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!rawPastedText.trim()}
+                      onClick={handleParsePastedText}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-xs transition cursor-pointer"
+                    >
+                      <Zap size={14} />
+                      <span>⚡ Rozpoznaj i Wypełnij Pola</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* TAB 2: FORMULARZ RĘCZNY */
+              <form onSubmit={handleCreateSubmit} className="p-5 pt-2 space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Kierunek pisma
+                    </label>
+                    <select
+                      value={newEntry.direction}
+                      onChange={(e) => setNewEntry({ ...newEntry, direction: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="IN">Wchodzące (Wpływ do Kancelarii)</option>
+                      <option value="OUT">Wychodzące (Wysłane z Kancelarii)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Status sprawy
+                    </label>
+                    <select
+                      value={newEntry.status}
+                      onChange={(e) => setNewEntry({ ...newEntry, status: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="W toku">W toku</option>
+                      <option value="Zatwierdzone">Zatwierdzone</option>
+                      <option value="Weryfikacja">Weryfikacja formalna</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Nadawca *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="np. Dziekanat WNS / Koło Naukowe"
+                      value={newEntry.sender}
+                      onChange={(e) => setNewEntry({ ...newEntry, sender: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Odbiorca / DW *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="np. Kancelaria Samorządu Studenckiego WSKZ"
+                      value={newEntry.recipient}
+                      onChange={(e) => setNewEntry({ ...newEntry, recipient: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    Temat sprawy *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Krótki, precyzyjny tytuł pisma lub wniosku"
+                    value={newEntry.subject}
+                    onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    Streszczenie / Treść
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Kluczowe ustalenia, opis sprawy, wnioski..."
+                    value={newEntry.summary}
+                    onChange={(e) => setNewEntry({ ...newEntry, summary: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Cytat źródłowy / Sygnatura oryginału
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="np. Pismo D-WNS/412/2026"
+                      value={newEntry.sourceCitation}
+                      onChange={(e) => setNewEntry({ ...newEntry, sourceCitation: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Lokalizacja Drive / Link do skanu
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/..."
+                      value={newEntry.lokalizacjaDrive}
+                      onChange={(e) => setNewEntry({ ...newEntry, lokalizacjaDrive: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      setParseNotice(null);
+                    }}
+                    className="px-4 py-2.5 rounded-xl font-medium text-slate-700 hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl font-semibold bg-blue-900 hover:bg-blue-950 text-white shadow-sm transition cursor-pointer"
+                  >
+                    Zarejestruj pismo
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
