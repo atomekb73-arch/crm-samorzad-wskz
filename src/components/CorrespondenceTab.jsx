@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Mail,
   Search,
@@ -23,6 +23,8 @@ import {
   Sparkles,
   Zap,
   Check,
+  Edit3,
+  Save,
 } from 'lucide-react';
 
 import {
@@ -124,6 +126,7 @@ export function parseIncomingEmailText(rawText) {
 export default function CorrespondenceTab({
   correspondence = [],
   onAddCorrespondence = () => {},
+  onEditCorrespondence = () => {},
   onChangeStatus = () => {},
   onRefreshData = () => {},
   selectedItem = null,
@@ -133,10 +136,51 @@ export default function CorrespondenceTab({
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, IN, OUT
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, Zatwierdzone, W toku, Weryfikacja
   const [activeDrawerItem, setActiveDrawerItem] = useState(selectedItem);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('parser'); // 'parser' | 'form'
   const [rawPastedText, setRawPastedText] = useState('');
   const [parseNotice, setParseNotice] = useState(null);
+
+  // Helper do inicjalizacji stanu formularza edycji
+  const initEditForm = (item) => {
+    if (!item) return;
+    const typ = item.typ || (item.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące');
+    const dWplywu = parseToDateTimeLocalString(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
+    const dWyslania = parseToDateTimeLocalString(item.dataWyslania);
+    setEditForm({
+      sygnatura: item.sygnatura || item.id || '',
+      id: item.id || item.sygnatura || '',
+      przedmiot: item.subject || item.przedmiot || item.temat || '',
+      temat: item.subject || item.przedmiot || item.temat || '',
+      subject: item.subject || item.przedmiot || item.temat || '',
+      nadawca: item.sender || item.nadawca || '',
+      sender: item.sender || item.nadawca || '',
+      odbiorca: item.recipient || item.odbiorca || '',
+      recipient: item.recipient || item.odbiorca || '',
+      tresc: item.summary || item.tresc || '',
+      summary: item.summary || item.tresc || '',
+      dataWplywu: dWplywu || item.dataWplywu || item.data || item.date || '',
+      dataWyslania: dWyslania || item.dataWyslania || '',
+      typ: typ,
+      direction: item.direction || (typ === 'Wychodzące' ? 'OUT' : 'IN'),
+      status: item.status || 'W toku',
+      statusUjednolicenia: item.statusUjednolicenia || item.status || 'W toku',
+      lokalizacjaDrive: item.lokalizacjaDrive || '',
+      sourceCitation: item.sourceCitation || '',
+      notes: item.notes || '',
+    });
+  };
+
+  useEffect(() => {
+    if (selectedItem) {
+      setActiveDrawerItem(selectedItem);
+      setIsEditing(false);
+      initEditForm(selectedItem);
+    }
+  }, [selectedItem]);
 
   // Form state for adding new correspondence
   const [newEntry, setNewEntry] = useState({
@@ -250,12 +294,76 @@ export default function CorrespondenceTab({
 
   const handleOpenDrawer = (item) => {
     setActiveDrawerItem(item);
+    setIsEditing(false);
+    initEditForm(item);
     onSelectItem(item);
   };
 
   const handleCloseDrawer = () => {
     setActiveDrawerItem(null);
+    setIsEditing(false);
     onSelectItem(null);
+  };
+
+  const handleStartEdit = (item) => {
+    initEditForm(item || activeDrawerItem);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    initEditForm(activeDrawerItem);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!activeDrawerItem) return;
+    setIsSaving(true);
+
+    const sygnatura = activeDrawerItem.sygnatura || activeDrawerItem.id;
+    const typ = editForm.typ || (editForm.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące');
+    const direction = typ === 'Wychodzące' ? 'OUT' : 'IN';
+    const displayDate = (editForm.dataWplywu || '').slice(0, 10);
+
+    const updatedEntry = {
+      ...activeDrawerItem,
+      action: "edytuj_pismo",
+      sygnatura: sygnatura,
+      id: sygnatura,
+      przedmiot: editForm.przedmiot || editForm.temat || editForm.subject || '',
+      temat: editForm.przedmiot || editForm.temat || editForm.subject || '',
+      subject: editForm.przedmiot || editForm.temat || editForm.subject || '',
+      nadawca: editForm.nadawca || editForm.sender || '',
+      sender: editForm.nadawca || editForm.sender || '',
+      odbiorca: editForm.odbiorca || editForm.recipient || '',
+      recipient: editForm.odbiorca || editForm.recipient || '',
+      tresc: editForm.tresc || editForm.summary || '',
+      summary: editForm.tresc || editForm.summary || '',
+      dataWplywu: editForm.dataWplywu || '',
+      dataWyslania: editForm.dataWyslania || '',
+      date: displayDate || activeDrawerItem.date,
+      data: editForm.dataWplywu || activeDrawerItem.data,
+      typ: typ,
+      direction: direction,
+      status: editForm.status || 'W toku',
+      statusUjednolicenia: editForm.status || 'W toku',
+      lokalizacjaDrive: editForm.lokalizacjaDrive || '',
+      sourceCitation: editForm.sourceCitation || '',
+      notes: editForm.notes || '',
+    };
+
+    try {
+      if (onEditCorrespondence) {
+        await onEditCorrespondence(updatedEntry);
+      }
+      setActiveDrawerItem(updatedEntry);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Błąd zapisu edycji pisma:', err);
+      setActiveDrawerItem(updatedEntry);
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleParsePastedText = () => {
@@ -720,171 +828,450 @@ export default function CorrespondenceTab({
               
               {/* Drawer Header */}
               <div className="p-5 border-b border-slate-200 bg-slate-50/80 flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-extrabold text-[#1e3a8a] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                      {activeDrawerItem.id}
+                      {activeDrawerItem.sygnatura || activeDrawerItem.id}
                     </span>
-                    {activeDrawerItem.direction === 'IN' ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
-                        Wchodzące
-                      </span>
+                    {!isEditing ? (
+                      activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+                          Wchodzące
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Wychodzące
+                        </span>
+                      )
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        Wychodzące
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                        <Edit3 size={11} /> Tryb edycji
                       </span>
                     )}
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 leading-snug">
-                    {activeDrawerItem.subject}
-                  </h3>
+                  {!isEditing ? (
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                      {activeDrawerItem.subject || activeDrawerItem.przedmiot || activeDrawerItem.temat}
+                    </h3>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      Edycja wpisu w Dzienniku Korespondencji Kancelarii
+                    </p>
+                  )}
                 </div>
 
-                <button
-                  onClick={handleCloseDrawer}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(activeDrawerItem)}
+                      className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                    >
+                      <Edit3 size={12} />
+                      <span>✏️ Edytuj sprawę</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+                      >
+                        Anuluj
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveEdit}
+                        disabled={isSaving}
+                        className="bg-blue-900 hover:bg-blue-950 text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                      >
+                        <Save size={13} />
+                        <span>💾 Zapisz zmiany</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={handleCloseDrawer}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer ml-1"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Drawer Body */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
-                {/* Meta Grid */}
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                  <div>
-                    <span className="text-slate-500 font-medium">Data wpływu (doręczenia):</span>
-                    <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5 font-mono text-xs">
-                      <Calendar size={13} className="text-slate-400" />
-                      {(() => {
-                        const dt = formatTableDateTime(activeDrawerItem.dataWplywu || activeDrawerItem.data || activeDrawerItem.date || activeDrawerItem.Data_Wplywu);
-                        return dt.time ? `${dt.date} ${dt.time}` : dt.date;
-                      })()}
-                    </p>
-                    {activeDrawerItem.dataWyslania && (
-                      <p className="text-[10.5px] text-slate-500 mt-1 font-mono">
-                        Wysłano przez nadawcę: {(() => {
-                          const dtW = formatTableDateTime(activeDrawerItem.dataWyslania);
-                          return dtW.time ? `${dtW.date} ${dtW.time}` : dtW.date;
+              {!isEditing ? (
+                <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+                  {/* Meta Grid */}
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div>
+                      <span className="text-slate-500 font-medium">Data wpływu (doręczenia):</span>
+                      <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5 font-mono text-xs">
+                        <Calendar size={13} className="text-slate-400" />
+                        {(() => {
+                          const dt = formatTableDateTime(activeDrawerItem.dataWplywu || activeDrawerItem.data || activeDrawerItem.date || activeDrawerItem.Data_Wplywu);
+                          return dt.time ? `${dt.date} ${dt.time}` : dt.date;
                         })()}
                       </p>
-                    )}
+                      {activeDrawerItem.dataWyslania && (
+                        <p className="text-[10.5px] text-slate-500 mt-1 font-mono">
+                          Wysłano przez nadawcę: {(() => {
+                            const dtW = formatTableDateTime(activeDrawerItem.dataWyslania);
+                            return dtW.time ? `${dtW.date} ${dtW.time}` : dtW.date;
+                          })()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Status sprawy:</span>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <select
+                          value={activeDrawerItem.status || 'W toku'}
+                          onChange={(e) => {
+                            const newSt = e.target.value;
+                            setActiveDrawerItem(prev => ({ ...prev, status: newSt }));
+                            onChangeStatus(activeDrawerItem.id || activeDrawerItem.sygnatura, newSt);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                        >
+                          <option value="W toku">W toku</option>
+                          <option value="Zatwierdzone">Zatwierdzone</option>
+                          <option value="Weryfikacja">Weryfikacja</option>
+                          <option value="Przekazano wg właściwości">Przekazano wg właściwości</option>
+                          <option value="Zakończone">Zakończone</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Nadawca:</span>
+                      <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
+                        <Building size={13} className="text-slate-400" /> {activeDrawerItem.sender || activeDrawerItem.nadawca}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-medium">Odbiorca:</span>
+                      <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
+                        <User size={13} className="text-slate-400" /> {activeDrawerItem.recipient || activeDrawerItem.odbiorca}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Streszczenie / Treść sprawy */}
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <FileText size={14} className="text-[#1e3a8a]" /> Streszczenie sprawy / Pełna treść
+                    </h4>
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed whitespace-pre-wrap">
+                      {activeDrawerItem.summary || activeDrawerItem.tresc || 'Brak dodatkowego streszczenia sprawy.'}
+                    </div>
+                  </div>
+
+                  {/* Cytat źródłowy / Podstawa prawna */}
+                  {activeDrawerItem.sourceCitation && (
+                    <div className="space-y-1.5">
+                      <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <Paperclip size={14} className="text-[#1e3a8a]" /> Cytat źródłowy / Oznaczenie pisma
+                      </h4>
+                      <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-[#1e3a8a] font-mono text-[11px]">
+                        &ldquo;{activeDrawerItem.sourceCitation}&rdquo;
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notatki kancelaryjne */}
+                  {activeDrawerItem.notes && (
+                    <div className="space-y-1.5">
+                      <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <AlertCircle size={14} className="text-amber-600" /> Dyspozycje i notatki kancelaryjne
+                      </h4>
+                      <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-900 whitespace-pre-wrap">
+                        {activeDrawerItem.notes}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Załączniki / Dysk Google */}
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <Paperclip size={14} className="text-slate-500" /> Załączniki do sprawy / Dokumentacja
+                    </h4>
+                    <div className="space-y-1.5">
+                      {activeDrawerItem.lokalizacjaDrive ? (
+                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-slate-800 font-medium">
+                          <span className="font-mono text-xs truncate max-w-xs">{activeDrawerItem.lokalizacjaDrive}</span>
+                          <a
+                            href={activeDrawerItem.lokalizacjaDrive}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-[#1e3a8a] font-semibold hover:underline"
+                          >
+                            <ExternalLink size={12} /> Otwórz Drive
+                          </a>
+                        </div>
+                      ) : null}
+
+                      {(activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) ? (
+                        activeDrawerItem.attachments.map((att, idx) => {
+                          const attName = typeof att === 'string' ? att : (att.name || 'Dokument');
+                          const attUrl = typeof att === 'object' ? att.url : null;
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-medium"
+                            >
+                              <span className="font-mono text-xs truncate max-w-xs">{attName}</span>
+                              {attUrl ? (
+                                <a
+                                  href={attUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-[#1e3a8a] font-semibold hover:underline"
+                                >
+                                  Otwórz
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-[#1e3a8a] font-semibold cursor-pointer hover:underline">
+                                  Pobierz
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : !activeDrawerItem.lokalizacjaDrive && (
+                        <p className="text-slate-500 italic">Brak zarejestrowanych załączników cyfrowych.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sygnatura cyfrowa & Audit Trail */}
+                  <div className="p-3 bg-slate-100/80 rounded-xl border border-slate-200 text-[10.5px] text-slate-600 space-y-1">
+                    <p><strong className="text-slate-800">Identyfikator cyfrowy:</strong> {activeDrawerItem.hash || activeDrawerItem.id || activeDrawerItem.sygnatura}</p>
+                    <p><strong className="text-slate-800">Zarejestrowano w:</strong> Kancelaria Samorządu Studenckiego WSKZ</p>
+                  </div>
+                </div>
+              ) : (
+                /* Drawer Body in Edit Mode */
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                  {/* Temat / Przedmiot */}
                   <div>
-                    <span className="text-slate-500 font-medium">Status sprawy:</span>
-                    <div className="mt-0.5 flex items-center gap-2">
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Temat / Przedmiot sprawy *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.przedmiot || ''}
+                      onChange={(e) => setEditForm({ ...editForm, przedmiot: e.target.value, temat: e.target.value, subject: e.target.value })}
+                      placeholder="Krótki, precyzyjny tytuł pisma"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Daty */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                        Data wpływu (doręczenia) *
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editForm.dataWplywu || ''}
+                        onChange={(e) => setEditForm({ ...editForm, dataWplywu: e.target.value })}
+                        className="w-full p-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 font-semibold"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                        Data doręczenia / rejestracji w Kancelarii
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                        Data wysłania (nadawca)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editForm.dataWyslania || ''}
+                        onChange={(e) => setEditForm({ ...editForm, dataWyslania: e.target.value })}
+                        className="w-full p-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                        Data wysłania przez nadawcę
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Kierunek & Status */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                        Kierunek pisma
+                      </label>
                       <select
-                        value={activeDrawerItem.status || 'W toku'}
-                        onChange={(e) => {
-                          const newSt = e.target.value;
-                          setActiveDrawerItem(prev => ({ ...prev, status: newSt }));
-                          onChangeStatus(activeDrawerItem.id || activeDrawerItem.sygnatura, newSt);
-                        }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                        value={editForm.typ || 'Wchodzące'}
+                        onChange={(e) => setEditForm({ ...editForm, typ: e.target.value, direction: e.target.value === 'Wychodzące' ? 'OUT' : 'IN' })}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                      >
+                        <option value="Wchodzące">Wchodzące (Wpływ)</option>
+                        <option value="Wychodzące">Wychodzące (Wysłane)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                        Status sprawy
+                      </label>
+                      <select
+                        value={editForm.status || 'W toku'}
+                        onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                       >
                         <option value="W toku">W toku</option>
                         <option value="Zatwierdzone">Zatwierdzone</option>
-                        <option value="Weryfikacja">Weryfikacja</option>
+                        <option value="Weryfikacja">Weryfikacja formalna</option>
                         <option value="Przekazano wg właściwości">Przekazano wg właściwości</option>
                         <option value="Zakończone">Zakończone</option>
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <span className="text-slate-500 font-medium">Nadawca:</span>
-                    <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                      <Building size={13} className="text-slate-400" /> {activeDrawerItem.sender}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 font-medium">Odbiorca:</span>
-                    <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                      <User size={13} className="text-slate-400" /> {activeDrawerItem.recipient}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Streszczenie / Treść sprawy */}
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                    <FileText size={14} className="text-[#1e3a8a]" /> Streszczenie sprawy / Pełna treść
-                  </h4>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
-                    {activeDrawerItem.summary || 'Brak dodatkowego streszczenia sprawy.'}
-                  </div>
-                </div>
+                  {/* Nadawca & Odbiorca */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                        Nadawca *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.nadawca || ''}
+                        onChange={(e) => setEditForm({ ...editForm, nadawca: e.target.value, sender: e.target.value })}
+                        placeholder="np. Dziekanat WNS"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
 
-                {/* Cytat źródłowy / Podstawa prawna */}
-                {activeDrawerItem.sourceCitation && (
-                  <div className="space-y-1.5">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Paperclip size={14} className="text-[#1e3a8a]" /> Cytat źródłowy / Oznaczenie pisma
-                    </h4>
-                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-[#1e3a8a] font-mono text-[11px]">
-                      &ldquo;{activeDrawerItem.sourceCitation}&rdquo;
+                    <div>
+                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                        Odbiorca / DW *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.odbiorca || ''}
+                        onChange={(e) => setEditForm({ ...editForm, odbiorca: e.target.value, recipient: e.target.value })}
+                        placeholder="np. Kancelaria Samorządu"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                      />
                     </div>
                   </div>
-                )}
 
-                {/* Notatki kancelaryjne */}
-                {activeDrawerItem.notes && (
-                  <div className="space-y-1.5">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <AlertCircle size={14} className="text-amber-600" /> Dyspozycje i notatki kancelaryjne
-                    </h4>
-                    <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-900">
-                      {activeDrawerItem.notes}
-                    </div>
+                  {/* Streszczenie / Treść sprawy */}
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Streszczenie / Pełna treść sprawy
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={editForm.tresc || ''}
+                      onChange={(e) => setEditForm({ ...editForm, tresc: e.target.value, summary: e.target.value })}
+                      placeholder="Kluczowe ustalenia, opis sprawy, treść pisma..."
+                      className="w-full p-3 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 leading-relaxed"
+                    />
                   </div>
-                )}
 
-                {/* Załączniki */}
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                    <Paperclip size={14} className="text-slate-500" /> Załączniki do sprawy
-                  </h4>
-                  <div className="space-y-1.5">
-                    {(activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) ? (
-                      activeDrawerItem.attachments.map((att, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-medium"
-                        >
-                          <span className="font-mono text-xs truncate max-w-xs">{att}</span>
-                          <span className="text-[11px] text-[#1e3a8a] font-semibold cursor-pointer hover:underline">
-                            Pobierz
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-slate-500 italic">Brak zarejestrowanych załączników cyfrowych.</p>
-                    )}
+                  {/* Cytat źródłowy */}
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Cytat źródłowy / Oznaczenie pisma
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.sourceCitation || ''}
+                      onChange={(e) => setEditForm({ ...editForm, sourceCitation: e.target.value })}
+                      placeholder="np. Pismo D-WNS/412/2026"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Dyspozycje i notatki kancelaryjne */}
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Dyspozycje i notatki kancelaryjne
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editForm.notes || ''}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      placeholder="Wewnętrzne notatki, przydział do osoby..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Lokalizacja Drive */}
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Lokalizacja Drive / Link do skanu
+                    </label>
+                    <input
+                      type="url"
+                      value={editForm.lokalizacjaDrive || ''}
+                      onChange={(e) => setEditForm({ ...editForm, lokalizacjaDrive: e.target.value })}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
-
-                {/* Sygnatura cyfrowa & Audit Trail */}
-                <div className="p-3 bg-slate-100/80 rounded-xl border border-slate-200 text-[10.5px] text-slate-600 space-y-1">
-                  <p><strong className="text-slate-800">Identyfikator cyfrowy:</strong> {activeDrawerItem.hash || activeDrawerItem.id}</p>
-                  <p><strong className="text-slate-800">Zarejestrowano w:</strong> Kancelaria Samorządu Studenckiego WSKZ</p>
-                </div>
-              </div>
+              )}
 
               {/* Drawer Footer Actions */}
               <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex items-center justify-between gap-2">
-                <button
-                  onClick={handleCloseDrawer}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
-                >
-                  Zamknij
-                </button>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => alert(`Sprawa ${activeDrawerItem.id} została pomyślnie zarchiwizowana.`)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
-                  >
-                    Drukuj / Eksportuj PDF
-                  </button>
-                </div>
+                {!isEditing ? (
+                  <>
+                    <button
+                      onClick={handleCloseDrawer}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+                    >
+                      Zamknij
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(activeDrawerItem)}
+                        className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Edit3 size={13} />
+                        <span>✏️ Edytuj sprawę</span>
+                      </button>
+                      <button
+                        onClick={() => alert(`Sprawa ${activeDrawerItem.id || activeDrawerItem.sygnatura} została pomyślnie zarchiwizowana.`)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
+                      >
+                        Drukuj / Eksportuj PDF
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
+                    >
+                      Anuluj
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={handleSaveEdit}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-900 hover:bg-blue-950 text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Save size={13} />
+                        <span>💾 Zapisz zmiany</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
             </div>

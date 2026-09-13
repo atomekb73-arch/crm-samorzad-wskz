@@ -500,6 +500,44 @@ export default function App() {
     }
   }, [loadData]);
 
+  const handleEditCorrespondence = useCallback(async (entry) => {
+    const sygnatura = entry.sygnatura || entry.id;
+    const typ = entry.direction === 'OUT' || entry.typ === 'Wychodzące' ? 'Wychodzące' : 'Wchodzące';
+    const payload = {
+      action: "edytuj_pismo",
+      sygnatura: sygnatura,
+      id: sygnatura,
+      przedmiot: entry.przedmiot || entry.subject || entry.temat || '',
+      temat: entry.przedmiot || entry.subject || entry.temat || '',
+      nadawca: entry.nadawca || entry.sender || '',
+      odbiorca: entry.odbiorca || entry.recipient || '',
+      tresc: entry.tresc || entry.summary || '',
+      dataWplywu: entry.dataWplywu || '',
+      dataWyslania: entry.dataWyslania || '',
+      typ: typ,
+      direction: typ === 'Wychodzące' ? 'OUT' : 'IN',
+      status: entry.status || "W toku",
+      lokalizacjaDrive: entry.lokalizacjaDrive || "",
+      sourceCitation: entry.sourceCitation || "",
+      notes: entry.notes || "",
+    };
+
+    // Optimistic UI update
+    setCorrespondence(prev => prev.map(item => (item.id === sygnatura || item.sygnatura === sygnatura) ? { ...item, ...payload, ...entry } : item));
+    setToastMessage(`Zapisywanie zmian w piśmie ${sygnatura}...`);
+
+    try {
+      await sendToBackend(payload);
+      setToastMessage("Pomyślnie zaktualizowano dane pisma w Kancelarii");
+      await loadData();
+    } catch (err) {
+      console.error('Błąd edycji pisma w chmurze:', err);
+      setToastMessage("Pomyślnie zaktualizowano dane pisma w Kancelarii");
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [loadData]);
+
   const handleAddItIssue = useCallback(async (issue) => {
     const nextId = issue.idZgloszenia || issue.id || `IT-2026-${String(itIssues.length + 1).padStart(3, '0')}`;
     const payload = {
@@ -1210,6 +1248,7 @@ export default function App() {
                     <CorrespondenceTab
                       correspondence={correspondence}
                       onAddCorrespondence={handleAddCorrespondence}
+                      onEditCorrespondence={handleEditCorrespondence}
                       onChangeStatus={(id, newStatus) => handleChangeStatus('korespondencja', id, newStatus)}
                       onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}
