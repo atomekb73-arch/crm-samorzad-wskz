@@ -30,6 +30,57 @@ export function getCurrentLocalDateTimeString() {
 }
 
 /**
+ * Zamienia format inputa HTML 'YYYY-MM-DDTHH:mm' na czysty 'YYYY-MM-DD HH:mm' dla backendu bez konwersji stref
+ */
+export function normalizeDateTimeForBackend(val) {
+  if (!val) return "";
+  return String(val).replace("T", " ").trim();
+}
+
+export function prepareDateTimeForPayload(val) {
+  return normalizeDateTimeForBackend(val);
+}
+
+/**
+ * Inicjalizuje pole <input type="datetime-local"> wartością YYYY-MM-DDTHH:mm bez przesunięcia UTC
+ */
+export function formatForDateTimeInput(raw) {
+  if (!raw) return "";
+  const str = String(raw).trim();
+  if (!str || str === "—") return "";
+
+  // 1. Jeśli to string "YYYY-MM-DD HH:mm" lub "YYYY-MM-DDTHH:mm"
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(str)) {
+    return str.slice(0, 16).replace(" ", "T");
+  }
+
+  // 2. Jeśli to sama data "YYYY-MM-DD"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return `${str}T12:00`;
+  }
+
+  // 3. Sprawdź formaty zaawansowane (np. polskie daty)
+  const parsed = parseToDateTimeLocalString(str);
+  if (parsed) {
+    return parsed;
+  }
+
+  // 4. Fallback gdyby przyszła pełna data z JS Date
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const y = d.getFullYear();
+    const m = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const h = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    return `${y}-${m}-${day}T${h}:${min}`;
+  }
+
+  return "";
+}
+
+/**
  * Uniwersalny parser do formatu input type="datetime-local" (YYYY-MM-DDTHH:mm)
  * Obsługuje formaty polskie (np. "12 marca 2026 14:30", "Pt 16:54"), standardowe "13.09.2026 16:54" i ISO.
  */

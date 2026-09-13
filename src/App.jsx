@@ -42,6 +42,7 @@ import { fetchAllData, fetchAllKancelariaData, sendToBackend, AUTHORIZED_INDEXES
 import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
 import { getRecordKey } from './utils/helpers';
 import { getAcademicYearKey } from './utils/academicYear';
+import { prepareDateTimeForPayload } from './utils/dateUtils';
 import { getCanonicalMeetingsForOrg, filterLegitimateMeetings } from './utils/canonicalMeetings';
 import {
   createOrgSnapshot,
@@ -481,11 +482,16 @@ export default function App() {
       odbiorca: entry.recipient || entry.odbiorca || 'Kancelaria Samorządu Studenckiego WSKZ',
       przedmiot: entry.subject || entry.przedmiot || '',
       status: entry.status || "W toku",
-      lokalizacjaDrive: entry.lokalizacjaDrive || ""
+      lokalizacjaDrive: entry.lokalizacjaDrive || "",
+      dataWplywu: prepareDateTimeForPayload(entry.dataWplywu || entry.data || entry.date),
+      dataWyslania: prepareDateTimeForPayload(entry.dataWyslania),
+      tresc: entry.summary || entry.tresc || "",
+      sourceCitation: entry.sourceCitation || "",
+      notes: entry.notes || "",
     };
 
     // Optimistic UI update
-    setCorrespondence(prev => [{ ...entry, id: nextId, sygnatura: nextId, typ, direction: typ === 'Wychodzące' ? 'OUT' : 'IN' }, ...prev]);
+    setCorrespondence(prev => [{ ...entry, ...payload, id: nextId, sygnatura: nextId, typ, direction: typ === 'Wychodzące' ? 'OUT' : 'IN' }, ...prev]);
     setToastMessage(`Zapisywanie pisma ${nextId}...`);
 
     try {
@@ -512,8 +518,8 @@ export default function App() {
       nadawca: entry.nadawca || entry.sender || '',
       odbiorca: entry.odbiorca || entry.recipient || '',
       tresc: entry.tresc || entry.summary || '',
-      dataWplywu: entry.dataWplywu || '',
-      dataWyslania: entry.dataWyslania || '',
+      dataWplywu: prepareDateTimeForPayload(entry.dataWplywu || entry.data || entry.date),
+      dataWyslania: prepareDateTimeForPayload(entry.dataWyslania),
       typ: typ,
       direction: typ === 'Wychodzące' ? 'OUT' : 'IN',
       status: entry.status || "W toku",

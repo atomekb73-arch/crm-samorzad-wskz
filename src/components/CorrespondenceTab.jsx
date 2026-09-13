@@ -33,6 +33,9 @@ import {
   parseToDateTimeLocalString,
   getCurrentLocalDateTimeString,
   parseDateToTimestamp,
+  formatForDateTimeInput,
+  prepareDateTimeForPayload,
+  normalizeDateTimeForBackend,
 } from '../utils/dateUtils';
 
 export function parseIncomingEmailText(rawText) {
@@ -148,8 +151,8 @@ export default function CorrespondenceTab({
   const initEditForm = (item) => {
     if (!item) return;
     const typ = item.typ || (item.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące');
-    const dWplywu = parseToDateTimeLocalString(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
-    const dWyslania = parseToDateTimeLocalString(item.dataWyslania);
+    const dWplywu = formatForDateTimeInput(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
+    const dWyslania = formatForDateTimeInput(item.dataWyslania);
     setEditForm({
       sygnatura: item.sygnatura || item.id || '',
       id: item.id || item.sygnatura || '',
@@ -162,8 +165,8 @@ export default function CorrespondenceTab({
       recipient: item.recipient || item.odbiorca || '',
       tresc: item.summary || item.tresc || '',
       summary: item.summary || item.tresc || '',
-      dataWplywu: dWplywu || item.dataWplywu || item.data || item.date || '',
-      dataWyslania: dWyslania || item.dataWyslania || '',
+      dataWplywu: dWplywu,
+      dataWyslania: dWyslania,
       typ: typ,
       direction: item.direction || (typ === 'Wychodzące' ? 'OUT' : 'IN'),
       status: item.status || 'W toku',
@@ -322,7 +325,9 @@ export default function CorrespondenceTab({
     const sygnatura = activeDrawerItem.sygnatura || activeDrawerItem.id;
     const typ = editForm.typ || (editForm.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące');
     const direction = typ === 'Wychodzące' ? 'OUT' : 'IN';
-    const displayDate = (editForm.dataWplywu || '').slice(0, 10);
+    const normDataWplywu = prepareDateTimeForPayload(editForm.dataWplywu);
+    const normDataWyslania = prepareDateTimeForPayload(editForm.dataWyslania);
+    const displayDate = normDataWplywu.slice(0, 10);
 
     const updatedEntry = {
       ...activeDrawerItem,
@@ -338,10 +343,10 @@ export default function CorrespondenceTab({
       recipient: editForm.odbiorca || editForm.recipient || '',
       tresc: editForm.tresc || editForm.summary || '',
       summary: editForm.tresc || editForm.summary || '',
-      dataWplywu: editForm.dataWplywu || '',
-      dataWyslania: editForm.dataWyslania || '',
+      dataWplywu: normDataWplywu,
+      dataWyslania: normDataWyslania,
       date: displayDate || activeDrawerItem.date,
-      data: editForm.dataWplywu || activeDrawerItem.data,
+      data: normDataWplywu || activeDrawerItem.data,
       typ: typ,
       direction: direction,
       status: editForm.status || 'W toku',
@@ -395,8 +400,8 @@ export default function CorrespondenceTab({
     const typ = newEntry.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące';
     const nextId = `DK/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(correspondence.length + 1).padStart(2, '0')}`;
     
-    const formattedDataWyslania = newEntry.dataWyslania ? newEntry.dataWyslania.replace('T', ' ') : '';
-    const formattedDataWplywu = (newEntry.dataWplywu || getCurrentLocalDateTimeString()).replace('T', ' ');
+    const formattedDataWyslania = prepareDateTimeForPayload(newEntry.dataWyslania);
+    const formattedDataWplywu = prepareDateTimeForPayload(newEntry.dataWplywu || getCurrentLocalDateTimeString());
     const displayDate = formattedDataWplywu.slice(0, 10);
 
     const entryToSave = {
@@ -738,12 +743,9 @@ export default function CorrespondenceTab({
                         {(() => {
                           const dt = formatTableDateTime(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
                           return (
-                            <div className="flex flex-col">
-                              <span className="text-xs font-mono font-medium text-slate-700">{dt.date}</span>
-                              {dt.time && (
-                                <span className="text-[11px] font-mono text-slate-500 leading-tight">{dt.time}</span>
-                              )}
-                            </div>
+                            <span className="text-xs font-mono font-medium text-slate-800">
+                              {dt.time ? `${dt.date} ${dt.time}` : dt.date}
+                            </span>
                           );
                         })()}
                       </td>
