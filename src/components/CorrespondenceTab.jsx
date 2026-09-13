@@ -25,6 +25,8 @@ import {
 export default function CorrespondenceTab({
   correspondence = [],
   onAddCorrespondence = () => {},
+  onChangeStatus = () => {},
+  onRefreshData = () => {},
   selectedItem = null,
   onSelectItem = () => {},
 }) {
@@ -38,13 +40,14 @@ export default function CorrespondenceTab({
   const [newEntry, setNewEntry] = useState({
     direction: 'IN',
     sender: '',
-    recipient: '',
+    recipient: 'Kancelaria Samorządu Studenckiego WSKZ',
     subject: '',
     summary: '',
     status: 'W toku',
     statusUjednolicenia: 'W trakcie',
     weryfikacjaFormalna: 'Weryfikacja',
     sourceCitation: '',
+    lokalizacjaDrive: '',
     notes: '',
   });
 
@@ -88,13 +91,30 @@ export default function CorrespondenceTab({
     e.preventDefault();
     if (!newEntry.subject || !newEntry.sender) return;
 
-    const nextId = `KANC/SAM/${newEntry.direction}/${String(correspondence.length + 1).padStart(2, '0')}/${new Date().getFullYear()}`;
+    const typ = newEntry.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące';
+    const nextId = `DK/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(correspondence.length + 1).padStart(2, '0')}`;
     const entryToSave = {
-      ...newEntry,
+      action: "zarejestruj_pismo",
+      sygnatura: nextId,
       id: nextId,
+      typ,
+      direction: newEntry.direction,
+      nadawca: newEntry.sender,
+      sender: newEntry.sender,
+      odbiorca: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
+      recipient: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
+      przedmiot: newEntry.subject,
+      subject: newEntry.subject,
+      status: newEntry.status || "W toku",
+      statusUjednolicenia: newEntry.status || "W toku",
+      weryfikacjaFormalna: "Zatwierdzone",
+      lokalizacjaDrive: newEntry.lokalizacjaDrive || "",
+      summary: newEntry.summary,
+      notes: newEntry.notes,
+      sourceCitation: newEntry.sourceCitation,
       date: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
-      attachments: [],
+      attachments: newEntry.lokalizacjaDrive ? [{ name: 'Dokument Google Drive', url: newEntry.lokalizacjaDrive }] : [],
       hash: `${nextId}_${Date.now()}`,
     };
 
@@ -103,13 +123,14 @@ export default function CorrespondenceTab({
     setNewEntry({
       direction: 'IN',
       sender: '',
-      recipient: '',
+      recipient: 'Kancelaria Samorządu Studenckiego WSKZ',
       subject: '',
       summary: '',
       status: 'W toku',
       statusUjednolicenia: 'W trakcie',
       weryfikacjaFormalna: 'Weryfikacja',
       sourceCitation: '',
+      lokalizacjaDrive: '',
       notes: '',
     });
   };
@@ -394,9 +415,23 @@ export default function CorrespondenceTab({
                   </div>
                   <div>
                     <span className="text-slate-400 font-medium">Status sprawy:</span>
-                    <p className="font-semibold text-indigo-700 mt-0.5">
-                      {activeDrawerItem.status || 'W toku'}
-                    </p>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <select
+                        value={activeDrawerItem.status || 'W toku'}
+                        onChange={(e) => {
+                          const newSt = e.target.value;
+                          setActiveDrawerItem(prev => ({ ...prev, status: newSt }));
+                          onChangeStatus(activeDrawerItem.id || activeDrawerItem.sygnatura, newSt);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                      >
+                        <option value="W toku">W toku</option>
+                        <option value="Zatwierdzone">Zatwierdzone</option>
+                        <option value="Weryfikacja">Weryfikacja</option>
+                        <option value="Przekazano wg właściwości">Przekazano wg właściwości</option>
+                        <option value="Zakończone">Zakończone</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <span className="text-slate-400 font-medium">Nadawca:</span>
@@ -610,16 +645,14 @@ export default function CorrespondenceTab({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status ujednolicenia</label>
-                  <select
-                    value={newEntry.statusUjednolicenia}
-                    onChange={(e) => setNewEntry({ ...newEntry, statusUjednolicenia: e.target.value })}
+                  <label className="block font-semibold text-slate-700 mb-1">Lokalizacja Drive / Link do skanu</label>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/..."
+                    value={newEntry.lokalizacjaDrive}
+                    onChange={(e) => setNewEntry({ ...newEntry, lokalizacjaDrive: e.target.value })}
                     className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
-                  >
-                    <option value="Ujednolicone">Ujednolicone</option>
-                    <option value="W trakcie">W trakcie</option>
-                    <option value="Wymaga uzupełnienia">Wymaga uzupełnienia</option>
-                  </select>
+                  />
                 </div>
               </div>
 

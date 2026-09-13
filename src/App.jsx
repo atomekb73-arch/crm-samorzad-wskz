@@ -38,7 +38,7 @@ import AccessControlTab from './components/AccessControlTab';
 import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
-import { fetchAllData, AUTHORIZED_INDEXES } from './services/googleSheets';
+import { fetchAllData, fetchAllKancelariaData, sendToBackend, AUTHORIZED_INDEXES } from './services/googleSheets';
 import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
 import { getRecordKey } from './utils/helpers';
 import { getAcademicYearKey } from './utils/academicYear';
@@ -204,54 +204,6 @@ export default function App() {
     setActiveTab('documentation');
     setDocumentationSubTab('reports');
   }, [setActiveTab, setDocumentationSubTab]);
-
-  const handleAddCorrespondence = useCallback((entry) => {
-    setCorrespondence(prev => {
-      const updated = [entry, ...prev];
-      try {
-        localStorage.setItem('kanc_correspondence', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    setToastMessage(`Zarejestrowano pismo ${entry.id}`);
-    setTimeout(() => setToastMessage(null), 4000);
-  }, []);
-
-  const handleAddItIssue = useCallback((issue) => {
-    setItIssues(prev => {
-      const updated = [issue, ...prev];
-      try {
-        localStorage.setItem('kanc_it_issues', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    setToastMessage(`Zarejestrowano zgłoszenie techniczne ${issue.id}`);
-    setTimeout(() => setToastMessage(null), 4000);
-  }, []);
-
-  const handleAddDecision = useCallback((decision) => {
-    setDecisions(prev => {
-      const updated = [decision, ...prev];
-      try {
-        localStorage.setItem('kanc_decisions', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    setToastMessage(`Zapisano ustalenie ${decision.id}`);
-    setTimeout(() => setToastMessage(null), 4000);
-  }, []);
-
-  const handleAddOrganization = useCallback((org) => {
-    setOrgsList(prev => {
-      const updated = [org, ...prev];
-      try {
-        localStorage.setItem('kanc_organizations', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    setToastMessage(`Zarejestrowano organizację ${org.name}`);
-    setTimeout(() => setToastMessage(null), 4000);
-  }, []);
 
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
@@ -516,6 +468,119 @@ export default function App() {
       setLoading(false);
     }
   }, [currentOrg, loadMeetings, getStorageKey]);
+
+  // ── Atomowe zapisy do backendu Google Apps Script (SSOT) ──────────────────
+  const handleAddCorrespondence = useCallback(async (entry) => {
+    const nextId = entry.sygnatura || entry.id || `DK/${Date.now()}`;
+    const typ = entry.direction === 'OUT' || entry.typ === 'Wychodzące' ? 'Wychodzące' : 'Wchodzące';
+    const payload = {
+      action: "zarejestruj_pismo",
+      sygnatura: nextId,
+      typ,
+      nadawca: entry.sender || entry.nadawca || 'Kancelaria Samorządu Studenckiego WSKZ',
+      odbiorca: entry.recipient || entry.odbiorca || 'Kancelaria Samorządu Studenckiego WSKZ',
+      przedmiot: entry.subject || entry.przedmiot || '',
+      status: entry.status || "W toku",
+      lokalizacjaDrive: entry.lokalizacjaDrive || ""
+    };
+
+    // Optimistic UI update
+    setCorrespondence(prev => [{ ...entry, id: nextId, sygnatura: nextId, typ, direction: typ === 'Wychodzące' ? 'OUT' : 'IN' }, ...prev]);
+    setToastMessage(`Zapisywanie pisma ${nextId}...`);
+
+    try {
+      await sendToBackend(payload);
+      setToastMessage(`Zarejestrowano pismo ${nextId} w backendzie`);
+      await loadData();
+    } catch (err) {
+      console.error('Błąd zapisu pisma w chmurze:', err);
+      setToastMessage(`Zapisano lokalnie (błąd chmury: ${err.message})`);
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [loadData]);
+
+  const handleAddItIssue = useCallback(async (issue) => {
+    const nextId = issue.idZgloszenia || issue.id || `IT-2026-${String(itIssues.length + 1).padStart(3, '0')}`;
+    const payload = {
+      action: "dodaj_zgloszenie_it",
+      idZgloszenia: nextId,
+      kierunek: issue.kierunek || issue.fieldAndSemester || "Wszystkie kierunki",
+      obszar: issue.obszar || issue.platformArea || "Platforma e-learningowa",
+      opis: issue.opis || issue.description || "",
+      status: "Oczekuje",
+      odpowiedzIT: issue.odpowiedzIT || issue.notes || ""
+    };
+
+    // Optimistic UI update
+    setItIssues(prev => [{ ...issue, id: nextId, idZgloszenia: nextId }, ...prev]);
+    setToastMessage(`Zapisywanie zgłoszenia ${nextId}...`);
+
+    try {
+      await sendToBackend(payload);
+      setToastMessage(`Zarejestrowano zgłoszenie ${nextId} w backendzie`);
+      await loadData();
+    } catch (err) {
+      console.error('Błąd zapisu zgłoszenia IT w chmurze:', err);
+      setToastMessage(`Zapisano lokalnie (błąd chmury: ${err.message})`);
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [itIssues.length, loadData]);
+
+  const handleChangeStatus = useCallback(async (module, id, newStatus) => {
+    const isCorrespondence = module === 'correspondence' || module === 'korespondencja';
+    const payload = {
+      action: "zmien_status_sprawy",
+      modul: isCorrespondence ? "korespondencja" : "zgloszenia",
+      id: id,
+      nowyStatus: newStatus
+    };
+
+    // Optimistic update
+    if (isCorrespondence) {
+      setCorrespondence(prev => prev.map(item => (item.id === id || item.sygnatura === id) ? { ...item, status: newStatus } : item));
+    } else {
+      setItIssues(prev => prev.map(item => (item.id === id || item.idZgloszenia === id) ? { ...item, status: newStatus } : item));
+    }
+
+    setToastMessage(`Aktualizacja statusu sprawy ${id}...`);
+
+    try {
+      await sendToBackend(payload);
+      setToastMessage(`Zaktualizowano status ${id} na "${newStatus}"`);
+      await loadData();
+    } catch (err) {
+      console.error('Błąd aktualizacji statusu sprawy:', err);
+      setToastMessage(`Błąd aktualizacji statusu: ${err.message}`);
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [loadData]);
+
+  const handleAddDecision = useCallback((decision) => {
+    setDecisions(prev => {
+      const updated = [decision, ...prev];
+      try {
+        localStorage.setItem('kanc_decisions', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zapisano ustalenie ${decision.id}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
+
+  const handleAddOrganization = useCallback((org) => {
+    setOrgsList(prev => {
+      const updated = [org, ...prev];
+      try {
+        localStorage.setItem('kanc_organizations', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setToastMessage(`Zarejestrowano organizację ${org.name}`);
+    setTimeout(() => setToastMessage(null), 4000);
+  }, []);
 
   useEffect(() => {
     // Auto-switch subcalendar and re-load when switching active organization
@@ -1145,6 +1210,8 @@ export default function App() {
                     <CorrespondenceTab
                       correspondence={correspondence}
                       onAddCorrespondence={handleAddCorrespondence}
+                      onChangeStatus={(id, newStatus) => handleChangeStatus('korespondencja', id, newStatus)}
+                      onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}
                       onSelectItem={setSelectedCorrespondenceItem}
                     />
@@ -1157,6 +1224,8 @@ export default function App() {
                     <ItIssuesTab
                       itIssues={itIssues}
                       onAddItIssue={handleAddItIssue}
+                      onChangeStatus={(id, newStatus) => handleChangeStatus('zgloszenia', id, newStatus)}
+                      onRefreshData={loadData}
                     />
                   );
 

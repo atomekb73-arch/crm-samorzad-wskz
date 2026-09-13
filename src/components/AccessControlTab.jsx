@@ -12,7 +12,7 @@ import {
   HardDrive,
   Trash2,
 } from 'lucide-react';
-import { PUBLIC_SHEET_GID, SAMORZAD_GIDS, SHEET_ID, testSheetConnection } from '../services/googleSheets';
+import { PUBLIC_SHEET_GID, SAMORZAD_GIDS, SHEET_ID, APPS_SCRIPT_URL, testSheetConnection } from '../services/googleSheets';
 
 export default function AccessControlTab({
   onRefreshData = () => {},
@@ -73,47 +73,54 @@ export default function AccessControlTab({
           Zarządzanie Dostępem, Uprawnieniami i Synchronizacją
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Konfiguracja bezpieczeństwa, obfuskacji kluczy, ról użytkowników oraz połączenia z arkuszem Kancelarii Samorządu
+          Konfiguracja bezpieczeństwa, obfuskacji kluczy, ról użytkowników oraz połączenia z backendem SSOT Kancelarii Samorządu
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── Box 1: Integracja z Arkuszem Google (Zabezpieczenie ID) ─────── */}
+        {/* ── Box 1: Integracja z Backendem Google Apps Script (SSOT) ─────── */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 text-slate-900">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <Database size={17} className="text-[#1e3a8a]" />
             <h3 className="text-sm font-bold text-slate-900">
-              Parametry Synchronizacji z Arkuszem Google
+              Parametry Backend Google Apps Script (SSOT)
             </h3>
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Klucz arkusza:</span>
+                <span className="text-slate-500 font-medium">Architektura bazy:</span>
                 <span className="font-mono text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Zaszyfrowany w locie (Base64)
+                  Single Source of Truth (SSOT Web App)
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Protokół odpytywania:</span>
-                <span className="font-mono text-slate-800">Google Visualization API (tq/gviz)</span>
+                <span className="text-slate-500 font-medium">Protokół komunikacji:</span>
+                <span className="font-mono text-slate-800">REST GET / Atomowy POST (text/plain)</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Limit czasu odpowiedzi (Timeout):</span>
-                <span className="font-mono text-slate-800">8 000 ms (AbortController)</span>
+                <span className="text-slate-500 font-medium">Status endpointu:</span>
+                <span className="font-mono text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 truncate max-w-[220px]">
+                  AKfycbws5KBZ...S8IUXYg
+                </span>
               </div>
             </div>
 
             <div>
-              <h4 className="font-bold text-slate-700 mb-2">Zunifikowana Fasada Danych (Public API):</h4>
+              <h4 className="font-bold text-slate-700 mb-2">Zintegrowane Moduły Backendowe:</h4>
               <div className="space-y-1.5 font-mono text-[11px]">
                 <div className="flex justify-between p-2 rounded-lg bg-blue-50/60 border border-blue-200">
-                  <span className="text-slate-800 font-semibold">Kancelaria_API_Public:</span>
-                  <span className="font-bold text-[#1e3a8a]">gid={PUBLIC_SHEET_GID}</span>
+                  <span className="text-slate-800 font-semibold">Dziennik Korespondencji:</span>
+                  <span className="font-bold text-[#1e3a8a]">action=zarejestruj_pismo</span>
                 </div>
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] leading-relaxed">
-                  Agreguje kategorie: Korespondencja, Ustalenia Operacyjne, Zgłoszenia IT, Koła i Organizacje, Projekty i Kampanie.
+                <div className="flex justify-between p-2 rounded-lg bg-amber-50/60 border border-amber-200">
+                  <span className="text-slate-800 font-semibold">Rejestr Zgłoszeń IT:</span>
+                  <span className="font-bold text-amber-800">action=dodaj_zgloszenie_it</span>
+                </div>
+                <div className="flex justify-between p-2 rounded-lg bg-indigo-50/60 border border-indigo-200">
+                  <span className="text-slate-800 font-semibold">Zmiana statusu sprawy:</span>
+                  <span className="font-bold text-indigo-800">action=zmien_status_sprawy</span>
                 </div>
               </div>
             </div>

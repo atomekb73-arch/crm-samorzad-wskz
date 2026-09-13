@@ -19,6 +19,8 @@ import { sanitizeStatus } from '../services/googleSheets';
 export default function ItIssuesTab({
   itIssues = [],
   onAddItIssue = () => {},
+  onChangeStatus = () => {},
+  onRefreshData = () => {},
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState('ALL');
@@ -30,7 +32,7 @@ export default function ItIssuesTab({
     fieldAndSemester: '',
     platformArea: 'Platforma e-learningowa',
     description: '',
-    status: 'Oczekuje / Do weryfikacji',
+    status: 'Oczekuje',
     severity: 'Wysoki',
     ectsImpact: 'Wpływ na tok studiów',
     reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
@@ -80,10 +82,24 @@ export default function ItIssuesTab({
 
     const nextId = `IT-2026-${String(itIssues.length + 1).padStart(3, '0')}`;
     const issueToSave = {
-      ...newIssue,
+      action: "dodaj_zgloszenie_it",
+      idZgloszenia: nextId,
       id: nextId,
+      sygnatura: nextId,
+      kierunek: newIssue.fieldAndSemester,
+      fieldAndSemester: newIssue.fieldAndSemester,
+      obszar: newIssue.platformArea,
+      platformArea: newIssue.platformArea,
+      opis: newIssue.description,
+      description: newIssue.description,
+      status: "Oczekuje",
+      odpowiedzIT: newIssue.notes || "",
+      notes: newIssue.notes || "",
+      severity: newIssue.severity || "Wysoki",
+      ectsImpact: newIssue.ectsImpact || "Wpływ na tok studiów",
+      reportedBy: newIssue.reportedBy || "Kancelaria Samorządu Studenckiego WSKZ",
+      assignedTo: newIssue.assignedTo || "Dział IT",
       date: new Date().toISOString().slice(0, 10),
-      status: sanitizeStatus(newIssue.status),
     };
 
     onAddItIssue(issueToSave);
@@ -92,7 +108,7 @@ export default function ItIssuesTab({
       fieldAndSemester: '',
       platformArea: 'Platforma e-learningowa',
       description: '',
-      status: 'Oczekuje / Do weryfikacji',
+      status: 'Oczekuje',
       severity: 'Wysoki',
       ectsImpact: 'Wpływ na tok studiów',
       reportedBy: 'Kancelaria Samorządu Studenckiego WSKZ',
@@ -352,9 +368,22 @@ export default function ItIssuesTab({
                   <span className="text-slate-400">Wpływ na tok studiów:</span>
                   <span className="font-bold text-red-700">{selectedIssue.ectsImpact}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-400">Status obsługi:</span>
-                  <span className="font-semibold text-slate-800">{sanitizeStatus(selectedIssue.status)}</span>
+                  <select
+                    value={sanitizeStatus(selectedIssue.status) || 'Oczekuje'}
+                    onChange={(e) => {
+                      const newSt = e.target.value;
+                      setSelectedIssue(prev => ({ ...prev, status: newSt }));
+                      onChangeStatus(selectedIssue.id || selectedIssue.idZgloszenia || selectedIssue.sygnatura, newSt);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                  >
+                    <option value="Oczekuje">Oczekuje</option>
+                    <option value="W realizacji">W realizacji</option>
+                    <option value="Rozwiązane">Rozwiązane</option>
+                    <option value="Przekazano wg właściwości">Przekazano wg właściwości</option>
+                  </select>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Zgłaszający:</span>

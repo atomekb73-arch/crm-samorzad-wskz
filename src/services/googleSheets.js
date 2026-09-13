@@ -26,6 +26,9 @@ export function decodeSheetKey(b64 = OBFUSCATED_SHEET_KEY) {
 const envSheetInput = import.meta.env?.VITE_GOOGLE_SHEET_ID || import.meta.env?.VITE_SHEETS_URL;
 export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : decodeSheetKey(OBFUSCATED_SHEET_KEY);
 
+// ─── Produkcyjny Endpoint Google Apps Script (SSOT) ──────────────────────────
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbws5KBZon66J_ymOk79KJAx8mSt9fAhG1m1YexU32YqdLCKYIVK--fh0KRGQEzS8IUXYg/exec";
+
 // ─── Jednolity nadrzędny identyfikator źródła (Kancelaria_API_Public) ───────
 export const PUBLIC_SHEET_GID = "79778458"; // Zakładka: Kancelaria_API_Public
 export const MAIL_REGISTRY_TAB = 'Kancelaria_API_Public';
@@ -147,17 +150,26 @@ export async function fetchSheet(sheetTarget, sheetId = SHEET_ID, timeoutMs = DE
 
 export async function testSheetConnection(sheetId, timeoutMs = 5000) {
   try {
-    const cleanId = extractSheetId(sheetId) || SHEET_ID;
-    if (!cleanId) return { ok: false, error: 'Brak ID arkusza' };
-    const table = await fetchSheet({ gid: PUBLIC_SHEET_GID }, cleanId, timeoutMs);
-    const rowCount = table?.rows?.length || 0;
+    const data = await fetchAllKancelariaData();
     return {
       ok: true,
-      rowCount,
-      message: `Połączono pomyślnie z Kancelaria_API_Public! Znaleziono ${rowCount} wierszy (GID ${PUBLIC_SHEET_GID}).`,
+      rowCount: (data.correspondence?.length || 0) + (data.techIssues?.length || 0),
+      message: `Połączono pomyślnie z backendem Google Apps Script (SSOT)! Liczba pism: ${data.stats?.totalPism || 0}, zgłoszeń technicznych: ${data.stats?.totalZgloszen || 0}.`,
     };
   } catch (err) {
-    return { ok: false, error: err.message || 'Nie udało się połączyć z arkuszem' };
+    try {
+      const cleanId = extractSheetId(sheetId) || SHEET_ID;
+      if (!cleanId) return { ok: false, error: 'Brak ID arkusza' };
+      const table = await fetchSheet({ gid: PUBLIC_SHEET_GID }, cleanId, timeoutMs);
+      const rowCount = table?.rows?.length || 0;
+      return {
+        ok: true,
+        rowCount,
+        message: `Połączono pomyślnie z Kancelaria_API_Public! Znaleziono ${rowCount} wierszy (GID ${PUBLIC_SHEET_GID}).`,
+      };
+    } catch (gvizErr) {
+      return { ok: false, error: err.message || gvizErr.message || 'Nie udało się połączyć z backendem' };
+    }
   }
 }
 
@@ -400,25 +412,188 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
   }
 }
 
-// ─── Główna funkcja zasilająca cały system ────────────────────────────────────
+// ─── Pobieranie danych SSOT z backendu Google Apps Script ─────────────────────
+export async function fetchAllKancelariaData() {
+  const res = await fetch(`${APPS_SCRIPT_URL}?action=pobierz_dane`);
+  if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+  const json = await res.json();
+
+  if (json && json.status === "success") {
+    const rawKorespondencja = Array.isArray(json.korespondencja) ? json.korespondencja : [];
+    const rawZgloszenia = Array.isArray(json.zgloszenia) ? json.zgloszenia : [];
+    const rawUstalenia = Array.isArray(json.ustalenia) ? json.ustalenia : [];
+    const rawKola = Array.isArray(json.kola) ? json.kola : [];
+    const rawFasada = Array.isArray(json.fasada) ? json.fasada : [];
+
+    // Normalizacja Korespondencji
+    const correspondence = rawKorespondencja.map((item, idx) => {
+      const id = item.sygnatura || item.id || `DK/${idx + 1}`;
+      const isOut = item.typ === 'Wychodzące' || item.direction === 'OUT' || /wychod/i.test(item.typ || item.status || '');
+      const date = formatDate(item.data || item.date);
+      const status = sanitizeStatus(item.status || 'W toku');
+      return {
+        ...item,
+        id,
+        sygnatura: id,
+        date,
+        data: date,
+        typ: isOut ? 'Wychodzące' : 'Wchodzące',
+        direction: isOut ? 'OUT' : 'IN',
+        sender: item.nadawca || item.sender || (isOut ? 'Kancelaria Samorządu Studenckiego WSKZ' : 'Dziekanat / Samorząd'),
+        nadawca: item.nadawca || item.sender || (isOut ? 'Kancelaria Samorządu Studenckiego WSKZ' : 'Dziekanat / Samorząd'),
+        recipient: item.odbiorca || item.recipient || (isOut ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
+        odbiorca: item.odbiorca || item.recipient || (isOut ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
+        subject: item.przedmiot || item.subject || '',
+        przedmiot: item.przedmiot || item.subject || '',
+        summary: item.summary || item.streszczenie || item.przedmiot || '',
+        status,
+        statusUjednolicenia: status,
+        weryfikacjaFormalna: item.weryfikacjaFormalna || 'Zatwierdzone',
+        lokalizacjaDrive: item.lokalizacjaDrive || '',
+        sourceCitation: item.sourceCitation || item.cytat || '',
+        notes: item.notes || item.notatki || '',
+        hash: `${id}_${date}`,
+      };
+    });
+
+    // Normalizacja Zgłoszeń Technicznych
+    const techIssues = rawZgloszenia.map((item, idx) => {
+      const id = item.idZgloszenia || item.sygnatura || item.id || `IT-2026-${String(idx + 1).padStart(3, '0')}`;
+      const date = formatDate(item.data || item.date);
+      const status = sanitizeStatus(item.status || 'Oczekuje');
+      const isCritical = /krytycz|eskalow|tok studiów/i.test(item.ectsImpact || item.severity || item.status || '');
+      return {
+        ...item,
+        id,
+        idZgloszenia: id,
+        sygnatura: id,
+        date,
+        data: date,
+        fieldAndSemester: item.kierunek || item.fieldAndSemester || 'Wszystkie kierunki',
+        kierunek: item.kierunek || item.fieldAndSemester || 'Wszystkie kierunki',
+        platformArea: item.obszar || item.platformArea || 'Platforma e-learningowa',
+        obszar: item.obszar || item.platformArea || 'Platforma e-learningowa',
+        description: item.opis || item.description || item.przedmiot || '',
+        opis: item.opis || item.description || item.przedmiot || '',
+        status,
+        odpowiedzIT: item.odpowiedzIT || item.notes || '',
+        severity: isCritical ? 'Krytyczny' : (item.severity || 'Średni'),
+        ectsImpact: isCritical ? 'Wpływ na tok studiów' : (item.ectsImpact || 'Standardowy'),
+        reportedBy: item.reportedBy || item.zglaszajacy || 'Kancelaria Samorządu Studenckiego WSKZ',
+        assignedTo: item.assignedTo || item.obszar || 'Dział IT WSKZ',
+      };
+    });
+
+    // Normalizacja Ustaleń Operacyjnych
+    const operationalAgreements = rawUstalenia.map((item, idx) => {
+      const id = item.sygnatura || item.id || `UST/${idx + 1}`;
+      const date = formatDate(item.data || item.date);
+      const status = sanitizeStatus(item.status || 'W toku');
+      return {
+        ...item,
+        id,
+        sygnatura: id,
+        date,
+        data: date,
+        topic: item.przedmiot || item.temat || item.topic || '',
+        przedmiot: item.przedmiot || item.temat || item.topic || '',
+        details: item.details || item.szczegoly || item.przedmiot || '',
+        status,
+        responsible: item.jednostka || item.odpowiedzialny || item.responsible || 'Kancelaria Samorządu Studenckiego WSKZ',
+        jednostka: item.jednostka || item.odpowiedzialny || item.responsible || 'Kancelaria Samorządu Studenckiego WSKZ',
+      };
+    });
+
+    // Normalizacja Kół i Organizacji
+    const studentClubs = rawKola.map((item, idx) => {
+      const id = item.sygnatura || item.id || `KN/${idx + 1}`;
+      return {
+        ...item,
+        id,
+        sygnatura: id,
+        name: item.nazwa || item.name || item.przedmiot || '',
+        nazwa: item.nazwa || item.name || item.przedmiot || '',
+        leader: item.lider || item.leader || item.jednostka || 'Zarząd Koła',
+        lider: item.lider || item.leader || item.jednostka || 'Zarząd Koła',
+        status: item.status || 'Aktywne',
+      };
+    });
+
+    return {
+      fasada: rawFasada,
+      correspondence,
+      techIssues,
+      operationalAgreements,
+      studentClubs,
+      stats: {
+        totalPism: json.totalPism !== undefined ? json.totalPism : correspondence.length,
+        totalZgloszen: json.totalZgloszen !== undefined ? json.totalZgloszen : techIssues.length,
+      }
+    };
+  }
+  throw new Error(json.message || "Błąd pobierania danych z backendu");
+}
+
+// ─── Zapis danych do bazy (Atomowy POST z ominięciem CORS) ───────────────────
+export async function sendToBackend(payload) {
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (result.status !== "success") {
+      throw new Error(result.message || "Błąd zapisu w Google Apps Script");
+    }
+    return result;
+  } catch (error) {
+    console.error("Krytyczny błąd zapisu do chmury:", error);
+    throw error;
+  }
+}
+
+// ─── Główna funkcja zasilająca cały system (SSOT) ────────────────────────────
 export async function fetchAllData(sheetId = SHEET_ID) {
-  const res = await fetchPublicKancelariaData(sheetId);
-  return {
-    rows: res.rows || [],
-    correspondence: res.correspondence || [],
-    operationalAgreements: res.operationalAgreements || [],
-    techIssues: res.techIssues || [],
-    studentClubs: res.studentClubs || [],
-    projects: res.projects || [],
-    // Aliases for component compatibility
-    mailLog: res.correspondence || [],
-    itIssues: res.techIssues || [],
-    decisions: res.operationalAgreements || [],
-    clubs: res.studentClubs || [],
-    members: [],
-    quarantine: [],
-    syncWarning: res.ok ? null : res.error,
-  };
+  try {
+    const res = await fetchAllKancelariaData();
+    return {
+      rows: res.fasada || [],
+      correspondence: res.correspondence || [],
+      operationalAgreements: res.operationalAgreements || [],
+      techIssues: res.techIssues || [],
+      studentClubs: res.studentClubs || [],
+      projects: [],
+      // Aliases for component compatibility
+      mailLog: res.correspondence || [],
+      itIssues: res.techIssues || [],
+      decisions: res.operationalAgreements || [],
+      clubs: res.studentClubs || [],
+      members: [],
+      quarantine: [],
+      stats: res.stats || { totalPism: 0, totalZgloszen: 0 },
+      syncWarning: null,
+    };
+  } catch (backendError) {
+    console.warn('Backend Apps Script error, fallback to Sheet GVIZ:', backendError);
+    const res = await fetchPublicKancelariaData(sheetId);
+    return {
+      rows: res.rows || [],
+      correspondence: res.correspondence || [],
+      operationalAgreements: res.operationalAgreements || [],
+      techIssues: res.techIssues || [],
+      studentClubs: res.studentClubs || [],
+      projects: res.projects || [],
+      mailLog: res.correspondence || [],
+      itIssues: res.techIssues || [],
+      decisions: res.operationalAgreements || [],
+      clubs: res.studentClubs || [],
+      members: [],
+      quarantine: [],
+      stats: { totalPism: res.correspondence?.length || 0, totalZgloszen: res.techIssues?.length || 0 },
+      syncWarning: res.ok ? null : (res.error || backendError.message),
+    };
+  }
 }
 
 // Legacy helper compatibility functions
