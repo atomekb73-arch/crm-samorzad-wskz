@@ -25,7 +25,13 @@ import {
   Check,
 } from 'lucide-react';
 
-import { formatTableDate } from '../utils/dateUtils';
+import {
+  formatTableDate,
+  formatTableDateTime,
+  parseToDateTimeLocalString,
+  getCurrentLocalDateTimeString,
+  parseDateToTimestamp,
+} from '../utils/dateUtils';
 
 export function parseIncomingEmailText(rawText) {
   if (!rawText) return null;
@@ -43,7 +49,7 @@ export function parseIncomingEmailText(rawText) {
   const fromRegex = /^(?:Od|From|Nadawca)[:\s]+(.+)$/i;
   const toRegex = /^(?:Do|To|Odbiorca|Adresat)[:\s]+(.+)$/i;
   const subjectRegex = /^(?:Temat|Subject|Dotyczy)[:\s]+(.+)$/i;
-  const dateRegex = /^(?:Data|Date)[:\s]+(.+)$/i;
+  const dateRegex = /^(?:Data|Date|Wysłano|Sent)[:\s]+(.+)$/i;
   
   // Frazy śmieciowe z interfejsów pocztowych do odfiltrowania
   const junkRegex = /^(Zdjęcie kontaktu|Ogólne Nagłówki|Zwykły tekst|Pokaż szczegóły|Ukryj szczegóły)$/i;
@@ -81,7 +87,7 @@ export function parseIncomingEmailText(rawText) {
       }
 
       // Jeśli pierwsza linia nie jest nagłówkiem i nie mamy tematu, traktuj jako temat
-      if (i === 0 && !fromMatch && !toMatch && !subjMatch) {
+      if (i === 0 && !fromMatch && !toMatch && !subjMatch && !dtMatch) {
         subject = line;
         continue;
       }
@@ -100,13 +106,18 @@ export function parseIncomingEmailText(rawText) {
   }
 
   const isIncoming = (recipient.toLowerCase().includes("samorzad") || recipient.toLowerCase().includes("wskz") || !sender.toLowerCase().includes("samorzad"));
+  const parsedDateTime = parseToDateTimeLocalString(dateVal);
+  const currentNow = getCurrentLocalDateTimeString();
 
   return {
     nadawca: sender || "Nieznany nadawca",
     odbiorca: recipient || "Kancelaria Samorządu Studenckiego",
     temat: subject || (bodyLines[0] ? bodyLines[0].slice(0, 80) : "Korespondencja wpływająca"),
     tresc: bodyLines.join('\n\n').trim(),
-    kierunek: isIncoming ? "IN" : "OUT"
+    kierunek: isIncoming ? "IN" : "OUT",
+    dataWyslania: parsedDateTime || currentNow,
+    dataWplywu: currentNow,
+    rawDate: dateVal,
   };
 }
 
@@ -140,6 +151,8 @@ export default function CorrespondenceTab({
     sourceCitation: '',
     lokalizacjaDrive: '',
     notes: '',
+    dataWyslania: '',
+    dataWplywu: getCurrentLocalDateTimeString(),
   });
 
   // ── Helper do pobierania poprawnego pola daty ─────────────────────────────
@@ -189,14 +202,12 @@ export default function CorrespondenceTab({
     let sortableItems = [...filteredList];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        // Jeśli sortujemy po dacie, porównaj timestampy chronologicznie
+        // Jeśli sortujemy po dacie, porównaj timestampy chronologicznie (wraz z godziną i minutą)
         if (sortConfig.key === 'dataWplywu') {
           const rawA = a.dataWplywu || a.data || a.date || a.Data_Wplywu || "";
           const rawB = b.dataWplywu || b.data || b.date || b.Data_Wplywu || "";
-          const formattedA = formatTableDate(rawA);
-          const formattedB = formatTableDate(rawB);
-          const timeA = new Date(formattedA !== "—" ? formattedA : rawA).getTime() || 0;
-          const timeB = new Date(formattedB !== "—" ? formattedB : rawB).getTime() || 0;
+          const timeA = parseDateToTimestamp(rawA);
+          const timeB = parseDateToTimestamp(rawB);
           return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA;
         }
 
@@ -261,6 +272,8 @@ export default function CorrespondenceTab({
       subject: parsed.temat,
       summary: parsed.tresc,
       status: "W toku",
+      dataWyslania: parsed.dataWyslania || prev.dataWyslania,
+      dataWplywu: parsed.dataWplywu || prev.dataWplywu || getCurrentLocalDateTimeString(),
     }));
 
     setParseNotice('Pomyślnie rozpoznano dane wiadomości! Formularz został uzupełniony.');
@@ -273,26 +286,35 @@ export default function CorrespondenceTab({
 
     const typ = newEntry.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące';
     const nextId = `DK/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(correspondence.length + 1).padStart(2, '0')}`;
+    
+    const formattedDataWyslania = newEntry.dataWyslania ? newEntry.dataWyslania.replace('T', ' ') : '';
+    const formattedDataWplywu = (newEntry.dataWplywu || getCurrentLocalDateTimeString()).replace('T', ' ');
+    const displayDate = formattedDataWplywu.slice(0, 10);
+
     const entryToSave = {
       action: "zarejestruj_pismo",
       sygnatura: nextId,
       id: nextId,
       typ,
       direction: newEntry.direction,
+      dataWyslania: formattedDataWyslania,
+      dataWplywu: formattedDataWplywu,
       nadawca: newEntry.sender,
       sender: newEntry.sender,
       odbiorca: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
       recipient: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
       przedmiot: newEntry.subject,
       subject: newEntry.subject,
+      tresc: newEntry.summary,
+      summary: newEntry.summary,
       status: newEntry.status || "W toku",
       statusUjednolicenia: newEntry.status || "W toku",
       weryfikacjaFormalna: "Zatwierdzone",
       lokalizacjaDrive: newEntry.lokalizacjaDrive || "",
-      summary: newEntry.summary,
       notes: newEntry.notes,
       sourceCitation: newEntry.sourceCitation,
-      date: new Date().toISOString().slice(0, 10),
+      date: displayDate,
+      data: formattedDataWplywu,
       createdAt: new Date().toISOString(),
       attachments: newEntry.lokalizacjaDrive ? [{ name: 'Dokument Google Drive', url: newEntry.lokalizacjaDrive }] : [],
       hash: `${nextId}_${Date.now()}`,
@@ -315,6 +337,8 @@ export default function CorrespondenceTab({
       sourceCitation: '',
       lokalizacjaDrive: '',
       notes: '',
+      dataWyslania: '',
+      dataWplywu: getCurrentLocalDateTimeString(),
     });
   };
 
@@ -602,8 +626,18 @@ export default function CorrespondenceTab({
                       </td>
 
                       {/* Data wpływu */}
-                      <td className="py-2.5 px-3 text-xs font-mono text-slate-700 whitespace-nowrap">
-                        {formatTableDate(item.dataWplywu || item.data || item.date || item.Data_Wplywu)}
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        {(() => {
+                          const dt = formatTableDateTime(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
+                          return (
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono font-medium text-slate-700">{dt.date}</span>
+                              {dt.time && (
+                                <span className="text-[11px] font-mono text-slate-500 leading-tight">{dt.time}</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Typ (Badge) */}
@@ -719,10 +753,22 @@ export default function CorrespondenceTab({
                 {/* Meta Grid */}
                 <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                   <div>
-                    <span className="text-slate-500 font-medium">Data wpływu/wysłania:</span>
+                    <span className="text-slate-500 font-medium">Data wpływu (doręczenia):</span>
                     <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5 font-mono text-xs">
-                      <Calendar size={13} className="text-slate-400" /> {formatTableDate(activeDrawerItem.dataWplywu || activeDrawerItem.data || activeDrawerItem.date || activeDrawerItem.Data_Wplywu)}
+                      <Calendar size={13} className="text-slate-400" />
+                      {(() => {
+                        const dt = formatTableDateTime(activeDrawerItem.dataWplywu || activeDrawerItem.data || activeDrawerItem.date || activeDrawerItem.Data_Wplywu);
+                        return dt.time ? `${dt.date} ${dt.time}` : dt.date;
+                      })()}
                     </p>
+                    {activeDrawerItem.dataWyslania && (
+                      <p className="text-[10.5px] text-slate-500 mt-1 font-mono">
+                        Wysłano przez nadawcę: {(() => {
+                          const dtW = formatTableDateTime(activeDrawerItem.dataWyslania);
+                          return dtW.time ? `${dtW.date} ${dtW.time}` : dtW.date;
+                        })()}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <span className="text-slate-500 font-medium">Status sprawy:</span>
@@ -1006,6 +1052,40 @@ export default function CorrespondenceTab({
                       <option value="Zatwierdzone">Zatwierdzone</option>
                       <option value="Weryfikacja">Weryfikacja formalna</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* ── Dwukolumnowy blok czasowy z dokładnością do minuty ─────── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                      DATA I GODZINA WYSŁANIA (NADAWCA)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={newEntry.dataWyslania || ''}
+                      onChange={(e) => setNewEntry({ ...newEntry, dataWyslania: e.target.value })}
+                      className="w-full p-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                      Data i godzina wysłania przez nadawcę (wg stempla/nagłówka poczty)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                      DATA I GODZINA WPŁYWU (DORĘCZENIA) *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={newEntry.dataWplywu || ''}
+                      onChange={(e) => setNewEntry({ ...newEntry, dataWplywu: e.target.value })}
+                      className="w-full p-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 font-semibold"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                      Data i godzina doręczenia / rejestracji w Kancelarii
+                    </p>
                   </div>
                 </div>
 
