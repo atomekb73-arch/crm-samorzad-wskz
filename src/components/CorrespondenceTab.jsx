@@ -140,6 +140,24 @@ export default function CorrespondenceTab({
     notes: '',
   });
 
+  // ── Helper do pobierania poprawnego pola daty ─────────────────────────────
+  const getItemDate = (item) => {
+    if (!item) return "";
+    const val = item.dataWplywu || item.data || item.date || item.Data_Wplywu || "";
+    if (val && val !== "—") return String(val).trim();
+    return "";
+  };
+
+  // ── Stan i obsługa sortowania wielokolumnowego ────────────────────────────
+  const [sortConfig, setSortConfig] = useState({ key: 'dataWplywu', direction: 'desc' });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
   // Filtered correspondence
   const filteredList = useMemo(() => {
     return correspondence.filter(item => {
@@ -165,6 +183,52 @@ export default function CorrespondenceTab({
       return true;
     });
   }, [correspondence, typeFilter, statusFilter, searchTerm]);
+
+  // Posortowane dane przed renderem
+  const sortedData = useMemo(() => {
+    let sortableItems = [...filteredList];
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        let aVal = a[sortConfig.key] || "";
+        let bVal = b[sortConfig.key] || "";
+
+        // Jeśli sortujemy po dacie, normalizuj do porównania chronologicznego
+        if (sortConfig.key === 'dataWplywu') {
+          aVal = getItemDate(a);
+          bVal = getItemDate(b);
+        } else if (sortConfig.key === 'nadawca') {
+          aVal = a.nadawca || a.sender || "";
+          bVal = b.nadawca || b.sender || "";
+        } else if (sortConfig.key === 'odbiorca') {
+          aVal = a.odbiorca || a.recipient || "";
+          bVal = b.odbiorca || b.recipient || "";
+        } else if (sortConfig.key === 'temat') {
+          aVal = a.temat || a.przedmiot || a.subject || "";
+          bVal = b.temat || b.przedmiot || b.subject || "";
+        } else if (sortConfig.key === 'sygnatura') {
+          aVal = a.sygnatura || a.id || "";
+          bVal = b.sygnatura || b.id || "";
+        } else if (sortConfig.key === 'typ') {
+          aVal = a.direction || a.typ || "";
+          bVal = b.direction || b.typ || "";
+        } else if (sortConfig.key === 'status') {
+          aVal = a.statusUjednolicenia || a.status || "";
+          bVal = b.statusUjednolicenia || b.status || "";
+        } else if (sortConfig.key === 'weryfikacja') {
+          aVal = a.weryfikacjaFormalna || "";
+          bVal = b.weryfikacjaFormalna || "";
+        }
+
+        aVal = String(aVal).toLowerCase();
+        bVal = String(bVal).toLowerCase();
+
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredList, sortConfig]);
 
   const handleOpenDrawer = (item) => {
     setActiveDrawerItem(item);
@@ -368,27 +432,155 @@ export default function CorrespondenceTab({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-100/90 border-b border-slate-300 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-4">Sygnatura</th>
-                <th className="py-3 px-3">Data wpływu</th>
-                <th className="py-3 px-3">Typ</th>
-                <th className="py-3 px-4">Nadawca</th>
-                <th className="py-3 px-4">Odbiorca / DW</th>
-                <th className="py-3 px-4">Temat</th>
-                <th className="py-3 px-3">Status Ujednolicenia</th>
-                <th className="py-3 px-3">Weryfikacja Formalna</th>
+                {/* SYGNATURA */}
+                <th
+                  onClick={() => handleSort('sygnatura')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-4 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>SYGNATURA</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'sygnatura' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* DATA WPŁYWU */}
+                <th
+                  onClick={() => handleSort('dataWplywu')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>DATA WPŁYWU</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'dataWplywu' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* TYP */}
+                <th
+                  onClick={() => handleSort('typ')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>TYP</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'typ' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* NADAWCA */}
+                <th
+                  onClick={() => handleSort('nadawca')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-4 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>NADAWCA</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'nadawca' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* ODBIORCA / DW */}
+                <th
+                  onClick={() => handleSort('odbiorca')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-4 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>ODBIORCA / DW</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'odbiorca' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* TEMAT */}
+                <th
+                  onClick={() => handleSort('temat')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-4 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>TEMAT</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'temat' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* STATUS UJEDNOLICENIA */}
+                <th
+                  onClick={() => handleSort('status')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>STATUS UJEDNOLICENIA</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'status' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
+
+                {/* WERYFIKACJA FORMALNA */}
+                <th
+                  onClick={() => handleSort('weryfikacja')}
+                  className="cursor-pointer select-none hover:bg-slate-200/70 transition-colors py-3 px-3 text-slate-700 font-semibold text-xs uppercase tracking-wider text-left"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>WERYFIKACJA FORMALNA</span>
+                    <span className="text-[11px] text-slate-500">
+                      {sortConfig.key === 'weryfikacja' ? (
+                        sortConfig.direction === 'desc' ? '▼' : '▲'
+                      ) : (
+                        <span className="opacity-40 hover:opacity-100">↕</span>
+                      )}
+                    </span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredList.length === 0 ? (
+              {sortedData.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
                     Brak zarejestrowanych wpisów w Kancelarii
                   </td>
                 </tr>
               ) : (
-                filteredList.map((item) => {
+                sortedData.map((item) => {
                   const isIncoming = item.direction === 'IN';
                   const isSelected = activeDrawerItem?.id === item.id;
+                  const itemDate = getItemDate(item);
                   return (
                     <tr
                       key={item.id}
@@ -404,7 +596,7 @@ export default function CorrespondenceTab({
 
                       {/* Data wpływu */}
                       <td className="py-3 px-3 text-slate-600 whitespace-nowrap font-medium">
-                        {item.date}
+                        {itemDate || "—"}
                       </td>
 
                       {/* Typ (Badge) */}
@@ -421,18 +613,18 @@ export default function CorrespondenceTab({
                       </td>
 
                       {/* Nadawca */}
-                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.sender}>
-                        {item.sender}
+                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.sender || item.nadawca}>
+                        {item.sender || item.nadawca}
                       </td>
 
                       {/* Odbiorca/DW */}
-                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.recipient}>
-                        {item.recipient}
+                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.recipient || item.odbiorca}>
+                        {item.recipient || item.odbiorca}
                       </td>
 
                       {/* Temat */}
-                      <td className="py-3 px-4 text-slate-900 font-semibold max-w-[260px] truncate" title={item.subject}>
-                        {item.subject}
+                      <td className="py-3 px-4 text-slate-900 font-semibold max-w-[260px] truncate" title={item.subject || item.przedmiot}>
+                        {item.subject || item.przedmiot}
                       </td>
 
                       {/* Status Ujednolicenia */}
@@ -468,7 +660,7 @@ export default function CorrespondenceTab({
         </div>
 
         <div className="py-2.5 px-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <span>Wyświetlono <strong className="text-slate-900">{filteredList.length}</strong> z <strong className="text-slate-900">{correspondence.length}</strong> zarejestrowanych pism</span>
+          <span>Wyświetlono <strong className="text-slate-900">{sortedData.length}</strong> z <strong className="text-slate-900">{correspondence.length}</strong> zarejestrowanych pism</span>
           <span className="text-[11px] text-slate-400">Kliknij dowolny wiersz, aby otworzyć panel sprawy</span>
         </div>
       </div>
@@ -522,7 +714,7 @@ export default function CorrespondenceTab({
                   <div>
                     <span className="text-slate-500 font-medium">Data wpływu/wysłania:</span>
                     <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                      <Calendar size={13} className="text-slate-400" /> {activeDrawerItem.date}
+                      <Calendar size={13} className="text-slate-400" /> {getItemDate(activeDrawerItem) || '—'}
                     </p>
                   </div>
                   <div>

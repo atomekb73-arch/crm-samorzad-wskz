@@ -32,7 +32,18 @@ export default function DashboardTab({
   ).length;
   const activeOrgsCount = organizations.length;
 
-  const recentLetters = correspondence.slice(0, 5);
+  const getItemDate = (item) => {
+    if (!item) return "";
+    const val = item.dataWplywu || item.data || item.date || item.Data_Wplywu || "";
+    if (val && val !== "—") return String(val).trim();
+    return "";
+  };
+
+  const recentLetters = [...correspondence].sort((a, b) => {
+    const aVal = getItemDate(a);
+    const bVal = getItemDate(b);
+    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+  }).slice(0, 5);
   const recentItIssues = itIssues.slice(0, 3);
 
   return (
@@ -183,7 +194,7 @@ export default function DashboardTab({
                           </span>
                         )}
                         <span className="text-[11px] text-slate-600 font-medium">
-                          {item.date}
+                          {getItemDate(item) || "—"}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-[#1e3a8a] transition truncate max-w-xl">
