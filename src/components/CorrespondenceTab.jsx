@@ -25,6 +25,89 @@ import {
   Check,
 } from 'lucide-react';
 
+export function parseIncomingEmailText(rawText) {
+  if (!rawText) return null;
+  const text = rawText.trim();
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  let sender = "";
+  let recipient = "";
+  let subject = "";
+  let dateVal = "";
+  let bodyLines = [];
+  let isBody = false;
+
+  // Wyrażenia regularne dopasowane do webmaila (z dwukropkiem lub bez)
+  const fromRegex = /^(?:Od|From|Nadawca)[:\s]+(.+)$/i;
+  const toRegex = /^(?:Do|To|Odbiorca|Adresat)[:\s]+(.+)$/i;
+  const subjectRegex = /^(?:Temat|Subject|Dotyczy)[:\s]+(.+)$/i;
+  const dateRegex = /^(?:Data|Date)[:\s]+(.+)$/i;
+  
+  // Frazy śmieciowe z interfejsów pocztowych do odfiltrowania
+  const junkRegex = /^(Zdjęcie kontaktu|Ogólne Nagłówki|Zwykły tekst|Pokaż szczegóły|Ukryj szczegóły)$/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (junkRegex.test(line)) {
+      continue; // Pomiń śmieci interfejsu
+    }
+
+    if (!isBody) {
+      const fromMatch = line.match(fromRegex);
+      if (fromMatch && !sender) {
+        sender = fromMatch[1].trim();
+        continue;
+      }
+
+      const toMatch = line.match(toRegex);
+      if (toMatch && !recipient) {
+        recipient = toMatch[1].trim();
+        continue;
+      }
+
+      const subjMatch = line.match(subjectRegex);
+      if (subjMatch && !subject) {
+        subject = subjMatch[1].trim();
+        continue;
+      }
+
+      const dtMatch = line.match(dateRegex);
+      if (dtMatch && !dateVal) {
+        dateVal = dtMatch[1].trim();
+        continue;
+      }
+
+      // Jeśli pierwsza linia nie jest nagłówkiem i nie mamy tematu, traktuj jako temat
+      if (i === 0 && !fromMatch && !toMatch && !subjMatch) {
+        subject = line;
+        continue;
+      }
+
+      // Pierwsza linia treści (np. "Szanowni Państwo," lub zwrot grzecznościowy) rozpoczyna właściwy korpus
+      if (
+        /^(Szanowni|Dzień dobry|Cześć|Witam|W nawiązaniu|Zwracam się|Proszę|Informuję)/i.test(line) ||
+        (!fromRegex.test(line) && !toRegex.test(line) && !subjectRegex.test(line) && !dateRegex.test(line) && i > 3)
+      ) {
+        isBody = true;
+        bodyLines.push(line);
+      }
+    } else {
+      bodyLines.push(line);
+    }
+  }
+
+  const isIncoming = (recipient.toLowerCase().includes("samorzad") || recipient.toLowerCase().includes("wskz") || !sender.toLowerCase().includes("samorzad"));
+
+  return {
+    nadawca: sender || "Nieznany nadawca",
+    odbiorca: recipient || "Kancelaria Samorządu Studenckiego",
+    temat: subject || (bodyLines[0] ? bodyLines[0].slice(0, 80) : "Korespondencja wpływająca"),
+    tresc: bodyLines.join('\n\n').trim(),
+    kierunek: isIncoming ? "IN" : "OUT"
+  };
+}
+
 export default function CorrespondenceTab({
   correspondence = [],
   onAddCorrespondence = () => {},
@@ -96,106 +179,20 @@ export default function CorrespondenceTab({
   const handleParsePastedText = () => {
     if (!rawPastedText.trim()) return;
 
-    const text = rawPastedText.trim();
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    let detectedSender = '';
-    let detectedRecipient = 'Kancelaria Samorządu Studenckiego WSKZ';
-    let detectedSubject = '';
-    let detectedSignature = '';
-    let detectedDirection = 'IN';
-    let detectedStatus = 'W toku';
-    let bodyLines = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Nadawca / Od / From / Zgłaszający / Wnioskodawca
-      const senderMatch = line.match(/^(?:Od|Nadawca|From|Zgłaszający|Wnioskodawca|Autor)\s*[:\-]\s*(.+)$/i);
-      if (senderMatch) {
-        detectedSender = senderMatch[1].trim();
-        continue;
-      }
-
-      // Odbiorca / Do / To / Adresat / DW
-      const recipientMatch = line.match(/^(?:Do|Odbiorca|To|Adresat|DW|Otrzymują)\s*[:\-]\s*(.+)$/i);
-      if (recipientMatch) {
-        detectedRecipient = recipientMatch[1].trim();
-        continue;
-      }
-
-      // Temat / Dotyczy / Subject / Re / Tytuł / Przedmiot
-      const subjectMatch = line.match(/^(?:Temat|Dotyczy|Subject|Re|Tytuł|Przedmiot)\s*[:\-]\s*(.+)$/i);
-      if (subjectMatch) {
-        detectedSubject = subjectMatch[1].trim();
-        continue;
-      }
-
-      // Sygnatura / Znak sprawy / Ref / Numer
-      const sigMatch = line.match(/^(?:Sygnatura|Znak(?:\s+sprawy)?|Sygn\.?|Ref\.?|Numer(?:\s+pisma)?)\s*[:\-]\s*([A-Za-z0-9\/\-_\.\s]+)$/i);
-      if (sigMatch) {
-        detectedSignature = sigMatch[1].trim();
-        continue;
-      }
-
-      // Status
-      const statusMatch = line.match(/^(?:Status)\s*[:\-]\s*(.+)$/i);
-      if (statusMatch) {
-        const rawStatus = statusMatch[1].trim();
-        if (/zatwierdz/i.test(rawStatus)) detectedStatus = 'Zatwierdzone';
-        else if (/weryfikac/i.test(rawStatus)) detectedStatus = 'Weryfikacja';
-        else detectedStatus = 'W toku';
-        continue;
-      }
-
-      bodyLines.push(line);
-    }
-
-    // Heurystyka: wykrycie sygnatury w treści (np. DK/2026/..., D-WNS/412/2026, KSS/2026/01)
-    if (!detectedSignature) {
-      const inlineSigMatch = text.match(/\b([A-Z]{2,6}\/[0-9]{4}\/[0-9]{1,4}(?:\/[0-9]{1,4})?|[A-Z]{1,4}-[A-Z0-9]+\/[0-9]{1,4}\/[0-9]{4})\b/);
-      if (inlineSigMatch) {
-        detectedSignature = inlineSigMatch[1];
-      }
-    }
-
-    // Heurystyka: temat z pierwszej linii jeśli nie wykryto etykiety
-    if (!detectedSubject && bodyLines.length > 0) {
-      detectedSubject = bodyLines[0];
-      bodyLines = bodyLines.slice(1);
-    }
-
-    // Heurystyka: nadawca ze słów kluczowych
-    if (!detectedSender) {
-      if (/dziekanat/i.test(text)) detectedSender = 'Dziekanat WSKZ';
-      else if (/rektor|prorektor/i.test(text)) detectedSender = 'Rektorat WSKZ';
-      else if (/kwestura|płatnośc/i.test(text)) detectedSender = 'Kwestura WSKZ';
-      else if (/samorząd/i.test(text)) detectedSender = 'Zarząd Samorządu Studenckiego';
-      else detectedSender = 'Dziekanat / Koło Naukowe';
-    }
-
-    // Heurystyka: kierunek pisma
-    if (/kancelaria samorządu|zarząd samorządu|prezydium samorządu/i.test(detectedSender) || /wychodzące|wysłano z kancelarii/i.test(text)) {
-      detectedDirection = 'OUT';
-      if (detectedRecipient === 'Kancelaria Samorządu Studenckiego WSKZ') {
-        detectedRecipient = 'Dziekanat / Organy Uczelni';
-      }
-    }
-
-    const bodySummary = bodyLines.join('\n\n').trim();
+    const parsed = parseIncomingEmailText(rawPastedText);
+    if (!parsed) return;
 
     setNewEntry(prev => ({
       ...prev,
-      direction: detectedDirection,
-      sender: detectedSender,
-      recipient: detectedRecipient,
-      subject: detectedSubject,
-      summary: bodySummary || prev.summary,
-      sourceCitation: detectedSignature || prev.sourceCitation,
-      status: detectedStatus,
+      direction: parsed.kierunek === "OUT" ? "OUT" : "IN",
+      sender: parsed.nadawca,
+      recipient: parsed.odbiorca,
+      subject: parsed.temat,
+      summary: parsed.tresc,
+      status: "W toku",
     }));
 
-    setParseNotice('Pomyślnie rozpoznano dane pisma! Zweryfikuj i uzupełnij poniższe pola.');
+    setParseNotice('Pomyślnie rozpoznano dane wiadomości! Formularz został uzupełniony.');
     setModalMode('form');
   };
 
@@ -749,7 +746,7 @@ export default function CorrespondenceTab({
                   <button
                     type="button"
                     onClick={() => {
-                      setRawPastedText(`Od: Dziekanat Kolegium Nauk Społecznych WSKZ\nDo: Kancelaria Samorządu Studenckiego WSKZ\nTemat: Wniosek o zaopiniowanie regulaminu dyżurów semestralnych\nSygnatura: D-WNS/412/2026\n\nSzanowni Państwo,\nZwracamy się z uprzejmą prośbą o przedstawienie opinii Samorządu Studenckiego w sprawie harmonogramu.`);
+                      setRawPastedText(`Od Anna Tomczyk <anna.tomczyk@wskz.pl>\nDo samorzad@wskz.pl, magdalena.moszninska@gmail.com\nTemat Erasmus - nabór na wyjazdy dla studentów\nData 12 marca 2026 14:30\n\nSzanowni Państwo,\nZwracam się z uprzejmą prośbą o przekazanie studentom informacji o rozpoczęciu naboru wniosków stypendialnych w programie Erasmus+ na rok akademicki 2026/2027.`);
                     }}
                     className="text-[11px] text-[#1e3a8a] font-semibold hover:underline cursor-pointer"
                   >
