@@ -1,0 +1,26 @@
+{
+  "short_name": "Kancelaria",
+  "name": "Kancelaria Samorządu Studenckiego WSKZ",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b192c",
+  "theme_color": "#0b192c",
+  "display": "standalone",
+  "orientation": "portrait"
+}
