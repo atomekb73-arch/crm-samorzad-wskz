@@ -11,7 +11,7 @@ import {
 export const MAIN_TABS = [
   { id: 'dashboard',       label: 'Pulpit Kancelarii',      icon: LayoutDashboard, aliases: [] },
   { id: 'correspondence',  label: 'Dziennik Korespondencji', icon: Mail,            aliases: ['mail', 'poczta'] },
-  { id: 'it_issues',       label: 'Rejestr Wad IT',          icon: AlertTriangle,   aliases: ['wady', 'it'] },
+  { id: 'it_issues',       label: 'Zgłoszenia Techniczne',   icon: AlertTriangle,   aliases: ['wady', 'it'] },
   { id: 'decisions',       label: 'Ustalenia Operacyjne',    icon: FileText,        aliases: ['protokoly', 'ustalenia'] },
   { id: 'organizations',   label: 'Koła i Organizacje',      icon: Users,           aliases: ['kola', 'clubs', 'members'] },
   { id: 'access_control',  label: 'Dostęp i Uprawnienia',    icon: ShieldCheck,     aliases: ['settings', 'uprawnienia', 'settings_tools'] },

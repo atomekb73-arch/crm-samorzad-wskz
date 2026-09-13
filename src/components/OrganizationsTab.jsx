@@ -94,7 +94,7 @@ export default function OrganizationsTab({
             placeholder="Szukaj koła naukowego po nazwie, zarządzie, opiekunie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1e3a8a] transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500 transition"
           />
         </div>
       </div>
@@ -114,43 +114,43 @@ export default function OrganizationsTab({
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
                       {org.category || 'Koło Naukowe'}
                     </span>
                     <h3 className="text-sm sm:text-base font-bold text-slate-900 mt-1">
                       {org.name}
                     </h3>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-300">
                     {org.status || 'Aktywne'}
                   </span>
                 </div>
 
                 {org.description && (
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                  <p className="text-xs text-slate-700 leading-relaxed font-normal">
                     {org.description}
                   </p>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
+              <div className="pt-3 border-t border-slate-200 space-y-1.5 text-xs text-slate-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Zarząd / Lider:</span>
-                  <span className="font-semibold text-slate-800">{org.leader || 'Zarząd Koła'}</span>
+                  <span className="text-slate-500 font-medium">Zarząd / Lider:</span>
+                  <span className="font-semibold text-slate-900">{org.leader || 'Zarząd Koła'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Opiekun Naukowy:</span>
-                  <span className="font-semibold text-slate-800">{org.supervisor || 'Instytut / Katedra'}</span>
+                  <span className="text-slate-500 font-medium">Opiekun Naukowy:</span>
+                  <span className="font-semibold text-slate-900">{org.supervisor || 'Instytut / Katedra'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Liczba członków:</span>
-                  <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
+                  <span className="text-slate-500 font-medium">Liczba członków:</span>
+                  <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
                     {org.membersCount || 0} osób
                   </span>
                 </div>
                 {org.email && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 font-medium">Kontakt email:</span>
+                    <span className="text-slate-500 font-medium">Kontakt email:</span>
                     <span className="font-mono text-[#1e3a8a] font-medium">{org.email}</span>
                   </div>
                 )}
@@ -164,9 +164,9 @@ export default function OrganizationsTab({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus size={18} className="text-emerald-600" />
+                <Plus size={18} className="text-[#1e3a8a]" />
                 Rejestracja nowej organizacji / koła
               </h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -183,7 +183,7 @@ export default function OrganizationsTab({
                   placeholder="np. Studenckie Koło Naukowe Psychoterapii WSKZ"
                   value={newOrg.name}
                   onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -193,7 +193,7 @@ export default function OrganizationsTab({
                   <select
                     value={newOrg.category}
                     onChange={(e) => setNewOrg({ ...newOrg, category: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="Koło Naukowe">Koło Naukowe</option>
                     <option value="Samorząd">Organ Samorządowy</option>
@@ -208,7 +208,7 @@ export default function OrganizationsTab({
                     type="number"
                     value={newOrg.membersCount}
                     onChange={(e) => setNewOrg({ ...newOrg, membersCount: parseInt(e.target.value, 10) || 0 })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function OrganizationsTab({
                     type="text"
                     value={newOrg.leader}
                     onChange={(e) => setNewOrg({ ...newOrg, leader: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
 
@@ -230,7 +230,7 @@ export default function OrganizationsTab({
                     type="text"
                     value={newOrg.supervisor}
                     onChange={(e) => setNewOrg({ ...newOrg, supervisor: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
               </div>
@@ -242,21 +242,21 @@ export default function OrganizationsTab({
                   placeholder="Główne cele, obszar badawczy..."
                   value={newOrg.description}
                   onChange={(e) => setNewOrg({ ...newOrg, description: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  className="px-4 py-2 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                 >
                   Zarejestruj organizację
                 </button>

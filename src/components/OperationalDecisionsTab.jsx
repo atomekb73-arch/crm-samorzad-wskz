@@ -91,11 +91,11 @@ export default function OperationalDecisionsTab({
             placeholder="Szukaj po temacie, treści lub osobie odpowiedzialnej..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1e3a8a] transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500 transition"
           />
         </div>
 
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
+        <div className="flex items-center bg-slate-100/90 p-1 rounded-xl text-xs font-medium border border-slate-300">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
@@ -128,7 +128,7 @@ export default function OperationalDecisionsTab({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-100/90 border-b border-slate-300 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Numer</th>
                 <th className="py-3 px-3">Data</th>
                 <th className="py-3 px-4">Temat i postanowienie</th>
@@ -137,7 +137,7 @@ export default function OperationalDecisionsTab({
                 <th className="py-3 px-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredDecisions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
@@ -146,27 +146,27 @@ export default function OperationalDecisionsTab({
                 </tr>
               ) : (
                 filteredDecisions.map((dec) => (
-                  <tr key={dec.id} className="hover:bg-slate-50/80 transition">
+                  <tr key={dec.id} className="hover:bg-slate-50 transition">
                     <td className="py-3.5 px-4 font-mono font-bold text-[#1e3a8a] whitespace-nowrap">
                       {dec.id}
                     </td>
-                    <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
+                    <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap font-medium">
                       {dec.date}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-slate-900">
                       {dec.topic}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600 leading-relaxed max-w-md">
+                    <td className="py-3.5 px-4 text-slate-700 leading-relaxed max-w-md font-normal">
                       {dec.details}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-slate-800 font-medium whitespace-nowrap">
                       {dec.responsible}
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         dec.status === 'Zrealizowane'
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
                       }`}>
                         {dec.status}
                       </span>
@@ -183,7 +183,7 @@ export default function OperationalDecisionsTab({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus size={18} className="text-[#1e3a8a]" />
                 Nowe ustalenie operacyjne
@@ -202,7 +202,7 @@ export default function OperationalDecisionsTab({
                   placeholder="Krótki tytuł postanowienia"
                   value={newDecision.topic}
                   onChange={(e) => setNewDecision({ ...newDecision, topic: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -213,7 +213,7 @@ export default function OperationalDecisionsTab({
                   placeholder="Ustalenia, warunki, terminy..."
                   value={newDecision.details}
                   onChange={(e) => setNewDecision({ ...newDecision, details: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -224,7 +224,7 @@ export default function OperationalDecisionsTab({
                     type="text"
                     value={newDecision.responsible}
                     onChange={(e) => setNewDecision({ ...newDecision, responsible: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
 
@@ -233,7 +233,7 @@ export default function OperationalDecisionsTab({
                   <select
                     value={newDecision.status}
                     onChange={(e) => setNewDecision({ ...newDecision, status: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="W realizacji">W realizacji</option>
                     <option value="W toku">W toku</option>
@@ -242,17 +242,17 @@ export default function OperationalDecisionsTab({
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  className="px-4 py-2 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                 >
                   Zapisz ustalenie
                 </button>

@@ -170,7 +170,7 @@ export default function CorrespondenceTab({
             placeholder="Szukaj po sygnaturze, temacie, nadawcy, odbiorcy lub cytacie..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1e3a8a] transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500 transition"
           />
           {searchTerm && (
             <button
@@ -185,7 +185,7 @@ export default function CorrespondenceTab({
         {/* Quick Filter Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Type Filter */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl text-xs font-medium border border-slate-300">
             <button
               onClick={() => setTypeFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
@@ -213,7 +213,7 @@ export default function CorrespondenceTab({
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl text-xs font-medium border border-slate-300">
             <button
               onClick={() => setStatusFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
@@ -255,7 +255,7 @@ export default function CorrespondenceTab({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-100/90 border-b border-slate-300 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Sygnatura</th>
                 <th className="py-3 px-3">Data wpływu</th>
                 <th className="py-3 px-3">Typ</th>
@@ -266,7 +266,7 @@ export default function CorrespondenceTab({
                 <th className="py-3 px-3">Weryfikacja Formalna</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
@@ -281,8 +281,8 @@ export default function CorrespondenceTab({
                     <tr
                       key={item.id}
                       onClick={() => handleOpenDrawer(item)}
-                      className={`hover:bg-slate-50/80 transition cursor-pointer ${
-                        isSelected ? 'bg-blue-50/60 font-semibold' : ''
+                      className={`hover:bg-slate-50 transition cursor-pointer ${
+                        isSelected ? 'bg-blue-50/70 font-semibold' : ''
                       }`}
                     >
                       {/* Sygnatura */}
@@ -291,46 +291,46 @@ export default function CorrespondenceTab({
                       </td>
 
                       {/* Data wpływu */}
-                      <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
+                      <td className="py-3 px-3 text-slate-600 whitespace-nowrap font-medium">
                         {item.date}
                       </td>
 
                       {/* Typ (Badge) */}
                       <td className="py-3 px-3 whitespace-nowrap">
                         {isIncoming ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
                             <ArrowDownLeft size={12} /> Wchodzące
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                             <ArrowUpRight size={12} /> Wychodzące
                           </span>
                         )}
                       </td>
 
                       {/* Nadawca */}
-                      <td className="py-3 px-4 text-slate-700 max-w-[180px] truncate" title={item.sender}>
+                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.sender}>
                         {item.sender}
                       </td>
 
                       {/* Odbiorca/DW */}
-                      <td className="py-3 px-4 text-slate-700 max-w-[180px] truncate" title={item.recipient}>
+                      <td className="py-3 px-4 text-slate-800 font-medium max-w-[180px] truncate" title={item.recipient}>
                         {item.recipient}
                       </td>
 
                       {/* Temat */}
-                      <td className="py-3 px-4 text-slate-900 font-medium max-w-[260px] truncate" title={item.subject}>
+                      <td className="py-3 px-4 text-slate-900 font-semibold max-w-[260px] truncate" title={item.subject}>
                         {item.subject}
                       </td>
 
                       {/* Status Ujednolicenia */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                          item.statusUjednolicenia === 'Ujednolicone'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : item.statusUjednolicenia === 'W trakcie'
-                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
+                          item.statusUjednolicenia === 'Ujednolicone' || item.status === 'Zatwierdzone'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : item.statusUjednolicenia === 'W trakcie' || item.status === 'W toku'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-slate-100 text-slate-700 border border-slate-300'
                         }`}>
                           {item.statusUjednolicenia || item.status || 'Ujednolicone'}
                         </span>
@@ -338,10 +338,10 @@ export default function CorrespondenceTab({
 
                       {/* Weryfikacja Formalna */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
                           item.weryfikacjaFormalna === 'Zatwierdzone' || item.weryfikacjaFormalna === 'Zgodna ze statutem'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-sky-50 text-sky-800 border border-sky-200'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : 'bg-sky-100 text-sky-800 border border-sky-300'
                         }`}>
                           <ShieldCheck size={12} />
                           {item.weryfikacjaFormalna || 'Zatwierdzone'}
@@ -374,18 +374,18 @@ export default function CorrespondenceTab({
             <div className="w-screen max-w-xl bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200">
               
               {/* Drawer Header */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-3">
+              <div className="p-5 border-b border-slate-200 bg-slate-50/80 flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-extrabold text-indigo-950 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    <span className="font-mono text-sm font-extrabold text-[#1e3a8a] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
                       {activeDrawerItem.id}
                     </span>
                     {activeDrawerItem.direction === 'IN' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
                         Wchodzące
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                         Wychodzące
                       </span>
                     )}
@@ -406,15 +406,15 @@ export default function CorrespondenceTab({
               {/* Drawer Body */}
               <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
                 {/* Meta Grid */}
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                   <div>
-                    <span className="text-slate-400 font-medium">Data wpływu/wysłania:</span>
+                    <span className="text-slate-500 font-medium">Data wpływu/wysłania:</span>
                     <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
                       <Calendar size={13} className="text-slate-400" /> {activeDrawerItem.date}
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-400 font-medium">Status sprawy:</span>
+                    <span className="text-slate-500 font-medium">Status sprawy:</span>
                     <div className="mt-0.5 flex items-center gap-2">
                       <select
                         value={activeDrawerItem.status || 'W toku'}
@@ -423,7 +423,7 @@ export default function CorrespondenceTab({
                           setActiveDrawerItem(prev => ({ ...prev, status: newSt }));
                           onChangeStatus(activeDrawerItem.id || activeDrawerItem.sygnatura, newSt);
                         }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                       >
                         <option value="W toku">W toku</option>
                         <option value="Zatwierdzone">Zatwierdzone</option>
@@ -434,13 +434,13 @@ export default function CorrespondenceTab({
                     </div>
                   </div>
                   <div>
-                    <span className="text-slate-400 font-medium">Nadawca:</span>
+                    <span className="text-slate-500 font-medium">Nadawca:</span>
                     <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
                       <Building size={13} className="text-slate-400" /> {activeDrawerItem.sender}
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-400 font-medium">Odbiorca:</span>
+                    <span className="text-slate-500 font-medium">Odbiorca:</span>
                     <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
                       <User size={13} className="text-slate-400" /> {activeDrawerItem.recipient}
                     </p>
@@ -450,9 +450,9 @@ export default function CorrespondenceTab({
                 {/* Streszczenie / Treść sprawy */}
                 <div className="space-y-1.5">
                   <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                    <FileText size={14} className="text-indigo-600" /> Streszczenie sprawy / Pełna treść
+                    <FileText size={14} className="text-[#1e3a8a]" /> Streszczenie sprawy / Pełna treść
                   </h4>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-slate-700 leading-relaxed">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
                     {activeDrawerItem.summary || 'Brak dodatkowego streszczenia sprawy.'}
                   </div>
                 </div>
@@ -461,9 +461,9 @@ export default function CorrespondenceTab({
                 {activeDrawerItem.sourceCitation && (
                   <div className="space-y-1.5">
                     <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Paperclip size={14} className="text-indigo-600" /> Cytat źródłowy / Oznaczenie pisma
+                      <Paperclip size={14} className="text-[#1e3a8a]" /> Cytat źródłowy / Oznaczenie pisma
                     </h4>
-                    <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 text-indigo-900 font-mono text-[11px]">
+                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-[#1e3a8a] font-mono text-[11px]">
                       &ldquo;{activeDrawerItem.sourceCitation}&rdquo;
                     </div>
                   </div>
@@ -475,7 +475,7 @@ export default function CorrespondenceTab({
                     <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                       <AlertCircle size={14} className="text-amber-600" /> Dyspozycje i notatki kancelaryjne
                     </h4>
-                    <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/70 text-amber-900">
+                    <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-900">
                       {activeDrawerItem.notes}
                     </div>
                   </div>
@@ -491,32 +491,32 @@ export default function CorrespondenceTab({
                       activeDrawerItem.attachments.map((att, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700"
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-medium"
                         >
                           <span className="font-mono text-xs truncate max-w-xs">{att}</span>
-                          <span className="text-[11px] text-indigo-600 font-semibold cursor-pointer hover:underline">
+                          <span className="text-[11px] text-[#1e3a8a] font-semibold cursor-pointer hover:underline">
                             Pobierz
                           </span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-slate-400 italic">Brak zarejestrowanych załączników cyfrowych.</p>
+                      <p className="text-slate-500 italic">Brak zarejestrowanych załączników cyfrowych.</p>
                     )}
                   </div>
                 </div>
 
                 {/* Sygnatura cyfrowa & Audit Trail */}
-                <div className="p-3 bg-slate-100/70 rounded-xl border border-slate-200 text-[10.5px] text-slate-500 space-y-1">
-                  <p><strong className="text-slate-700">Identyfikator cyfrowy:</strong> {activeDrawerItem.hash || activeDrawerItem.id}</p>
-                  <p><strong className="text-slate-700">Zarejestrowano w:</strong> Kancelaria Samorządu Studenckiego WSKZ</p>
+                <div className="p-3 bg-slate-100/80 rounded-xl border border-slate-200 text-[10.5px] text-slate-600 space-y-1">
+                  <p><strong className="text-slate-800">Identyfikator cyfrowy:</strong> {activeDrawerItem.hash || activeDrawerItem.id}</p>
+                  <p><strong className="text-slate-800">Zarejestrowano w:</strong> Kancelaria Samorządu Studenckiego WSKZ</p>
                 </div>
               </div>
 
               {/* Drawer Footer Actions */}
-              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
+              <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex items-center justify-between gap-2">
                 <button
                   onClick={handleCloseDrawer}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                 >
                   Zamknij
                 </button>
@@ -539,7 +539,7 @@ export default function CorrespondenceTab({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus size={18} className="text-[#1e3a8a]" />
                 Rejestracja nowego pisma w Dzienniku Korespondencji
@@ -559,7 +559,7 @@ export default function CorrespondenceTab({
                   <select
                     value={newEntry.direction}
                     onChange={(e) => setNewEntry({ ...newEntry, direction: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="IN">Wchodzące (Wpływ do Kancelarii)</option>
                     <option value="OUT">Wychodzące (Wysłane z Kancelarii)</option>
@@ -571,7 +571,7 @@ export default function CorrespondenceTab({
                   <select
                     value={newEntry.status}
                     onChange={(e) => setNewEntry({ ...newEntry, status: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="W toku">W toku</option>
                     <option value="Zatwierdzone">Zatwierdzone</option>
@@ -589,9 +589,8 @@ export default function CorrespondenceTab({
                     placeholder="np. Dziekanat WNS / Koło Naukowe"
                     value={newEntry.sender}
                     onChange={(e) => setNewEntry({ ...newEntry, sender: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
-                  >
-                  </input>
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
+                  />
                 </div>
 
                 <div>
@@ -602,9 +601,8 @@ export default function CorrespondenceTab({
                     placeholder="np. Kancelaria Samorządu Studenckiego WSKZ"
                     value={newEntry.recipient}
                     onChange={(e) => setNewEntry({ ...newEntry, recipient: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
-                  >
-                  </input>
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
+                  />
                 </div>
               </div>
 
@@ -616,9 +614,8 @@ export default function CorrespondenceTab({
                   placeholder="Krótki, precyzyjny tytuł pisma lub wniosku"
                   value={newEntry.subject}
                   onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
-                >
-                </input>
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
+                />
               </div>
 
               <div>
@@ -628,7 +625,7 @@ export default function CorrespondenceTab({
                   placeholder="Kluczowe ustalenia, opis sprawy, wnioski..."
                   value={newEntry.summary}
                   onChange={(e) => setNewEntry({ ...newEntry, summary: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -640,7 +637,7 @@ export default function CorrespondenceTab({
                     placeholder="np. Pismo D-WNS/412/2026"
                     value={newEntry.sourceCitation}
                     onChange={(e) => setNewEntry({ ...newEntry, sourceCitation: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
 
@@ -651,22 +648,22 @@ export default function CorrespondenceTab({
                     placeholder="https://drive.google.com/..."
                     value={newEntry.lokalizacjaDrive}
                     onChange={(e) => setNewEntry({ ...newEntry, lokalizacjaDrive: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  className="px-4 py-2 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                 >
                   Zarejestruj pismo
                 </button>

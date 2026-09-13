@@ -151,7 +151,7 @@ export default function ItIssuesTab({
             placeholder="Szukaj po sygnaturze zgłoszenia, kierunku, obszarze platformy lub treści..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500 transition"
           />
           {searchTerm && (
             <button
@@ -165,7 +165,7 @@ export default function ItIssuesTab({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Priority / Impact Filter */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl text-xs font-medium border border-slate-300">
             <button
               onClick={() => setSeverityFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
@@ -185,7 +185,7 @@ export default function ItIssuesTab({
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl text-xs font-medium border border-slate-300">
             <button
               onClick={() => setStatusFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
@@ -227,7 +227,7 @@ export default function ItIssuesTab({
         <div className="w-full">
           <table className="w-full table-fixed text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-100/90 border-b border-slate-300 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="w-[12%] py-3 px-3">SYGNATURA</th>
                 <th className="w-[10%] py-3 px-2">DATA</th>
                 <th className="w-[20%] py-3 px-3">KIERUNEK I MODUŁ</th>
@@ -236,7 +236,7 @@ export default function ItIssuesTab({
                 <th className="w-[8%] py-3 px-2 text-center">WPŁYW NA STUDIA</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               {filteredIssues.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
@@ -256,10 +256,10 @@ export default function ItIssuesTab({
                       onClick={() => setSelectedIssue(item)}
                       className={`transition cursor-pointer ${
                         isCriticalEcts
-                          ? 'bg-rose-50/50 hover:bg-rose-50 text-slate-900'
+                          ? 'bg-rose-50/60 hover:bg-rose-50 text-slate-900'
                           : isPending
-                          ? 'bg-amber-50/30 hover:bg-amber-50 text-slate-900'
-                          : 'hover:bg-slate-50/80 text-slate-800'
+                          ? 'bg-amber-50/40 hover:bg-amber-50 text-slate-900'
+                          : 'hover:bg-slate-50 text-slate-800'
                       }`}
                     >
                       {/* Sygnatura: 12% */}
@@ -276,13 +276,13 @@ export default function ItIssuesTab({
                       </td>
 
                       {/* Data: 10% */}
-                      <td className="w-[10%] py-3.5 px-2 text-slate-500 text-xs whitespace-nowrap">
+                      <td className="w-[10%] py-3.5 px-2 text-slate-600 text-xs whitespace-nowrap font-medium">
                         {item.date}
                       </td>
 
                       {/* Kierunek i Moduł: 20% */}
                       <td className="w-[20%] py-3.5 px-3">
-                        <div className="font-medium text-slate-800 break-words leading-tight">
+                        <div className="font-semibold text-slate-900 break-words leading-tight">
                           {item.fieldAndSemester || item.jednostka || 'Wszystkie kierunki'}
                         </div>
                         <div className="text-slate-500 text-xs mt-0.5 break-words">
@@ -291,18 +291,18 @@ export default function ItIssuesTab({
                       </td>
 
                       {/* Treść Zgłoszenia: 38% */}
-                      <td className="w-[38%] py-3.5 px-3 text-slate-900 text-sm break-words whitespace-normal leading-relaxed">
+                      <td className="w-[38%] py-3.5 px-3 text-slate-900 text-sm break-words whitespace-normal leading-relaxed font-normal">
                         {item.description}
                       </td>
 
                       {/* Status Obsługi: 12% */}
                       <td className="w-[12%] py-3.5 px-2 text-center">
-                        <span className={`inline-block w-full px-2 py-1 rounded-full text-[11px] font-bold break-words whitespace-normal leading-tight text-center ${
+                        <span className={`inline-block w-full px-2 py-1 rounded-full text-[11px] font-semibold break-words whitespace-normal leading-tight text-center ${
                           statusText === 'Rozwiązane'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : statusText?.includes('trakcie') || statusText?.includes('Przekazano') || statusText?.includes('właściwości')
-                            ? 'bg-blue-50 text-blue-800 border border-blue-200'
-                            : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                            : 'bg-amber-100 text-amber-800 border border-amber-300'
                         }`}>
                           {statusText}
                         </span>
@@ -312,10 +312,10 @@ export default function ItIssuesTab({
                       <td className="w-[8%] py-3.5 px-2 text-center">
                         <span className={`inline-flex items-center justify-center gap-1 w-full px-1.5 py-1 rounded-full text-[10px] font-extrabold break-words whitespace-normal leading-tight text-center ${
                           isCriticalEcts
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            ? 'bg-rose-100 text-rose-800 border border-rose-300'
                             : item.ectsImpact === 'Wysoki'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-slate-100 text-slate-700 border border-slate-300'
                         }`}>
                           {isCriticalEcts && <AlertTriangle size={11} className="shrink-0" />}
                           <span>{isCriticalEcts ? 'Krytyczny' : item.ectsImpact || 'Standard'}</span>
@@ -339,9 +339,9 @@ export default function ItIssuesTab({
       {selectedIssue && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-extrabold bg-blue-50 text-[#1e3a8a] px-2 py-0.5 rounded border border-blue-200">
+                <span className="font-mono text-sm font-extrabold bg-blue-50 text-[#1e3a8a] px-2.5 py-0.5 rounded-lg border border-blue-200">
                   {selectedIssue.id}
                 </span>
                 <span className="text-sm font-bold text-slate-900">Szczegóły zgłoszenia technicznego</span>
@@ -355,21 +355,21 @@ export default function ItIssuesTab({
             </div>
 
             <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Obszar platformy:</span>
+                  <span className="text-slate-500 font-medium">Obszar platformy:</span>
                   <span className="font-semibold text-slate-800">{selectedIssue.platformArea}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Kierunek i semestr:</span>
+                  <span className="text-slate-500 font-medium">Kierunek i semestr:</span>
                   <span className="font-semibold text-slate-800">{selectedIssue.fieldAndSemester}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Wpływ na tok studiów:</span>
-                  <span className="font-bold text-red-700">{selectedIssue.ectsImpact}</span>
+                  <span className="text-slate-500 font-medium">Wpływ na tok studiów:</span>
+                  <span className="font-bold text-rose-700">{selectedIssue.ectsImpact}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Status obsługi:</span>
+                  <span className="text-slate-500 font-medium">Status obsługi:</span>
                   <select
                     value={sanitizeStatus(selectedIssue.status) || 'Oczekuje'}
                     onChange={(e) => {
@@ -377,7 +377,7 @@ export default function ItIssuesTab({
                       setSelectedIssue(prev => ({ ...prev, status: newSt }));
                       onChangeStatus(selectedIssue.id || selectedIssue.idZgloszenia || selectedIssue.sygnatura, newSt);
                     }}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-2 focus:ring-[#1e3a8a]/20 cursor-pointer"
                   >
                     <option value="Oczekuje">Oczekuje</option>
                     <option value="W realizacji">W realizacji</option>
@@ -386,32 +386,32 @@ export default function ItIssuesTab({
                   </select>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Zgłaszający:</span>
-                  <span className="font-medium text-slate-700">{selectedIssue.reportedBy}</span>
+                  <span className="text-slate-500 font-medium">Zgłaszający:</span>
+                  <span className="font-medium text-slate-800">{selectedIssue.reportedBy}</span>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-slate-800 mb-1">Opis techniczny zgłoszenia</h4>
-                <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 leading-relaxed">
+                <h4 className="font-bold text-slate-900 mb-1">Opis techniczny zgłoszenia</h4>
+                <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
                   {selectedIssue.description}
                 </p>
               </div>
 
               {selectedIssue.notes && (
                 <div>
-                  <h4 className="font-bold text-slate-800 mb-1">Notatki zespołu wdrożeniowego</h4>
-                  <p className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900">
+                  <h4 className="font-bold text-slate-900 mb-1">Notatki zespołu wdrożeniowego</h4>
+                  <p className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-900">
                     {selectedIssue.notes}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+            <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex justify-end">
               <button
                 onClick={() => setSelectedIssue(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition cursor-pointer"
               >
                 Zamknij podgląd
               </button>
@@ -424,9 +424,9 @@ export default function ItIssuesTab({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus size={18} className="text-amber-600" />
+                <Plus size={18} className="text-[#1e3a8a]" />
                 Nowe Zgłoszenie Techniczne
               </h3>
               <button
@@ -444,7 +444,7 @@ export default function ItIssuesTab({
                   <select
                     value={newIssue.platformArea}
                     onChange={(e) => setNewIssue({ ...newIssue, platformArea: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="Platforma e-learningowa">Platforma e-learningowa</option>
                     <option value="Wirtualny Dziekanat">Wirtualny Dziekanat</option>
@@ -459,7 +459,7 @@ export default function ItIssuesTab({
                   <select
                     value={newIssue.ectsImpact}
                     onChange={(e) => setNewIssue({ ...newIssue, ectsImpact: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   >
                     <option value="Wpływ na tok studiów">Wpływ na tok studiów</option>
                     <option value="Krytyczny / Blokujący">Krytyczny / Blokujący</option>
@@ -478,7 +478,7 @@ export default function ItIssuesTab({
                   placeholder="np. Psychologia, sem. 4 / Wszystkie kierunki"
                   value={newIssue.fieldAndSemester}
                   onChange={(e) => setNewIssue({ ...newIssue, fieldAndSemester: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -490,7 +490,7 @@ export default function ItIssuesTab({
                   placeholder="Dokładny opis zgłoszenia technicznego, zachowanie platformy, kody błędów..."
                   value={newIssue.description}
                   onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                 />
               </div>
 
@@ -501,7 +501,7 @@ export default function ItIssuesTab({
                     type="text"
                     value={newIssue.reportedBy}
                     onChange={(e) => setNewIssue({ ...newIssue, reportedBy: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
 
@@ -511,22 +511,22 @@ export default function ItIssuesTab({
                     type="text"
                     value={newIssue.assignedTo}
                     onChange={(e) => setNewIssue({ ...newIssue, assignedTo: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-500"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  className="px-4 py-2 rounded-xl font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-blue-800 text-white shadow-xs transition"
+                  className="px-4 py-2 rounded-xl font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                 >
                   Dodaj zgłoszenie
                 </button>

@@ -137,9 +137,9 @@ export default function DashboardTab({
         
         {/* Left 2 Cols: Ostatnie 5 wpisów z Dziennika Korespondencji ────── */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-blue-50 text-[#1e3a8a] rounded-lg border border-blue-100">
+              <div className="p-1.5 bg-blue-50 text-[#1e3a8a] rounded-lg border border-blue-200">
                 <Mail size={16} />
               </div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900">
@@ -154,7 +154,7 @@ export default function DashboardTab({
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-200">
             {recentLetters.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs font-medium">
                 Brak zarejestrowanych wpisów w Kancelarii
@@ -174,31 +174,31 @@ export default function DashboardTab({
                           {item.id}
                         </span>
                         {isIncoming ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
                             <ArrowDownLeft size={12} /> Wchodzące
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                             <ArrowUpRight size={12} /> Wychodzące
                           </span>
                         )}
-                        <span className="text-[11px] text-slate-500 font-medium">
+                        <span className="text-[11px] text-slate-600 font-medium">
                           {item.date}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-[#1e3a8a] transition truncate max-w-xl">
                         {item.subject}
                       </p>
-                      <p className="text-xs text-slate-500 truncate max-w-xl">
-                        <span className="text-slate-400 font-medium">Nadawca:</span> {item.sender} &bull; <span className="text-slate-400 font-medium">Odbiorca:</span> {item.recipient}
+                      <p className="text-xs text-slate-600 truncate max-w-xl font-normal">
+                        <span className="text-slate-500 font-medium">Nadawca:</span> <span className="text-slate-800">{item.sender}</span> &bull; <span className="text-slate-500 font-medium">Odbiorca:</span> <span className="text-slate-800">{item.recipient}</span>
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                      <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
+                      <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
                         item.status === 'Zatwierdzone'
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
                       }`}>
                         {item.status}
                       </span>
@@ -216,9 +216,9 @@ export default function DashboardTab({
           
           {/* Urgent Tech Issues Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg border border-amber-100">
+                <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
                   <AlertTriangle size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -245,24 +245,24 @@ export default function DashboardTab({
                     onClick={() => onNavigateTab('it_issues')}
                     className={`p-3 rounded-xl border text-xs transition cursor-pointer hover:shadow-xs ${
                       issue.ectsImpact?.includes('Krytyczny') || issue.ectsImpact?.includes('Wpływ na tok studiów')
-                        ? 'bg-rose-50/60 border-rose-200 hover:bg-rose-50 text-slate-900'
-                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80 text-slate-900'
+                        ? 'bg-rose-50/70 border-rose-200 hover:bg-rose-50 text-slate-900'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-900'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono font-bold text-[#1e3a8a]">{issue.id}</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         issue.ectsImpact?.includes('Krytyczny') || issue.ectsImpact?.includes('Wpływ na tok studiów')
-                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                          : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
                       }`}>
                         {issue.ectsImpact}
                       </span>
                     </div>
-                    <p className="font-medium text-slate-800 line-clamp-2">{issue.description}</p>
-                    <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500">
+                    <p className="font-semibold text-slate-900 line-clamp-2">{issue.description}</p>
+                    <div className="flex items-center justify-between mt-2 text-[11px] text-slate-600">
                       <span>{issue.platformArea}</span>
-                      <span className="font-semibold text-slate-700">{sanitizeStatus(issue.status)}</span>
+                      <span className="font-semibold text-slate-800">{sanitizeStatus(issue.status)}</span>
                     </div>
                   </div>
                 ))
@@ -272,9 +272,9 @@ export default function DashboardTab({
 
           {/* Quick Operational Decisions Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-50 text-[#1e3a8a] rounded-lg border border-blue-100">
+                <div className="p-1.5 bg-blue-50 text-[#1e3a8a] rounded-lg border border-blue-200">
                   <FileText size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -299,12 +299,12 @@ export default function DashboardTab({
                   <div key={dec.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono font-bold text-[#1e3a8a]">{dec.id}</span>
-                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
                         {dec.status}
                       </span>
                     </div>
-                    <p className="font-medium text-slate-800">{dec.topic}</p>
-                    <p className="text-[11px] text-slate-500 mt-1">Odp: {dec.responsible}</p>
+                    <p className="font-semibold text-slate-900">{dec.topic}</p>
+                    <p className="text-[11px] text-slate-600 mt-1">Odp: <strong className="text-slate-800">{dec.responsible}</strong></p>
                   </div>
                 ))
               )}
