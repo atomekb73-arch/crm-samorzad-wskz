@@ -847,7 +847,7 @@ export default function CorrespondenceTab({
                       )
                     ) : (
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
-                        <Edit3 size={11} /> Tryb edycji
+                        <Edit3 size={11} className="text-amber-800 shrink-0" /> Tryb edycji
                       </span>
                     )}
                   </div>
@@ -867,17 +867,17 @@ export default function CorrespondenceTab({
                     <button
                       type="button"
                       onClick={() => handleStartEdit(activeDrawerItem)}
-                      className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium shadow-2xs"
                     >
-                      <Edit3 size={12} />
-                      <span>✏️ Edytuj sprawę</span>
+                      <Edit3 size={14} className="text-slate-700 shrink-0" />
+                      <span>Edytuj sprawę</span>
                     </button>
                   ) : (
                     <>
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
                       >
                         Anuluj
                       </button>
@@ -887,8 +887,8 @@ export default function CorrespondenceTab({
                         disabled={isSaving}
                         className="bg-blue-900 hover:bg-blue-950 text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                       >
-                        <Save size={13} />
-                        <span>💾 Zapisz zmiany</span>
+                        <Save size={14} className="shrink-0" />
+                        <span>Zapisz zmiany</span>
                       </button>
                     </>
                   )}
@@ -993,56 +993,64 @@ export default function CorrespondenceTab({
                   )}
 
                   {/* Załączniki / Dysk Google */}
-                  <div className="space-y-1.5">
-                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <Paperclip size={14} className="text-slate-500" /> Załączniki do sprawy / Dokumentacja
-                    </h4>
-                    <div className="space-y-1.5">
-                      {activeDrawerItem.lokalizacjaDrive ? (
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50/60 border border-blue-200 text-slate-800 font-medium">
-                          <span className="font-mono text-xs truncate max-w-xs">{activeDrawerItem.lokalizacjaDrive}</span>
-                          <a
-                            href={activeDrawerItem.lokalizacjaDrive}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-[#1e3a8a] font-semibold hover:underline"
-                          >
-                            <ExternalLink size={12} /> Otwórz Drive
-                          </a>
-                        </div>
-                      ) : null}
+                  <div className="space-y-3">
+                    {activeDrawerItem.lokalizacjaDrive ? (
+                      <div className="border border-slate-200 bg-slate-50 rounded-xl p-3.5 space-y-1.5">
+                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                          Lokalizacja na Drive
+                        </label>
+                        <a
+                          href={activeDrawerItem.lokalizacjaDrive}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900 transition-colors hover:underline"
+                        >
+                          <ExternalLink size={15} className="shrink-0 text-blue-700" />
+                          <span>Otwórz dokument na Drive</span>
+                        </a>
+                      </div>
+                    ) : null}
 
-                      {(activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) ? (
-                        activeDrawerItem.attachments.map((att, idx) => {
-                          const attName = typeof att === 'string' ? att : (att.name || 'Dokument');
-                          const attUrl = typeof att === 'object' ? att.url : null;
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-medium"
-                            >
-                              <span className="font-mono text-xs truncate max-w-xs">{attName}</span>
-                              {attUrl ? (
-                                <a
-                                  href={attUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[11px] text-[#1e3a8a] font-semibold hover:underline"
+                    {/* Pozostałe załączniki */}
+                    {((activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) || !activeDrawerItem.lokalizacjaDrive) && (
+                      <div className="space-y-1.5">
+                        <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                          <Paperclip size={14} className="text-slate-500" /> Załączniki do sprawy / Dokumentacja
+                        </h4>
+                        <div className="space-y-1.5">
+                          {(activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) ? (
+                            activeDrawerItem.attachments.map((att, idx) => {
+                              const attName = typeof att === 'string' ? att : (att.name || 'Dokument');
+                              const attUrl = typeof att === 'object' ? att.url : null;
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-medium"
                                 >
-                                  Otwórz
-                                </a>
-                              ) : (
-                                <span className="text-[11px] text-[#1e3a8a] font-semibold cursor-pointer hover:underline">
-                                  Pobierz
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })
-                      ) : !activeDrawerItem.lokalizacjaDrive && (
-                        <p className="text-slate-500 italic">Brak zarejestrowanych załączników cyfrowych.</p>
-                      )}
-                    </div>
+                                  <span className="font-mono text-xs truncate max-w-xs">{attName}</span>
+                                  {attUrl ? (
+                                    <a
+                                      href={attUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-700 font-semibold hover:underline"
+                                    >
+                                      Otwórz
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-blue-700 font-semibold cursor-pointer hover:underline">
+                                      Pobierz
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : !activeDrawerItem.lokalizacjaDrive && (
+                            <p className="text-slate-500 italic">Brak zarejestrowanych załączników cyfrowych.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sygnatura cyfrowa & Audit Trail */}
@@ -1239,10 +1247,10 @@ export default function CorrespondenceTab({
                       <button
                         type="button"
                         onClick={() => handleStartEdit(activeDrawerItem)}
-                        className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium"
                       >
-                        <Edit3 size={13} />
-                        <span>✏️ Edytuj sprawę</span>
+                        <Edit3 size={14} className="text-slate-700 shrink-0" />
+                        <span>Edytuj sprawę</span>
                       </button>
                       <button
                         onClick={() => alert(`Sprawa ${activeDrawerItem.id || activeDrawerItem.sygnatura} została pomyślnie zarchiwizowana.`)}
@@ -1268,8 +1276,8 @@ export default function CorrespondenceTab({
                         onClick={handleSaveEdit}
                         className="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-900 hover:bg-blue-950 text-white shadow-sm transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        <Save size={13} />
-                        <span>💾 Zapisz zmiany</span>
+                        <Save size={14} className="shrink-0" />
+                        <span>Zapisz zmiany</span>
                       </button>
                     </div>
                   </>
