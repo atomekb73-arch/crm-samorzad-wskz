@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { sanitizeStatus } from '../services/googleSheets';
+import { formatTableDate } from '../utils/dateUtils';
 
 export default function DashboardTab({
   correspondence = [],
@@ -32,17 +33,14 @@ export default function DashboardTab({
   ).length;
   const activeOrgsCount = organizations.length;
 
-  const getItemDate = (item) => {
-    if (!item) return "";
-    const val = item.dataWplywu || item.data || item.date || item.Data_Wplywu || "";
-    if (val && val !== "—") return String(val).trim();
-    return "";
-  };
-
   const recentLetters = [...correspondence].sort((a, b) => {
-    const aVal = getItemDate(a);
-    const bVal = getItemDate(b);
-    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    const rawA = a.dataWplywu || a.data || a.date || a.Data_Wplywu || "";
+    const rawB = b.dataWplywu || b.data || b.date || b.Data_Wplywu || "";
+    const formattedA = formatTableDate(rawA);
+    const formattedB = formatTableDate(rawB);
+    const timeA = new Date(formattedA !== "—" ? formattedA : rawA).getTime() || 0;
+    const timeB = new Date(formattedB !== "—" ? formattedB : rawB).getTime() || 0;
+    return timeB - timeA;
   }).slice(0, 5);
   const recentItIssues = itIssues.slice(0, 3);
 
@@ -193,8 +191,8 @@ export default function DashboardTab({
                             <ArrowUpRight size={12} /> Wychodzące
                           </span>
                         )}
-                        <span className="text-[11px] text-slate-600 font-medium">
-                          {getItemDate(item) || "—"}
+                        <span className="text-[11px] text-slate-600 font-mono font-medium">
+                          {formatTableDate(item.dataWplywu || item.data || item.date || item.Data_Wplywu)}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-[#1e3a8a] transition truncate max-w-xl">

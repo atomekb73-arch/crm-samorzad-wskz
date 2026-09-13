@@ -25,6 +25,8 @@ import {
   Check,
 } from 'lucide-react';
 
+import { formatTableDate } from '../utils/dateUtils';
+
 export function parseIncomingEmailText(rawText) {
   if (!rawText) return null;
   const text = rawText.trim();
@@ -143,9 +145,7 @@ export default function CorrespondenceTab({
   // ── Helper do pobierania poprawnego pola daty ─────────────────────────────
   const getItemDate = (item) => {
     if (!item) return "";
-    const val = item.dataWplywu || item.data || item.date || item.Data_Wplywu || "";
-    if (val && val !== "—") return String(val).trim();
-    return "";
+    return formatTableDate(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
   };
 
   // ── Stan i obsługa sortowania wielokolumnowego ────────────────────────────
@@ -189,14 +189,21 @@ export default function CorrespondenceTab({
     let sortableItems = [...filteredList];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
+        // Jeśli sortujemy po dacie, porównaj timestampy chronologicznie
+        if (sortConfig.key === 'dataWplywu') {
+          const rawA = a.dataWplywu || a.data || a.date || a.Data_Wplywu || "";
+          const rawB = b.dataWplywu || b.data || b.date || b.Data_Wplywu || "";
+          const formattedA = formatTableDate(rawA);
+          const formattedB = formatTableDate(rawB);
+          const timeA = new Date(formattedA !== "—" ? formattedA : rawA).getTime() || 0;
+          const timeB = new Date(formattedB !== "—" ? formattedB : rawB).getTime() || 0;
+          return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA;
+        }
+
         let aVal = a[sortConfig.key] || "";
         let bVal = b[sortConfig.key] || "";
 
-        // Jeśli sortujemy po dacie, normalizuj do porównania chronologicznego
-        if (sortConfig.key === 'dataWplywu') {
-          aVal = getItemDate(a);
-          bVal = getItemDate(b);
-        } else if (sortConfig.key === 'nadawca') {
+        if (sortConfig.key === 'nadawca') {
           aVal = a.nadawca || a.sender || "";
           bVal = b.nadawca || b.sender || "";
         } else if (sortConfig.key === 'odbiorca') {
@@ -595,8 +602,8 @@ export default function CorrespondenceTab({
                       </td>
 
                       {/* Data wpływu */}
-                      <td className="py-3 px-3 text-slate-600 whitespace-nowrap font-medium">
-                        {itemDate || "—"}
+                      <td className="py-2.5 px-3 text-xs font-mono text-slate-700 whitespace-nowrap">
+                        {formatTableDate(item.dataWplywu || item.data || item.date || item.Data_Wplywu)}
                       </td>
 
                       {/* Typ (Badge) */}
@@ -713,8 +720,8 @@ export default function CorrespondenceTab({
                 <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                   <div>
                     <span className="text-slate-500 font-medium">Data wpływu/wysłania:</span>
-                    <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                      <Calendar size={13} className="text-slate-400" /> {getItemDate(activeDrawerItem) || '—'}
+                    <p className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5 font-mono text-xs">
+                      <Calendar size={13} className="text-slate-400" /> {formatTableDate(activeDrawerItem.dataWplywu || activeDrawerItem.data || activeDrawerItem.date || activeDrawerItem.Data_Wplywu)}
                     </p>
                   </div>
                   <div>

@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { sanitizeStatus } from '../services/googleSheets';
+import { formatTableDate } from '../utils/dateUtils';
 
 export default function ItIssuesTab({
   itIssues = [],
@@ -276,8 +277,8 @@ export default function ItIssuesTab({
                       </td>
 
                       {/* Data: 10% */}
-                      <td className="w-[10%] py-3.5 px-2 text-slate-600 text-xs whitespace-nowrap font-medium">
-                        {item.date}
+                      <td className="w-[10%] py-3.5 px-2 text-slate-600 text-xs whitespace-nowrap font-mono font-medium">
+                        {formatTableDate(item.data || item.date)}
                       </td>
 
                       {/* Kierunek i Moduł: 20% */}

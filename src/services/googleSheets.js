@@ -69,21 +69,15 @@ export async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FE
   }
 }
 
-// ─── Formatowanie Daty (usuwanie artefaktów GViz Date(...) i formatowanie) ────
+import { formatTableDate } from '../utils/dateUtils';
+
+// ─── Formatowanie Daty (usuwanie artefaktów GViz Date(...) i formatowanie YYYY-MM-DD) ────
 export const formatDate = (val) => {
   if (!val) return "—";
-  const str = typeof val === 'object' && val !== null ? (val.f || val.v || '') : String(val);
-  if (!str) return "—";
-  if (typeof str === 'string' && str.includes('Date(')) {
-    const p = str.match(/\d+/g);
-    if (p && p.length >= 3) {
-      return `${p[0]}-${String(Number(p[1]) + 1).padStart(2, '0')}-${String(p[2]).padStart(2, '0')}`;
-    }
-  }
-  if (val instanceof Date) {
-    return val.toISOString().slice(0, 10);
-  }
-  return String(str).trim() || "—";
+  const raw = typeof val === 'object' && val !== null && !(val instanceof Date)
+    ? (val.f || val.v || '')
+    : val;
+  return formatTableDate(raw);
 };
 
 // ─── Sanityzacja Statusów (Standard Urzędowo-Dyplomatyczny) ──────────────────
