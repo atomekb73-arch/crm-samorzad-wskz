@@ -1051,7 +1051,7 @@ export default function App() {
         <div className="w-[98vw] max-w-[1850px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
 
           {/* Logo & Multi-Tenant Organization Switcher */}
-          <div className="flex items-center gap-3 shrink-0 relative">
+          <div className="flex items-center gap-3 shrink-0 relative min-w-fit whitespace-nowrap">
             <div className="w-10 h-10 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm text-white font-extrabold text-sm tracking-tight shrink-0 border border-blue-900/20">
               KSS
             </div>
@@ -1059,18 +1059,18 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => setIsOrgDropdownOpen(prev => !prev)}
-                className="flex items-center gap-1.5 text-left group hover:bg-slate-100 p-1.5 -m-1.5 rounded-xl transition cursor-pointer"
+                className="flex items-center gap-1.5 text-left group hover:bg-slate-100 p-1.5 -m-1.5 rounded-xl transition cursor-pointer whitespace-nowrap"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-[#1e3a8a] transition leading-tight">
+                <div className="whitespace-nowrap">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <h1 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-[#1e3a8a] transition leading-tight whitespace-nowrap">
                       Kancelaria Samorządu Studenckiego WSKZ
                     </h1>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono shrink-0">
                       WSKZ
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium">Kancelaria & System Ewidencji Zarządczej</p>
+                  <p className="text-[11px] text-slate-500 font-medium whitespace-nowrap">Kancelaria & System Ewidencji Zarządczej</p>
                 </div>
                 <ChevronDown size={14} className="text-slate-400 group-hover:text-[#1e3a8a] transition shrink-0 ml-0.5" />
               </button>

@@ -584,8 +584,13 @@ export default function CorrespondenceTab({
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search input */}
         <div className="relative flex-1 max-w-md">
+          <label htmlFor="kancelaria-search" className="sr-only">
+            Szukaj korespondencji
+          </label>
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
+            id="kancelaria-search"
+            name="kancelariaSearch"
             type="text"
             placeholder="Szukaj po sygnaturze, temacie, nadawcy, odbiorcy lub cytacie..."
             value={searchTerm}
@@ -850,7 +855,12 @@ export default function CorrespondenceTab({
           />
 
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-xl bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="drawer-title"
+              className="w-screen max-w-xl bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200"
+            >
               
               {/* Drawer Header */}
               <div className="p-5 border-b border-slate-200 bg-slate-50/80 flex items-start justify-between gap-3">
@@ -876,11 +886,11 @@ export default function CorrespondenceTab({
                     )}
                   </div>
                   {!isEditing ? (
-                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                    <h3 id="drawer-title" className="text-base font-bold text-slate-900 leading-snug">
                       {activeDrawerItem.subject || activeDrawerItem.przedmiot || activeDrawerItem.temat}
                     </h3>
                   ) : (
-                    <p className="text-xs text-slate-500">
+                    <p id="drawer-title" className="text-xs text-slate-500">
                       Edycja wpisu w Dzienniku Korespondencji Kancelarii
                     </p>
                   )}
@@ -949,9 +959,11 @@ export default function CorrespondenceTab({
                       )}
                     </div>
                     <div>
-                      <span className="text-slate-500 font-medium">Status sprawy:</span>
+                      <label htmlFor="drawer-quick-status" className="block text-slate-500 font-medium">Status sprawy:</label>
                       <div className="mt-0.5 flex items-center gap-2">
                         <select
+                          id="drawer-quick-status"
+                          name="drawerQuickStatus"
                           value={activeDrawerItem.status || 'W toku'}
                           onChange={(e) => {
                             const newSt = e.target.value;
@@ -1088,10 +1100,12 @@ export default function CorrespondenceTab({
                 <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
                   {/* Temat / Przedmiot */}
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="edit-przedmiot" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Temat / Przedmiot sprawy *
                     </label>
                     <input
+                      id="edit-przedmiot"
+                      name="editPrzedmiot"
                       type="text"
                       required
                       value={editForm.przedmiot || ''}
@@ -1104,10 +1118,12 @@ export default function CorrespondenceTab({
                   {/* Daty */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                     <div>
-                      <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                      <label htmlFor="edit-data-wplywu" className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
                         Data wpływu (doręczenia) *
                       </label>
                       <input
+                        id="edit-data-wplywu"
+                        name="editDataWplywu"
                         type="datetime-local"
                         value={editForm.dataWplywu || ''}
                         onChange={(e) => setEditForm({ ...editForm, dataWplywu: e.target.value })}
@@ -1119,10 +1135,12 @@ export default function CorrespondenceTab({
                     </div>
 
                     <div>
-                      <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                      <label htmlFor="edit-data-wyslania" className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
                         Data wysłania (nadawca)
                       </label>
                       <input
+                        id="edit-data-wyslania"
+                        name="editDataWyslania"
                         type="datetime-local"
                         value={editForm.dataWyslania || ''}
                         onChange={(e) => setEditForm({ ...editForm, dataWyslania: e.target.value })}
@@ -1137,10 +1155,12 @@ export default function CorrespondenceTab({
                   {/* Kierunek & Status */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      <label htmlFor="edit-typ" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                         Kierunek pisma
                       </label>
                       <select
+                        id="edit-typ"
+                        name="editTyp"
                         value={editForm.typ || 'Wchodzące'}
                         onChange={(e) => setEditForm({ ...editForm, typ: e.target.value, direction: e.target.value === 'Wychodzące' ? 'OUT' : 'IN' })}
                         className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -1151,10 +1171,12 @@ export default function CorrespondenceTab({
                     </div>
 
                     <div>
-                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      <label htmlFor="edit-status" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                         Status sprawy
                       </label>
                       <select
+                        id="edit-status"
+                        name="editStatus"
                         value={editForm.status || 'W toku'}
                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                         className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -1171,10 +1193,12 @@ export default function CorrespondenceTab({
                   {/* Nadawca & Odbiorca */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      <label htmlFor="edit-nadawca" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                         Nadawca *
                       </label>
                       <input
+                        id="edit-nadawca"
+                        name="editNadawca"
                         type="text"
                         required
                         value={editForm.nadawca || ''}
@@ -1185,10 +1209,12 @@ export default function CorrespondenceTab({
                     </div>
 
                     <div>
-                      <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      <label htmlFor="edit-odbiorca" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                         Odbiorca / DW *
                       </label>
                       <input
+                        id="edit-odbiorca"
+                        name="editOdbiorca"
                         type="text"
                         required
                         value={editForm.odbiorca || ''}
@@ -1201,10 +1227,12 @@ export default function CorrespondenceTab({
 
                   {/* Streszczenie / Treść sprawy */}
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="edit-tresc" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Streszczenie / Pełna treść sprawy
                     </label>
                     <textarea
+                      id="edit-tresc"
+                      name="editTresc"
                       rows={6}
                       value={editForm.tresc || ''}
                       onChange={(e) => setEditForm({ ...editForm, tresc: e.target.value, summary: e.target.value })}
@@ -1215,10 +1243,12 @@ export default function CorrespondenceTab({
 
                   {/* Cytat źródłowy */}
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="edit-source-citation" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Cytat źródłowy / Oznaczenie pisma
                     </label>
                     <input
+                      id="edit-source-citation"
+                      name="editSourceCitation"
                       type="text"
                       value={editForm.sourceCitation || ''}
                       onChange={(e) => setEditForm({ ...editForm, sourceCitation: e.target.value })}
@@ -1229,10 +1259,12 @@ export default function CorrespondenceTab({
 
                   {/* Dyspozycje i notatki kancelaryjne */}
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="edit-notes" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Dyspozycje i notatki kancelaryjne
                     </label>
                     <textarea
+                      id="edit-notes"
+                      name="editNotes"
                       rows={3}
                       value={editForm.notes || ''}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
@@ -1243,10 +1275,12 @@ export default function CorrespondenceTab({
 
                   {/* Lokalizacja Drive */}
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="edit-lokalizacja-drive" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Lokalizacja Drive / Link do skanu
                     </label>
                     <input
+                      id="edit-lokalizacja-drive"
+                      name="editLokalizacjaDrive"
                       type="url"
                       value={editForm.lokalizacjaDrive || ''}
                       onChange={(e) => setEditForm({ ...editForm, lokalizacjaDrive: e.target.value })}
@@ -1316,10 +1350,15 @@ export default function CorrespondenceTab({
       {/* ── Modal: Rejestracja Nowego Pisma ──────────────────────────────── */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            className="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-150"
+          >
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-200 bg-white flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <h3 id="modal-title" className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Plus size={18} className="text-[#1e3a8a]" />
                 Rejestracja nowego pisma w Dzienniku Korespondencji
               </h3>
@@ -1396,10 +1435,12 @@ export default function CorrespondenceTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                  <label htmlFor="parser-raw-text" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                     Treść do rozpoznania
                   </label>
                   <textarea
+                    id="parser-raw-text"
+                    name="parserRawText"
                     rows={6}
                     value={rawPastedText}
                     onChange={(e) => setRawPastedText(e.target.value)}
@@ -1447,10 +1488,12 @@ export default function CorrespondenceTab({
               <form onSubmit={handleCreateSubmit} className="p-5 pt-2 space-y-4 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-direction" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Kierunek pisma
                     </label>
                     <select
+                      id="new-direction"
+                      name="newDirection"
                       value={newEntry.direction}
                       onChange={(e) => setNewEntry({ ...newEntry, direction: e.target.value })}
                       className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -1461,10 +1504,12 @@ export default function CorrespondenceTab({
                   </div>
 
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-status" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Status sprawy
                     </label>
                     <select
+                      id="new-status"
+                      name="newStatus"
                       value={newEntry.status}
                       onChange={(e) => setNewEntry({ ...newEntry, status: e.target.value })}
                       className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -1479,10 +1524,12 @@ export default function CorrespondenceTab({
                 {/* ── Dwukolumnowy blok czasowy z dokładnością do minuty ─────── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <div>
-                    <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                    <label htmlFor="new-data-wyslania" className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
                       DATA I GODZINA WYSŁANIA (NADAWCA)
                     </label>
                     <input
+                      id="new-data-wyslania"
+                      name="newDataWyslania"
                       type="datetime-local"
                       value={newEntry.dataWyslania || ''}
                       onChange={(e) => setNewEntry({ ...newEntry, dataWyslania: e.target.value })}
@@ -1494,10 +1541,12 @@ export default function CorrespondenceTab({
                   </div>
 
                   <div>
-                    <label className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
+                    <label htmlFor="new-data-wplywu" className="block text-slate-800 font-semibold text-[11px] tracking-wide uppercase mb-1">
                       DATA I GODZINA WPŁYWU (DORĘCZENIA) *
                     </label>
                     <input
+                      id="new-data-wplywu"
+                      name="newDataWplywu"
                       type="datetime-local"
                       required
                       value={newEntry.dataWplywu || ''}
@@ -1512,10 +1561,12 @@ export default function CorrespondenceTab({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-sender" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Nadawca *
                     </label>
                     <input
+                      id="new-sender"
+                      name="newSender"
                       type="text"
                       required
                       placeholder="np. Dziekanat WNS / Koło Naukowe"
@@ -1526,10 +1577,12 @@ export default function CorrespondenceTab({
                   </div>
 
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-recipient" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Odbiorca / DW *
                     </label>
                     <input
+                      id="new-recipient"
+                      name="newRecipient"
                       type="text"
                       required
                       placeholder="np. Kancelaria Samorządu Studenckiego WSKZ"
@@ -1541,10 +1594,12 @@ export default function CorrespondenceTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                  <label htmlFor="new-subject" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                     Temat sprawy *
                   </label>
                   <input
+                    id="new-subject"
+                    name="newSubject"
                     type="text"
                     required
                     placeholder="Krótki, precyzyjny tytuł pisma lub wniosku"
@@ -1555,10 +1610,12 @@ export default function CorrespondenceTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                  <label htmlFor="new-summary" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                     Streszczenie / Treść
                   </label>
                   <textarea
+                    id="new-summary"
+                    name="newSummary"
                     rows={3}
                     placeholder="Kluczowe ustalenia, opis sprawy, wnioski..."
                     value={newEntry.summary}
@@ -1569,10 +1626,12 @@ export default function CorrespondenceTab({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-source-citation" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Cytat źródłowy / Sygnatura oryginału
                     </label>
                     <input
+                      id="new-source-citation"
+                      name="newSourceCitation"
                       type="text"
                       placeholder="np. Pismo D-WNS/412/2026"
                       value={newEntry.sourceCitation}
@@ -1582,10 +1641,12 @@ export default function CorrespondenceTab({
                   </div>
 
                   <div>
-                    <label className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    <label htmlFor="new-lokalizacja-drive" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Lokalizacja Drive / Link do skanu
                     </label>
                     <input
+                      id="new-lokalizacja-drive"
+                      name="newDriveLocation"
                       type="url"
                       placeholder="https://drive.google.com/..."
                       value={newEntry.lokalizacjaDrive}
