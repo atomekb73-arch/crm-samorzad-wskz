@@ -35,3 +35,16 @@ body, input, button, select, table, textarea {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Hide Vercel Toolbar & Analytics debug badges in UI */
+vercel-live-feedback,
+[data-vercel-toolbar],
+#vercel-toolbar,
+.vercel-toolbar,
+div[class*="vercel-toolbar"],
+div[id*="vercel-toolbar"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

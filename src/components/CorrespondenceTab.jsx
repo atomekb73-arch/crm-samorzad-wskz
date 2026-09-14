@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, startTransition } from 'react';
 import {
   Mail,
   Search,
@@ -126,6 +126,96 @@ export function parseIncomingEmailText(rawText) {
   };
 }
 
+// ── Memoizowany wiersz tabeli pism (zapobiega re-renderowaniu całej tabeli) ───
+const CorrespondenceTableRow = React.memo(function CorrespondenceTableRow({ item, isSelected, onSelect }) {
+  const isIncoming = item.direction === 'IN';
+  const currentStatus = item.statusUjednolicenia || item.status || 'Ujednolicone';
+  const currentFormal = item.weryfikacjaFormalna || 'Zatwierdzone';
+
+  const handleClick = useCallback(() => {
+    onSelect(item);
+  }, [onSelect, item]);
+
+  return (
+    <tr
+      onClick={handleClick}
+      className={`hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-200 ${
+        isSelected ? 'bg-blue-50/70 font-semibold' : ''
+      }`}
+    >
+      {/* Sygnatura */}
+      <td className="w-36 py-3 px-3 font-mono font-bold text-[#1e3a8a] truncate" title={item.id}>
+        {item.id}
+      </td>
+
+      {/* Data wpływu */}
+      <td className="w-32 py-3 px-2.5 whitespace-nowrap">
+        {(() => {
+          const dt = formatTableDateTime(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
+          return (
+            <span className="text-[11px] font-mono font-medium text-slate-800">
+              {dt.time ? `${dt.date} ${dt.time}` : dt.date}
+            </span>
+          );
+        })()}
+      </td>
+
+      {/* Typ (Badge) */}
+      <td className="w-24 py-3 px-2.5 whitespace-nowrap">
+        {isIncoming ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+            <ArrowDownLeft size={11} /> Wchodz.
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <ArrowUpRight size={11} /> Wychodz.
+          </span>
+        )}
+      </td>
+
+      {/* Nadawca */}
+      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.sender || item.nadawca}>
+        {item.sender || item.nadawca}
+      </td>
+
+      {/* Odbiorca/DW */}
+      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.recipient || item.odbiorca}>
+        {item.recipient || item.odbiorca}
+      </td>
+
+      {/* Temat */}
+      <td className="w-auto py-3 px-3 text-slate-900 font-semibold truncate" title={item.subject || item.przedmiot}>
+        {item.subject || item.przedmiot}
+      </td>
+
+      {/* Status */}
+      <td className="w-32 py-3 px-2.5" title={currentStatus}>
+        <span className={`block max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold text-center ${
+          currentStatus === 'Ujednolicone' || currentStatus === 'Zatwierdzone'
+            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+            : currentStatus === 'W trakcie' || currentStatus === 'W toku'
+            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+            : 'bg-slate-100 text-slate-700 border border-slate-300'
+        }`}>
+          {currentStatus}
+        </span>
+      </td>
+
+      {/* Weryfikacja Formalna */}
+      <td className="w-28 py-3 px-2.5 text-center" title={currentFormal}>
+        <span className={`inline-flex items-center justify-center gap-1 max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-2xs ${
+          currentFormal === 'Zatwierdzone' || currentFormal === 'Zgodna ze statutem'
+            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+            : 'bg-sky-100 text-sky-900 border border-sky-300'
+        }`}>
+          <ShieldCheck size={11} className="text-emerald-700 shrink-0" />
+          <span className="truncate">{currentFormal}</span>
+        </span>
+      </td>
+    </tr>
+  );
+});
+
 export default function CorrespondenceTab({
   correspondence = [],
   onAddCorrespondence = () => {},
@@ -148,7 +238,7 @@ export default function CorrespondenceTab({
   const [parseNotice, setParseNotice] = useState(null);
 
   // Helper do inicjalizacji stanu formularza edycji
-  const initEditForm = (item) => {
+  const initEditForm = useCallback((item) => {
     if (!item) return;
     const typ = item.typ || (item.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące');
     const dWplywu = formatForDateTimeInput(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
@@ -175,7 +265,7 @@ export default function CorrespondenceTab({
       sourceCitation: item.sourceCitation || '',
       notes: item.notes || '',
     });
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedItem) {
@@ -183,7 +273,7 @@ export default function CorrespondenceTab({
       setIsEditing(false);
       initEditForm(selectedItem);
     }
-  }, [selectedItem]);
+  }, [selectedItem, initEditForm]);
 
   // Form state for adding new correspondence
   const [newEntry, setNewEntry] = useState({
@@ -295,28 +385,36 @@ export default function CorrespondenceTab({
     return sortableItems;
   }, [filteredList, sortConfig]);
 
-  const handleOpenDrawer = (item) => {
-    setActiveDrawerItem(item);
-    setIsEditing(false);
-    initEditForm(item);
+  const handleOpenDrawer = useCallback((item) => {
+    startTransition(() => {
+      setActiveDrawerItem(item);
+      setIsEditing(false);
+      initEditForm(item);
+    });
     onSelectItem(item);
-  };
+  }, [initEditForm, onSelectItem]);
 
-  const handleCloseDrawer = () => {
-    setActiveDrawerItem(null);
-    setIsEditing(false);
+  const handleCloseDrawer = useCallback(() => {
+    startTransition(() => {
+      setActiveDrawerItem(null);
+      setIsEditing(false);
+    });
     onSelectItem(null);
-  };
+  }, [onSelectItem]);
 
-  const handleStartEdit = (item) => {
-    initEditForm(item || activeDrawerItem);
-    setIsEditing(true);
-  };
+  const handleStartEdit = useCallback((item) => {
+    startTransition(() => {
+      initEditForm(item || activeDrawerItem);
+      setIsEditing(true);
+    });
+  }, [initEditForm, activeDrawerItem]);
 
-  const handleCancelEdit = () => {
-    initEditForm(activeDrawerItem);
-    setIsEditing(false);
-  };
+  const handleCancelEdit = useCallback(() => {
+    startTransition(() => {
+      initEditForm(activeDrawerItem);
+      setIsEditing(false);
+    });
+  }, [initEditForm, activeDrawerItem]);
 
   const handleSaveEdit = async () => {
     if (!activeDrawerItem) return;
@@ -356,16 +454,18 @@ export default function CorrespondenceTab({
       notes: editForm.notes || '',
     };
 
+    // Optimistic UI update inside transition
+    startTransition(() => {
+      setActiveDrawerItem(updatedEntry);
+      setIsEditing(false);
+    });
+
     try {
       if (onEditCorrespondence) {
         await onEditCorrespondence(updatedEntry);
       }
-      setActiveDrawerItem(updatedEntry);
-      setIsEditing(false);
     } catch (err) {
       console.error('Błąd zapisu edycji pisma:', err);
-      setActiveDrawerItem(updatedEntry);
-      setIsEditing(false);
     } finally {
       setIsSaving(false);
     }
@@ -721,92 +821,14 @@ export default function CorrespondenceTab({
                   </td>
                 </tr>
               ) : (
-                sortedData.map((item) => {
-                  const isIncoming = item.direction === 'IN';
-                  const isSelected = activeDrawerItem?.id === item.id;
-                  const itemDate = getItemDate(item);
-                  const currentStatus = item.statusUjednolicenia || item.status || 'Ujednolicone';
-                  const currentFormal = item.weryfikacjaFormalna || 'Zatwierdzone';
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => handleOpenDrawer(item)}
-                      className={`hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-200 ${
-                        isSelected ? 'bg-blue-50/70 font-semibold' : ''
-                      }`}
-                    >
-                      {/* Sygnatura */}
-                      <td className="w-36 py-3 px-3 font-mono font-bold text-[#1e3a8a] truncate" title={item.id}>
-                        {item.id}
-                      </td>
-
-                      {/* Data wpływu */}
-                      <td className="w-32 py-3 px-2.5 whitespace-nowrap">
-                        {(() => {
-                          const dt = formatTableDateTime(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
-                          return (
-                            <span className="text-[11px] font-mono font-medium text-slate-800">
-                              {dt.time ? `${dt.date} ${dt.time}` : dt.date}
-                            </span>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Typ (Badge) */}
-                      <td className="w-24 py-3 px-2.5 whitespace-nowrap">
-                        {isIncoming ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-300">
-                            <ArrowDownLeft size={11} /> Wchodz.
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <ArrowUpRight size={11} /> Wychodz.
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Nadawca */}
-                      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.sender || item.nadawca}>
-                        {item.sender || item.nadawca}
-                      </td>
-
-                      {/* Odbiorca/DW */}
-                      <td className="w-40 py-3 px-3 text-slate-800 font-medium truncate" title={item.recipient || item.odbiorca}>
-                        {item.recipient || item.odbiorca}
-                      </td>
-
-                      {/* Temat */}
-                      <td className="w-auto py-3 px-3 text-slate-900 font-semibold truncate" title={item.subject || item.przedmiot}>
-                        {item.subject || item.przedmiot}
-                      </td>
-
-                      {/* Status */}
-                      <td className="w-32 py-3 px-2.5" title={currentStatus}>
-                        <span className={`block max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold text-center ${
-                          currentStatus === 'Ujednolicone' || currentStatus === 'Zatwierdzone'
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            : currentStatus === 'W trakcie' || currentStatus === 'W toku'
-                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                            : 'bg-slate-100 text-slate-700 border border-slate-300'
-                        }`}>
-                          {currentStatus}
-                        </span>
-                      </td>
-
-                      {/* Weryfikacja Formalna */}
-                      <td className="w-28 py-3 px-2.5 text-center" title={currentFormal}>
-                        <span className={`inline-flex items-center justify-center gap-1 max-w-full truncate px-2 py-0.5 rounded-md text-[10px] font-semibold shadow-2xs ${
-                          currentFormal === 'Zatwierdzone' || currentFormal === 'Zgodna ze statutem'
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            : 'bg-sky-100 text-sky-900 border border-sky-300'
-                        }`}>
-                          <ShieldCheck size={11} className="text-emerald-700 shrink-0" />
-                          <span className="truncate">{currentFormal}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
+                sortedData.map((item) => (
+                  <CorrespondenceTableRow
+                    key={item.id}
+                    item={item}
+                    isSelected={activeDrawerItem?.id === item.id}
+                    onSelect={handleOpenDrawer}
+                  />
+                ))
               )}
             </tbody>
           </table>
