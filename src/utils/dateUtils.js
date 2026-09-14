@@ -89,10 +89,12 @@ export function parseToDateTimeLocalString(raw) {
   const str = String(raw).trim();
   if (!str || str === "—") return "";
 
-  // 1. Direct YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm
-  const isoLocalMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-  if (isoLocalMatch) {
-    return `${isoLocalMatch[1]}-${isoLocalMatch[2]}-${isoLocalMatch[3]}T${isoLocalMatch[4]}:${isoLocalMatch[5]}`;
+  // 1. Direct YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm or pure YYYY-MM-DD
+  const isoLocalMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if (isoLocalMatch && isoLocalMatch[1] && isoLocalMatch[2] && isoLocalMatch[3]) {
+    const hours = isoLocalMatch[4] || '12';
+    const minutes = isoLocalMatch[5] || '00';
+    return `${isoLocalMatch[1]}-${isoLocalMatch[2]}-${isoLocalMatch[3]}T${hours}:${minutes}`;
   }
 
   // 2. DD.MM.YYYY HH:mm or DD/MM/YYYY HH:mm or DD-MM-YYYY HH:mm

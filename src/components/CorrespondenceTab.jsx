@@ -121,7 +121,7 @@ export function parseIncomingEmailText(rawText) {
     tresc: bodyLines.join('\n\n').trim(),
     kierunek: isIncoming ? "IN" : "OUT",
     dataWyslania: parsedDateTime || currentNow,
-    dataWplywu: currentNow,
+    dataWplywu: parsedDateTime || currentNow,
     rawDate: dateVal,
   };
 }
@@ -477,16 +477,19 @@ export default function CorrespondenceTab({
     const parsed = parseIncomingEmailText(rawPastedText);
     if (!parsed) return;
 
+    const parsedDate = parsed.dataWplywu || parsed.dataWyslania;
+    const fallbackNow = getCurrentLocalDateTimeString();
+
     setNewEntry(prev => ({
       ...prev,
       direction: parsed.kierunek === "OUT" ? "OUT" : "IN",
-      sender: parsed.nadawca,
-      recipient: parsed.odbiorca,
-      subject: parsed.temat,
-      summary: parsed.tresc,
+      sender: parsed.nadawca || prev.sender,
+      recipient: parsed.odbiorca || prev.recipient,
+      subject: parsed.temat || prev.subject,
+      summary: parsed.tresc || prev.summary,
       status: "W toku",
-      dataWyslania: parsed.dataWyslania || prev.dataWyslania,
-      dataWplywu: parsed.dataWplywu || prev.dataWplywu || getCurrentLocalDateTimeString(),
+      dataWplywu: parsedDate ? formatForDateTimeInput(parsedDate) : (prev.dataWplywu || fallbackNow),
+      dataWyslania: parsedDate ? formatForDateTimeInput(parsedDate) : (prev.dataWyslania || fallbackNow),
     }));
 
     setParseNotice('Pomyślnie rozpoznano dane wiadomości! Formularz został uzupełniony.');
