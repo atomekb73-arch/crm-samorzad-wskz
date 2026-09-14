@@ -544,6 +544,27 @@ export default function App() {
     }
   }, [loadData]);
 
+  const handleDeleteCorrespondence = useCallback(async (sygnatura) => {
+    const payload = {
+      action: "usun_pismo",
+      sygnatura: sygnatura,
+      id: sygnatura,
+    };
+
+    // Optimistic UI update
+    setCorrespondence(prev => prev.filter(item => item.id !== sygnatura && item.sygnatura !== sygnatura));
+    setToastMessage(`Pismo ${sygnatura} zostało usunięte z rejestru`);
+
+    try {
+      await sendToBackend(payload);
+      await loadData();
+    } catch (err) {
+      console.error('Błąd usuwania pisma w chmurze:', err);
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  }, [loadData]);
+
   const handleAddItIssue = useCallback(async (issue) => {
     const nextId = issue.idZgloszenia || issue.id || `IT-2026-${String(itIssues.length + 1).padStart(3, '0')}`;
     const payload = {
@@ -1255,6 +1276,7 @@ export default function App() {
                       correspondence={correspondence}
                       onAddCorrespondence={handleAddCorrespondence}
                       onEditCorrespondence={handleEditCorrespondence}
+                      onDeleteCorrespondence={handleDeleteCorrespondence}
                       onChangeStatus={(id, newStatus) => handleChangeStatus('korespondencja', id, newStatus)}
                       onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}

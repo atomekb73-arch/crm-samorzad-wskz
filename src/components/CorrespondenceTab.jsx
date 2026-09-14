@@ -25,6 +25,7 @@ import {
   Check,
   Edit3,
   Save,
+  Trash2,
 } from 'lucide-react';
 
 import {
@@ -220,6 +221,7 @@ export default function CorrespondenceTab({
   correspondence = [],
   onAddCorrespondence = () => {},
   onEditCorrespondence = () => {},
+  onDeleteCorrespondence = () => {},
   onChangeStatus = () => {},
   onRefreshData = () => {},
   selectedItem = null,
@@ -468,6 +470,24 @@ export default function CorrespondenceTab({
       console.error('Błąd zapisu edycji pisma:', err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteEntry = async (item) => {
+    if (!item) return;
+    const sygnatura = item.sygnatura || item.id;
+    if (!window.confirm(`Czy na pewno chcesz bezpowrotnie usunąć to pismo (${sygnatura}) (lub dubel) z Dziennika Korespondencji?`)) {
+      return;
+    }
+
+    try {
+      if (onDeleteCorrespondence) {
+        await onDeleteCorrespondence(sygnatura);
+      }
+    } catch (err) {
+      console.error('Błąd usuwania pisma:', err);
+    } finally {
+      handleCloseDrawer();
     }
   };
 
@@ -1298,12 +1318,24 @@ export default function CorrespondenceTab({
               <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex items-center justify-between gap-2">
                 {!isEditing ? (
                   <>
-                    <button
-                      onClick={handleCloseDrawer}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
-                    >
-                      Zamknij
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCloseDrawer}
+                        className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+                      >
+                        Zamknij
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEntry(activeDrawerItem)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Usuń to pismo lub dubel z rejestru"
+                      >
+                        <Trash2 size={14} className="shrink-0 text-red-500" />
+                        <span>Usuń pismo</span>
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1314,6 +1346,7 @@ export default function CorrespondenceTab({
                         <span>Edytuj sprawę</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => alert(`Sprawa ${activeDrawerItem.id || activeDrawerItem.sygnatura} została pomyślnie zarchiwizowana.`)}
                         className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                       >
@@ -1323,13 +1356,24 @@ export default function CorrespondenceTab({
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
-                    >
-                      Anuluj
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
+                      >
+                        Anuluj
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEntry(activeDrawerItem)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Usuń to pismo lub dubel z rejestru"
+                      >
+                        <Trash2 size={14} className="shrink-0 text-red-500" />
+                        <span>Usuń</span>
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
