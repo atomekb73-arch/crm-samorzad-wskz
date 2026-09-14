@@ -553,7 +553,7 @@ export default function App() {
 
     // Optimistic UI update
     setCorrespondence(prev => prev.filter(item => item.id !== sygnatura && item.sygnatura !== sygnatura));
-    setToastMessage(`Pismo ${sygnatura} zostało usunięte z rejestru`);
+    setToastMessage("Pismo zostało usunięte z rejestru");
 
     try {
       await sendToBackend(payload);

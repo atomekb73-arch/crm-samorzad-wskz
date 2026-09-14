@@ -476,7 +476,7 @@ export default function CorrespondenceTab({
   const handleDeleteEntry = async (item) => {
     if (!item) return;
     const sygnatura = item.sygnatura || item.id;
-    if (!window.confirm(`Czy na pewno chcesz bezpowrotnie usunąć to pismo (${sygnatura}) (lub dubel) z Dziennika Korespondencji?`)) {
+    if (!window.confirm("Czy na pewno chcesz bezpowrotnie usunąć ten wpis z rejestru?")) {
       return;
     }
 
