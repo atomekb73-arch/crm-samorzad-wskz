@@ -313,6 +313,8 @@ export default function CorrespondenceTab({
   const [modalMode, setModalMode] = useState('parser'); // 'parser' | 'form'
   const [rawPastedText, setRawPastedText] = useState('');
   const [parseNotice, setParseNotice] = useState(null);
+  const [deleteConfirmationItem, setDeleteConfirmationItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Helper do inicjalizacji stanu formularza edycji
   const initEditForm = useCallback((item) => {
@@ -551,21 +553,27 @@ export default function CorrespondenceTab({
     }
   };
 
-  const handleDeleteEntry = async (item) => {
+  const handleDeleteEntry = (item) => {
     if (!item) return;
+    setDeleteConfirmationItem(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmationItem) return;
+    const item = deleteConfirmationItem;
     const sygnatura = item.sygnatura || item.id;
-    if (!window.confirm("Czy na pewno chcesz bezpowrotnie usunąć ten wpis z rejestru?")) {
-      return;
-    }
+    setIsDeleting(true);
 
     try {
       if (onDeleteCorrespondence) {
         await onDeleteCorrespondence(sygnatura);
       }
+      setDeleteConfirmationItem(null);
+      handleCloseDrawer();
     } catch (err) {
       console.error('Błąd usuwania pisma:', err);
     } finally {
-      handleCloseDrawer();
+      setIsDeleting(false);
     }
   };
 
@@ -2651,6 +2659,103 @@ export default function CorrespondenceTab({
           </div>,
           document.body
         )}
+
+      {/* ── Elegancki Modal Potwierdzenia Usunięcia Pisma (zamiast okna przeglądarki) ── */}
+      {deleteConfirmationItem && (
+        <div className="fixed inset-0 z-[10000] overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            className="bg-white rounded-2xl shadow-2xl border border-slate-300 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150"
+          >
+            {/* Nagłówek okna */}
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3.5 bg-red-50/50">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0 border border-red-200">
+                <Trash2 size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 id="delete-dialog-title" className="text-sm font-bold text-slate-900">
+                  Potwierdzenie usunięcia z rejestru
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Dziennik Korespondencji Kancelarii Samorządu WSKZ
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmationItem(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Treść z pytaniem i szczegółami */}
+            <div className="p-5 space-y-3.5 text-xs">
+              <p className="text-slate-700 leading-relaxed font-medium">
+                Czy na pewno chcesz bezpowrotnie usunąć to pismo z oficjalnego rejestru kancelarii?
+              </p>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 font-mono text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Sygnatura:</span>
+                  <strong className="text-[#1e3a8a]">{deleteConfirmationItem.sygnatura || deleteConfirmationItem.id}</strong>
+                </div>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-slate-500 shrink-0">Temat:</span>
+                  <span className="text-slate-900 font-sans font-semibold text-right truncate max-w-[240px]">
+                    {deleteConfirmationItem.przedmiot || deleteConfirmationItem.temat || deleteConfirmationItem.subject || 'Sprawa urzędowa'}
+                  </span>
+                </div>
+                {deleteConfirmationItem.autor && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Sporządził(a):</span>
+                    <span className="text-slate-700 font-sans">{deleteConfirmationItem.autor}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-start gap-2">
+                <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  Operacja jest nieodwracalna. Wpis zostanie usunięty z Dziennika Korespondencji oraz zsynchronizowany z bazą danych.
+                </span>
+              </div>
+            </div>
+
+            {/* Przyciski akcji */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmationItem(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
+              >
+                Anuluj
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Clock size={14} className="animate-spin" />
+                    <span>Usuwanie z bazy...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Tak, usuń bezpowrotnie</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
