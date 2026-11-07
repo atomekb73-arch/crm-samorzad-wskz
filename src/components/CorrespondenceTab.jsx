@@ -44,6 +44,57 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { sendToBackend } from '../services/googleSheets';
 
+// ── Oficjalne stopki podpisów Samorządu Studenckiego WSKZ (Kadencja 2026-2028) ───
+export const OFFICIAL_SIGNATURE_PROFILES = [
+  {
+    id: 'agnieszka_rusnarczyk',
+    name: 'Agnieszka Rusnarczyk',
+    title: 'Przewodnicząca Samorządu Studenckiego',
+    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
+    term: 'Kadencja 2026-2028',
+    email: 'samorzad@wskz.pl',
+    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
+    websiteUrl: 'https://wskz.pl',
+    closing: 'Z wyrazami szacunku,',
+  },
+  {
+    id: 'aleksandra_zerdzinska',
+    name: 'Aleksandra Żerdzińska',
+    title: 'Zastępca Przewodniczącej Samorządu Studenckiego',
+    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
+    term: 'Kadencja 2026-2028',
+    email: 'samorzad@wskz.pl',
+    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
+    websiteUrl: 'https://wskz.pl',
+    closing: 'Z wyrazami szacunku,',
+  },
+  {
+    id: 'tomasz_bratkowski',
+    name: 'Tomasz Bratkowski',
+    title: 'Sekretarz Samorządu Studenckiego',
+    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
+    term: 'Kadencja 2026-2028',
+    email: 'samorzad@wskz.pl',
+    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
+    websiteUrl: 'https://wskz.pl',
+    closing: 'Z wyrazami szacunku,',
+  },
+];
+
+export const DEFAULT_OFFICIAL_SIGNATURE = OFFICIAL_SIGNATURE_PROFILES[0];
+
+export function findSignatureProfile(nameOrId) {
+  if (!nameOrId) return null;
+  const query = String(nameOrId).toLowerCase().trim();
+  return OFFICIAL_SIGNATURE_PROFILES.find(
+    (p) =>
+      p.id.toLowerCase() === query ||
+      p.name.toLowerCase() === query ||
+      query.includes(p.name.toLowerCase()) ||
+      p.name.toLowerCase().includes(query)
+  ) || null;
+}
+
 export function parseIncomingEmailText(rawText) {
   if (!rawText) return null;
   const text = rawText.trim();
@@ -527,6 +578,9 @@ export default function CorrespondenceTab({
       ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
       : rawBody;
 
+    const initialAuthor = item.autor || currentUserName || DEFAULT_OFFICIAL_SIGNATURE.name;
+    const matchedProfile = findSignatureProfile(initialAuthor) || DEFAULT_OFFICIAL_SIGNATURE;
+
     setPreviewFields({
       miejsceData: `Wrocław, dnia ${rawDate} r.`,
       sygnatura: item.sygnatura || item.id || 'DK/2026/11/01',
@@ -534,12 +588,48 @@ export default function CorrespondenceTab({
       odbiorca: item.odbiorca || item.recipient || 'Dziekanat WNS / Władze Uczelni WSKZ',
       temat: rawSubj,
       tresc: defaultBody,
-      autor: item.autor || currentUserName || 'Prezydium Samorządu',
-      stanowisko: 'Kancelaria Samorządu Studenckiego WSKZ',
+      selectedSignatureId: matchedProfile ? matchedProfile.id : 'custom',
+      autor: matchedProfile ? matchedProfile.name : initialAuthor,
+      stanowisko: matchedProfile ? matchedProfile.title : 'Samorząd Studencki WSKZ',
+      uczelnia: matchedProfile ? matchedProfile.organization : 'Wyższa Szkoła Kształcenia Zawodowego',
+      kadencja: matchedProfile ? matchedProfile.term : 'Kadencja 2026-2028',
+      email: matchedProfile ? matchedProfile.email : 'samorzad@wskz.pl',
+      website: matchedProfile ? matchedProfile.website : 'https://studia-wroclaw.pl/samorzad-studencki/',
+      websiteUrl: matchedProfile ? matchedProfile.websiteUrl : 'https://wskz.pl',
+      closing: matchedProfile ? matchedProfile.closing : 'Z wyrazami szacunku,',
+      isCustomAuthor: !matchedProfile,
     });
     setIsPreviewEditable(false);
     setPreviewLetterItem(item);
   }, [currentUserName]);
+
+  const handleSelectSignatureProfile = (profileId) => {
+    if (profileId === 'custom') {
+      setPreviewFields((prev) => ({
+        ...prev,
+        selectedSignatureId: 'custom',
+        isCustomAuthor: true,
+      }));
+      return;
+    }
+
+    const profile = OFFICIAL_SIGNATURE_PROFILES.find((p) => p.id === profileId);
+    if (!profile) return;
+
+    setPreviewFields((prev) => ({
+      ...prev,
+      selectedSignatureId: profile.id,
+      autor: profile.name,
+      stanowisko: profile.title,
+      uczelnia: profile.organization,
+      kadencja: profile.term,
+      email: profile.email,
+      website: profile.website,
+      websiteUrl: profile.websiteUrl,
+      closing: profile.closing,
+      isCustomAuthor: false,
+    }));
+  };
 
   const handleSavePreviewChanges = async () => {
     if (!previewLetterItem) return;
@@ -1624,15 +1714,34 @@ export default function CorrespondenceTab({
                     <label htmlFor="edit-autor" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                       Sporządził(a) / Autor wpisu
                     </label>
-                    <input
-                      id="edit-autor"
-                      name="editAutor"
-                      type="text"
-                      value={editForm.autor || ''}
-                      onChange={(e) => setEditForm({ ...editForm, autor: e.target.value })}
-                      placeholder="np. Agnieszka, Tomasz Bratkowski"
-                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
-                    />
+                    <div className="space-y-2">
+                      <select
+                        value={OFFICIAL_SIGNATURE_PROFILES.some((p) => p.name === editForm.autor) ? editForm.autor : 'custom'}
+                        onChange={(e) => {
+                          if (e.target.value !== 'custom') {
+                            setEditForm({ ...editForm, autor: e.target.value });
+                          }
+                        }}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                      >
+                        {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
+                          <option key={prof.id} value={prof.name}>
+                            {prof.name} — {prof.title}
+                          </option>
+                        ))}
+                        <option value="custom">✏️ Inna osoba / Wpisz ręcznie poniżej...</option>
+                      </select>
+
+                      <input
+                        id="edit-autor"
+                        name="editAutor"
+                        type="text"
+                        value={editForm.autor || ''}
+                        onChange={(e) => setEditForm({ ...editForm, autor: e.target.value })}
+                        placeholder="Imię i nazwisko osoby sporządzającej wpis"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
 
                   {/* Lokalizacja Drive */}
@@ -2071,16 +2180,37 @@ export default function CorrespondenceTab({
                   <label htmlFor="new-autor" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
                     Sporządził(a) / Autor pisma *
                   </label>
-                  <input
-                    id="new-autor"
-                    name="newAutor"
-                    type="text"
-                    required
-                    placeholder="np. Agnieszka, Tomasz Bratkowski"
-                    value={newEntry.autor || ''}
-                    onChange={(e) => setNewEntry({ ...newEntry, autor: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
-                  />
+                  <div className="space-y-2">
+                    <select
+                      value={OFFICIAL_SIGNATURE_PROFILES.some((p) => p.name === newEntry.autor) ? newEntry.autor : 'custom'}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          // zostaw dotychczasowy lub czyść
+                        } else {
+                          setNewEntry({ ...newEntry, autor: e.target.value });
+                        }
+                      }}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
+                        <option key={prof.id} value={prof.name}>
+                          {prof.name} — {prof.title}
+                        </option>
+                      ))}
+                      <option value="custom">✏️ Inna osoba / Wpisz ręcznie poniżej...</option>
+                    </select>
+
+                    <input
+                      id="new-autor"
+                      name="newAutor"
+                      type="text"
+                      required
+                      placeholder="Imię i nazwisko osoby sporządzającej (lub wybierz z listy powyżej)"
+                      value={newEntry.autor || ''}
+                      onChange={(e) => setNewEntry({ ...newEntry, autor: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
                   <p className="text-[10px] text-slate-500 mt-1">
                     Imię i nazwisko osoby sporządzającej pismo (zostanie trwale wypalone w stopce dokumentu Google Docs oraz w rejestrze).
                   </p>
@@ -2266,6 +2396,27 @@ export default function CorrespondenceTab({
                   </button>
                 )}
 
+                {/* Przycisk zapisu do Google Docs / Drive z poziomu podglądu druku */}
+                <button
+                  type="button"
+                  disabled={isGeneratingDoc}
+                  onClick={() => handleGenerateDoc(previewLetterItem)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
+                  title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
+                >
+                  {isGeneratingDoc ? (
+                    <>
+                      <Clock size={14} className="animate-spin text-emerald-600" />
+                      <span>Wypalanie w Docs...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink size={14} className="text-emerald-700" />
+                      <span>Zapisz w Google Docs</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -2408,24 +2559,70 @@ export default function CorrespondenceTab({
 
                   {/* Signature Block */}
                   <div className="pt-6 flex justify-end break-inside-avoid">
-                    <div className="w-64 text-center space-y-1">
-                      <p className="text-[10.5pt] italic text-[#374151] mb-6">Z wyrazami szacunku,</p>
-                      {isPreviewEditable ? (
-                        <input
-                          type="text"
-                          value={previewFields.autor}
-                          onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
-                          className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold text-center bg-blue-50/30"
-                        />
-                      ) : (
-                        <p className="text-[10.5pt] font-bold text-[#111827]">{previewFields.autor}</p>
-                      )}
-                      <p className="text-[9.5pt] text-[#374151]">
-                        {previewFields.stanowisko}
-                      </p>
-                      <p className="text-[9pt] text-[#6b7280]">
-                        Samorząd Studencki WSKZ
-                      </p>
+                    <div className="w-80 text-right space-y-1">
+                      <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
+                      
+                      {/* Wybór podpisu na druku (niewidoczny na wydruku, widoczny w trybie edycji/podglądu) */}
+                      <div className="print:hidden pb-1 text-left">
+                        <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                          Wybierz podpiszącego z listy lub wpisz ręcznie:
+                        </label>
+                        <select
+                          value={previewFields.selectedSignatureId || 'custom'}
+                          onChange={(e) => handleSelectSignatureProfile(e.target.value)}
+                          className="w-full text-xs font-semibold p-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
+                            <option key={prof.id} value={prof.id}>
+                              {prof.name} — {prof.title}
+                            </option>
+                          ))}
+                          <option value="custom">✏️ Inna osoba / Wpisz ręcznie...</option>
+                        </select>
+                      </div>
+
+                      {/* Dane osoby podpisującej */}
+                      <div className="space-y-0.5 text-right font-sans">
+                        {isPreviewEditable || previewFields.isCustomAuthor ? (
+                          <div className="space-y-1 pt-1">
+                            <input
+                              type="text"
+                              value={previewFields.autor}
+                              onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
+                              placeholder="Imię i nazwisko"
+                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[11pt] font-bold text-right bg-blue-50/30"
+                            />
+                            <input
+                              type="text"
+                              value={previewFields.stanowisko}
+                              onChange={(e) => setPreviewFields({ ...previewFields, stanowisko: e.target.value })}
+                              placeholder="Stanowisko / funkcja"
+                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10pt] text-right bg-blue-50/30"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-[11.5pt] font-bold text-[#111827] leading-tight">
+                              {previewFields.autor}
+                            </div>
+                            <div className="text-[10pt] font-medium text-[#1e3a8a] leading-tight">
+                              {previewFields.stanowisko}
+                            </div>
+                          </>
+                        )}
+                        <div className="text-[9.5pt] text-[#374151] leading-tight">
+                          {previewFields.uczelnia || 'Wyższa Szkoła Kształcenia Zawodowego'}
+                        </div>
+                        <div className="text-[9pt] text-[#6b7280] leading-tight">
+                          {previewFields.kadencja || 'Kadencja 2026-2028'}
+                        </div>
+                        <div className="text-[8.5pt] text-[#4b5563] pt-0.5 leading-tight">
+                          E-mail: <a href={`mailto:${previewFields.email || 'samorzad@wskz.pl'}`} className="text-[#3164d4] hover:underline">{previewFields.email || 'samorzad@wskz.pl'}</a>
+                        </div>
+                        <div className="text-[8.5pt] text-[#4b5563] leading-tight">
+                          WWW: <a href={previewFields.websiteUrl || 'https://wskz.pl'} target="_blank" rel="noopener noreferrer" className="text-[#3164d4] hover:underline">{previewFields.website || 'https://studia-wroclaw.pl/samorzad-studencki/'}</a>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
