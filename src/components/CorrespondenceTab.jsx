@@ -2367,81 +2367,107 @@ export default function CorrespondenceTab({
             {/* Top Action Bar (Hidden in Print) */}
             <div
               id="official-letter-a4-top-bar"
-              className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden"
+              className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-col gap-3 print:hidden"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
-                  <FileText size={16} />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
+                    <FileText size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      Szablon dokumentu WSKZ (.DOCX / Format A4)
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">
-                    Szablon dokumentu WSKZ (.DOCX / Format A4)
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-mono">
-                    Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
-                  </p>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {!isPreviewEditable ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPreviewEditable(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
+                    >
+                      <Edit3 size={14} />
+                      <span>Edytuj treść na druku</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSavePreviewChanges}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
+                    >
+                      <Save size={14} />
+                      <span>Zapisz treść pisma</span>
+                    </button>
+                  )}
+
+                  {/* Przycisk zapisu do Google Docs / Drive z poziomu podglądu druku */}
+                  <button
+                    type="button"
+                    disabled={isGeneratingDoc}
+                    onClick={() => handleGenerateDoc(previewLetterItem)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
+                    title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
+                  >
+                    {isGeneratingDoc ? (
+                      <>
+                        <Clock size={14} className="animate-spin text-emerald-600" />
+                        <span>Wypalanie w Docs...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink size={14} className="text-emerald-700" />
+                        <span>Zapisz w Google Docs</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#3164d4] hover:bg-[#254fb0] shadow-sm transition cursor-pointer"
+                  >
+                    <Printer size={14} />
+                    <span>Drukuj / Zapisz PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPreviewLetterItem(null)}
+                    className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                    title="Zamknij podgląd"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                {!isPreviewEditable ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsPreviewEditable(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
+              {/* Pasek konfiguracji podpisu i autora (na pasku narzędzi, poza arkuszem A4) */}
+              <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 p-2.5 rounded-xl">
+                <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide shrink-0">
+                    Podpisujący pismo:
+                  </span>
+                  <select
+                    value={previewFields.selectedSignatureId || 'custom'}
+                    onChange={(e) => handleSelectSignatureProfile(e.target.value)}
+                    className="w-full text-xs font-medium p-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                   >
-                    <Edit3 size={14} />
-                    <span>Edytuj treść na druku</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSavePreviewChanges}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
-                  >
-                    <Save size={14} />
-                    <span>Zapisz treść pisma</span>
-                  </button>
-                )}
-
-                {/* Przycisk zapisu do Google Docs / Drive z poziomu podglądu druku */}
-                <button
-                  type="button"
-                  disabled={isGeneratingDoc}
-                  onClick={() => handleGenerateDoc(previewLetterItem)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
-                  title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
-                >
-                  {isGeneratingDoc ? (
-                    <>
-                      <Clock size={14} className="animate-spin text-emerald-600" />
-                      <span>Wypalanie w Docs...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink size={14} className="text-emerald-700" />
-                      <span>Zapisz w Google Docs</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#3164d4] hover:bg-[#254fb0] shadow-sm transition cursor-pointer"
-                >
-                  <Printer size={14} />
-                  <span>Drukuj / Zapisz PDF</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPreviewLetterItem(null)}
-                  className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
-                  title="Zamknij podgląd"
-                >
-                  <X size={18} />
-                </button>
+                    {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
+                      <option key={prof.id} value={prof.id}>
+                        {prof.name} — {prof.title}
+                      </option>
+                    ))}
+                    <option value="custom">✏️ Inna osoba / Wpisz ręcznie poniżej na druku...</option>
+                  </select>
+                </div>
+                <div className="text-[11px] text-slate-500 italic">
+                  Arkusz poniżej to czysty, oficjalny wydruk bez kontrolek formularza.
+                </div>
               </div>
             </div>
 
@@ -2570,26 +2596,7 @@ export default function CorrespondenceTab({
                     <div className="w-80 text-right space-y-1">
                       <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
                       
-                      {/* Wybór podpisu na druku (niewidoczny na wydruku, widoczny w trybie edycji/podglądu) */}
-                      <div className="print:hidden pb-1 text-left">
-                        <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
-                          Wybierz podpiszącego z listy lub wpisz ręcznie:
-                        </label>
-                        <select
-                          value={previewFields.selectedSignatureId || 'custom'}
-                          onChange={(e) => handleSelectSignatureProfile(e.target.value)}
-                          className="w-full text-xs font-semibold p-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
-                            <option key={prof.id} value={prof.id}>
-                              {prof.name} — {prof.title}
-                            </option>
-                          ))}
-                          <option value="custom">✏️ Inna osoba / Wpisz ręcznie...</option>
-                        </select>
-                      </div>
-
-                      {/* Dane osoby podpisującej */}
+                      {/* Dane osoby podpisującej — CZYSTY DOKUMENT A4 BEZ KONTROLEK */}
                       <div className="space-y-0.5 text-right font-sans">
                         {isPreviewEditable || previewFields.isCustomAuthor ? (
                           <div className="space-y-1 pt-1">
