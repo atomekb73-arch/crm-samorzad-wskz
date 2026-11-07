@@ -2402,7 +2402,7 @@ export default function CorrespondenceTab({
 
             {/* 1:1 WSKZ FOOTER SECTION */}
             <div className="pt-8 mt-8 break-inside-avoid select-none">
-              {/* Subtle Author & Registry Attribution above the WSKZ chevron */}
+              {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
               <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-2 px-1">
                 <span>
                   Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
@@ -2412,78 +2412,12 @@ export default function CorrespondenceTab({
                 </span>
               </div>
 
-              {/* Centered Blue WSKZ Wing Emblem */}
-              <div className="flex justify-center mb-3">
-                <svg
-                  width="52"
-                  height="18"
-                  viewBox="0 0 56 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M2 5 C12 1, 22 7, 28 15 C34 7, 44 1, 54 5 C46 10, 36 15, 28 19 C20 15, 10 10, 2 5 Z"
-                    fill="#3164d4"
-                  />
-                </svg>
-              </div>
-
-              {/* 3-Column Colored Footer Bar (#00c8ff | #0095ff | #325cd2) */}
-              <div className="grid grid-cols-3 w-full text-white text-[9.5px] leading-[1.35]">
-                {/* Column 1: Cyan (#00c8ff) — Phone & Email */}
-                <div className="bg-[#00c8ff] py-4 px-3 sm:px-5 flex items-center justify-center gap-2.5">
-                  {/* Speech Bubbles Icon */}
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="shrink-0"
-                  >
-                    <path
-                      d="M12 3C6.5 3 2 6.58 2 11C2 12.88 2.81 14.61 4.18 15.97C4.05 17.16 3.54 18.43 2.77 19.38C2.58 19.62 2.75 19.98 3.05 19.95C4.88 19.76 6.58 19.04 7.76 18.23C9.07 18.72 10.5 19 12 19C17.5 19 22 15.42 22 11C22 6.58 17.5 3 12 3Z"
-                      fill="#ffffff"
-                    />
-                  </svg>
-                  <div className="font-medium tracking-wide">
-                    <div>+22 153 04 31</div>
-                    <div>kontakt@wskz.pl</div>
-                  </div>
-                </div>
-
-                {/* Column 2: Medium Blue (#0095ff) — University Name, NIP & REGON */}
-                <div className="bg-[#0095ff] py-4 px-2 sm:px-3 flex flex-col items-center justify-center text-center">
-                  <div className="font-bold tracking-tight">
-                    Wyższa Szkoła Kształcenia Zawodowego
-                  </div>
-                  <div className="text-[9px] opacity-95 mt-0.5">
-                    NIP: 7952214640 &nbsp;|&nbsp; REGON: 651432712
-                  </div>
-                </div>
-
-                {/* Column 3: Royal Blue (#325cd2) — Address */}
-                <div className="bg-[#325cd2] py-4 px-3 sm:px-5 flex items-center justify-center gap-2.5">
-                  {/* Map Pin Icon */}
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="shrink-0"
-                  >
-                    <path
-                      d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z"
-                      fill="#ffffff"
-                    />
-                  </svg>
-                  <div className="font-medium tracking-wide">
-                    <div>Pl. Powstańców Śląskich 1/201,</div>
-                    <div>53-329 Wrocław</div>
-                  </div>
-                </div>
-              </div>
+              {/* Official WSKZ Footer Image */}
+              <img
+                src="/wskz-footer.png"
+                alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
+                className="w-full h-auto block object-contain"
+              />
             </div>
           </div>
         </div>
