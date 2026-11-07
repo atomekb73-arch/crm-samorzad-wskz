@@ -26,6 +26,8 @@ import {
   Edit3,
   Save,
   Trash2,
+  Printer,
+  Award,
 } from 'lucide-react';
 
 import {
@@ -243,6 +245,18 @@ export default function CorrespondenceTab({
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const [generateDocNotice, setGenerateDocNotice] = useState(null);
+  const [previewLetterItem, setPreviewLetterItem] = useState(null);
+  const [isPreviewEditable, setIsPreviewEditable] = useState(false);
+  const [previewFields, setPreviewFields] = useState({
+    miejsceData: '',
+    sygnatura: '',
+    nadawca: '',
+    odbiorca: '',
+    temat: '',
+    tresc: '',
+    autor: '',
+    stanowisko: 'Prezydium Samorządu Studenckiego WSKZ',
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('parser'); // 'parser' | 'form'
   const [rawPastedText, setRawPastedText] = useState('');
@@ -503,19 +517,58 @@ export default function CorrespondenceTab({
     }
   };
 
+  const handleOpenPrintPreview = useCallback((item) => {
+    if (!item) return;
+    const rawDate = (item.dataWplywu || item.data || item.date || new Date().toISOString()).slice(0, 10);
+    const rawBody = (item.tresc || item.summary || '').trim();
+    const rawSubj = (item.przedmiot || item.subject || item.temat || 'Sprawa urzędowa').trim();
+    const defaultBody = (!rawBody || rawBody === rawSubj)
+      ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
+      : rawBody;
+
+    setPreviewFields({
+      miejsceData: `Wrocław, dnia ${rawDate} r.`,
+      sygnatura: item.sygnatura || item.id || 'DK/2026/11/01',
+      nadawca: item.nadawca || item.sender || 'Kancelaria Samorządu Studenckiego WSKZ',
+      odbiorca: item.odbiorca || item.recipient || 'Dziekanat WNS / Władze Uczelni WSKZ',
+      temat: rawSubj,
+      tresc: defaultBody,
+      autor: item.autor || currentUserName || 'Prezydium Samorządu',
+      stanowisko: 'Kancelaria Samorządu Studenckiego WSKZ',
+    });
+    setIsPreviewEditable(false);
+    setPreviewLetterItem(item);
+  }, [currentUserName]);
+
+  const handleSavePreviewChanges = async () => {
+    if (!previewLetterItem) return;
+    const updated = {
+      ...previewLetterItem,
+      przedmiot: previewFields.temat,
+      temat: previewFields.temat,
+      subject: previewFields.temat,
+      nadawca: previewFields.nadawca,
+      sender: previewFields.nadawca,
+      odbiorca: previewFields.odbiorca,
+      recipient: previewFields.odbiorca,
+      tresc: previewFields.tresc,
+      summary: previewFields.tresc,
+      autor: previewFields.autor,
+    };
+    setPreviewLetterItem(updated);
+    if (activeDrawerItem && (activeDrawerItem.id === updated.id || activeDrawerItem.sygnatura === updated.sygnatura)) {
+      setActiveDrawerItem(updated);
+    }
+    setIsPreviewEditable(false);
+    if (onEditCorrespondence) {
+      await onEditCorrespondence(updated);
+    }
+  };
+
   const handleGenerateDoc = async (item) => {
     if (!item) return;
     const sygnatura = item.sygnatura || item.id;
     const authorToUse = item.autor || currentUserName || 'Kancelaria Samorządu';
-
-    const ok = window.confirm(
-      `Czy chcesz wygenerować oficjalny dokument z szablonu w Google Docs dla sprawy ${sygnatura}?\n\n` +
-      `• Autor / Sporządził(a): ${authorToUse}\n` +
-      `• Szablon: Oficjalny Druk Samorządu WSKZ\n` +
-      `• Folder docelowy: Dysk Google Kancelarii (1R5sVAKtc13WI93wf9FBPWpA0lWhKk90l)\n\n` +
-      `Dokument zostanie utworzony w Twoim imieniu z trwałym oznaczeniem autora w metadanych i stopce.`
-    );
-    if (!ok) return;
 
     setIsGeneratingDoc(true);
     setGenerateDocNotice({ type: 'info', text: 'Trwa wypalanie pisma na oficjalnym szablonie w Google Docs...' });
@@ -567,8 +620,9 @@ export default function CorrespondenceTab({
       console.error('Błąd generowania dokumentu:', err);
       setGenerateDocNotice({
         type: 'error',
-        text: `Błąd generowania na Drive: ${err.message}`,
+        text: `Otwarto wbudowany druk A4 w aplikacji (status chmury Drive: ${err.message}). Możesz od razu wydrukować lub zapisać pismo jako PDF.`,
       });
+      handleOpenPrintPreview(item);
     } finally {
       setIsGeneratingDoc(false);
     }
@@ -1063,6 +1117,15 @@ export default function CorrespondenceTab({
                 <div className="flex items-center gap-1.5 shrink-0">
                   {!isEditing ? (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
+                        title="Otwórz wbudowany podgląd oficjalnego druku A4 Samorządu (Drukuj / PDF)"
+                      >
+                        <Printer size={13} className="text-indigo-700" />
+                        <span>Druk A4 / PDF</span>
+                      </button>
                       {activeDrawerItem.lokalizacjaDrive ? (
                         <a
                           href={activeDrawerItem.lokalizacjaDrive}
@@ -1275,12 +1338,20 @@ export default function CorrespondenceTab({
                             </p>
                           </div>
                         </div>
-                        <div className="pt-1">
+                        <div className="pt-1 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
+                          >
+                            <Printer size={14} />
+                            <span>Podgląd druku A4 / PDF (w aplikacji)</span>
+                          </button>
                           <button
                             type="button"
                             disabled={isGeneratingDoc}
                             onClick={() => handleGenerateDoc(activeDrawerItem)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-blue-50 text-[#1e3a8a] border border-blue-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
                           >
                             {isGeneratingDoc ? (
                               <>
@@ -1289,8 +1360,8 @@ export default function CorrespondenceTab({
                               </>
                             ) : (
                               <>
-                                <FileText size={14} />
-                                <span>Wypal pismo w Google Docs</span>
+                                <Sparkles size={14} />
+                                <span>Wypal w Google Docs (Drive)</span>
                               </>
                             )}
                           </button>
@@ -1612,6 +1683,14 @@ export default function CorrespondenceTab({
                         <Edit3 size={14} className="text-slate-700 shrink-0" />
                         <span>Edytuj sprawę</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 transition cursor-pointer"
+                      >
+                        <Printer size={14} className="text-indigo-700" />
+                        <span>Druk A4 / PDF</span>
+                      </button>
                       {activeDrawerItem.lokalizacjaDrive ? (
                         <a
                           href={activeDrawerItem.lokalizacjaDrive}
@@ -1637,7 +1716,7 @@ export default function CorrespondenceTab({
                           ) : (
                             <>
                               <Sparkles size={14} className="text-amber-300" />
-                              <span>Wypal pismo w Google Docs</span>
+                              <span>Wypal w Google Docs</span>
                             </>
                           )}
                         </button>
@@ -2071,7 +2150,7 @@ export default function CorrespondenceTab({
                     {modalMode === 'createDoc' ? (
                       <>
                         <Sparkles size={15} className="text-amber-300" />
-                        <span>Wypal i otwórz na Dysku Google</span>
+                        <span>Wypal i otwórz pismo</span>
                       </>
                     ) : (
                       <span>Zarejestruj pismo</span>
@@ -2080,6 +2159,263 @@ export default function CorrespondenceTab({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Wbudowany Podgląd i Druk Oficjalnego Pisma A4 (PDF / Print) ── */}
+      {previewLetterItem && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex flex-col items-center p-3 sm:p-6">
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #official-letter-a4-print-area,
+              #official-letter-a4-print-area * {
+                visibility: visible !important;
+              }
+              #official-letter-a4-print-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 12mm 14mm !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+              @page {
+                size: A4 portrait;
+                margin: 10mm;
+              }
+            }
+          `}</style>
+
+          {/* Top Action Bar (Hidden in Print) */}
+          <div className="w-full max-w-[800px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center shrink-0">
+                <FileText size={16} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  Oficjalny Druk Pisma Samorządu WSKZ (Format A4)
+                </h4>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Sygnatura: <strong>{previewFields.sygnatura}</strong> • Autor: <strong>{previewFields.autor}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {!isPreviewEditable ? (
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewEditable(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
+                >
+                  <Edit3 size={14} />
+                  <span>Edytuj treść na druku</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSavePreviewChanges}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
+                >
+                  <Save size={14} />
+                  <span>Zapisz treść pisma</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#1e3a8a] hover:bg-[#1d4ed8] shadow-sm transition cursor-pointer"
+              >
+                <Printer size={14} />
+                <span>Drukuj / Zapisz PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewLetterItem(null)}
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                title="Zamknij podgląd"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* A4 Sheet Area */}
+          <div
+            id="official-letter-a4-print-area"
+            className="w-full max-w-[800px] min-h-[1080px] bg-white text-slate-900 rounded-sm shadow-2xl border border-slate-300 p-10 sm:p-14 flex flex-col justify-between relative select-text"
+          >
+            {/* Upper Document Section */}
+            <div className="space-y-8">
+              {/* Official Letterhead Header */}
+              <div className="border-b-2 border-[#1e3a8a] pb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[#1e3a8a]">
+                    <Award className="w-6 h-6 shrink-0" />
+                    <span className="text-[11px] font-extrabold uppercase tracking-widest">
+                      Wyższa Szkoła Kształcenia Zawodowego
+                    </span>
+                  </div>
+                  <h1 className="text-lg font-extrabold tracking-tight text-slate-900 uppercase">
+                    Samorząd Studencki WSKZ
+                  </h1>
+                  <p className="text-[11px] text-slate-600 font-medium">
+                    Kancelaria Samorządu Studenckiego • ul. Wagonowa 9, 53-609 Wrocław
+                  </p>
+                  <p className="text-[10.5px] text-slate-500 font-mono">
+                    e-mail: samorzad@wskz.pl • Rejestr Korespondencji Kancelarii
+                  </p>
+                </div>
+
+                <div className="text-left sm:text-right space-y-1 shrink-0 font-mono text-xs">
+                  {isPreviewEditable ? (
+                    <input
+                      type="text"
+                      value={previewFields.miejsceData}
+                      onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
+                      className="border border-blue-400 rounded px-2 py-0.5 text-xs font-mono text-right bg-blue-50/40"
+                    />
+                  ) : (
+                    <p className="text-slate-700 font-semibold">{previewFields.miejsceData}</p>
+                  )}
+                  <div className="inline-block bg-slate-100 border border-slate-300 px-2.5 py-1 rounded text-[11px] font-bold text-[#1e3a8a]">
+                    Sygn. akt: {previewFields.sygnatura}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sender & Recipient Block */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 text-xs">
+                <div className="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Nadawca pisma:
+                  </span>
+                  {isPreviewEditable ? (
+                    <input
+                      type="text"
+                      value={previewFields.nadawca}
+                      onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                      className="w-full border border-blue-400 rounded px-2 py-1 text-xs font-semibold bg-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-900 leading-snug">{previewFields.nadawca}</p>
+                  )}
+                  <p className="text-[11px] text-slate-600">Organ kolegialny samorządu uczelnianego</p>
+                </div>
+
+                <div className="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Adresat / Do wiadomości:
+                  </span>
+                  {isPreviewEditable ? (
+                    <input
+                      type="text"
+                      value={previewFields.odbiorca}
+                      onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                      className="w-full border border-blue-400 rounded px-2 py-1 text-xs font-semibold bg-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-900 leading-snug">Sz. P. {previewFields.odbiorca}</p>
+                  )}
+                  <p className="text-[11px] text-slate-600">Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu</p>
+                </div>
+              </div>
+
+              {/* Subject Line (DOTYCZY) */}
+              <div className="border-l-4 border-[#1e3a8a] pl-4 py-1.5 bg-blue-50/30">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#1e3a8a] block mb-0.5">
+                  Dotyczy sprawy:
+                </span>
+                {isPreviewEditable ? (
+                  <input
+                    type="text"
+                    value={previewFields.temat}
+                    onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
+                    className="w-full border border-blue-400 rounded px-2.5 py-1 text-sm font-bold text-slate-900 bg-white"
+                  />
+                ) : (
+                  <h2 className="text-sm sm:text-base font-bold text-slate-950 leading-snug">
+                    {previewFields.temat}
+                  </h2>
+                )}
+              </div>
+
+              {/* Main Body Text */}
+              <div className="pt-2 text-xs sm:text-[13px] leading-relaxed text-slate-800">
+                {isPreviewEditable ? (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-blue-800 block">
+                      Treść pisma (edytowalna):
+                    </label>
+                    <textarea
+                      rows={12}
+                      value={previewFields.tresc}
+                      onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
+                      className="w-full border border-blue-400 rounded-lg p-3 text-xs sm:text-[13px] leading-relaxed text-slate-900 bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap text-justify space-y-3 min-h-[260px]">
+                    {previewFields.tresc}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Signature & Institutional Audit Footer */}
+            <div className="pt-12 mt-12 space-y-8 break-inside-avoid">
+              <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-8">
+                {/* Official Stamp Placeholder */}
+                <div className="text-[10px] text-slate-400 font-mono border border-dashed border-slate-300 rounded-lg px-4 py-3 text-center">
+                  [Pieczęć podłużna / elektroniczna]<br />
+                  Kancelaria Samorządu Studenckiego WSKZ<br />
+                  Sygn.: {previewFields.sygnatura}
+                </div>
+
+                {/* Signature Block */}
+                <div className="w-64 text-center space-y-1.5 ml-auto">
+                  <p className="text-xs italic text-slate-600 mb-6">Z wyrazami szacunku,</p>
+                  <div className="border-b border-slate-400 pb-1">
+                    {isPreviewEditable ? (
+                      <input
+                        type="text"
+                        value={previewFields.autor}
+                        onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
+                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-xs font-bold text-center bg-white"
+                      />
+                    ) : (
+                      <p className="text-xs font-bold text-slate-900">{previewFields.autor}</p>
+                    )}
+                  </div>
+                  <p className="text-[10.5px] font-semibold text-[#1e3a8a]">
+                    {previewFields.stanowisko}
+                  </p>
+                  <p className="text-[9.5px] text-slate-500">
+                    Samorząd Studencki WSKZ we Wrocławiu
+                  </p>
+                </div>
+              </div>
+
+              {/* Permanent Institutional Footer */}
+              <div className="border-t border-slate-200 pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[9.5px] text-slate-500 font-mono">
+                <span>
+                  Dokument sporządził(a): <strong className="text-slate-700">{previewFields.autor}</strong> | Kancelaria Samorządu Studenckiego WSKZ
+                </span>
+                <span>
+                  ID Rejestru: {previewFields.sygnatura} • Rok akademicki {academicYear === 'ALL' ? '2026/2027' : academicYear}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
