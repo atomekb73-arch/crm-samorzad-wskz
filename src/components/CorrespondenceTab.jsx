@@ -2263,74 +2263,13 @@ export default function CorrespondenceTab({
           >
             {/* TOP & BODY SECTION */}
             <div>
-              {/* 1:1 WSKZ Header */}
-              <div className="pb-3">
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3.5">
-                  {/* Left: Official WSKZ Logo (Blue Book Square + Wing + 3-line Title) */}
-                  <div className="flex items-end gap-3.5 select-none">
-                    {/* Blue Square Book Emblem */}
-                    <svg
-                      width="56"
-                      height="56"
-                      viewBox="0 0 64 64"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="shrink-0"
-                    >
-                      <rect width="64" height="64" fill="#3164d4" />
-                      {/* Upper right bird/open-book wing */}
-                      <path
-                        d="M30 22 C35 16, 41 18, 44 23 C48 17, 54 15, 59 18 C54 22, 48 25, 44 29 C39 25, 35 23, 30 22 Z"
-                        fill="#ffffff"
-                      />
-                      {/* Lower open book pages */}
-                      <path
-                        d="M6 34 C16 34, 25 38, 32 45 C39 38, 48 34, 58 34 L58 40 C48 40, 39 44, 32 51 C25 44, 16 40, 6 40 Z"
-                        fill="#ffffff"
-                      />
-                      <path
-                        d="M6 44 C16 44, 25 48, 32 55 C39 48, 48 44, 58 44 L58 49 C48 49, 39 53, 32 60 C25 53, 16 49, 6 49 Z"
-                        fill="#ffffff"
-                      />
-                    </svg>
-
-                    {/* Right of Square: Small Wing + WYŻSZA SZKOŁA KSZTAŁCENIA ZAWODOWEGO */}
-                    <div className="flex flex-col justify-between pb-0.5">
-                      <svg
-                        width="24"
-                        height="10"
-                        viewBox="0 0 28 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="mb-1"
-                      >
-                        <path
-                          d="M1 3 C6 1, 11 4, 14 8 C17 4, 22 1, 27 3 C23 6, 18 9, 14 11 C10 9, 5 6, 1 3 Z"
-                          fill="#3164d4"
-                        />
-                      </svg>
-                      <div className="text-[#3164d4] text-[12px] leading-[1.22] tracking-[0.08em] font-normal uppercase">
-                        <div>WYŻSZA SZKOŁA</div>
-                        <div>KSZTAŁCENIA</div>
-                        <div>ZAWODOWEGO</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Mark Twain Quote */}
-                  <div className="text-right text-[#9ca3af] italic text-[10.5px] leading-[1.35] pb-0.5">
-                    <div>„Zacną rzeczą jest uczyć się, lecz jeszcze zacniejszą – nauczać.”</div>
-                    <div>– Mark Twain</div>
-                  </div>
-                </div>
-
-                {/* 3-Color Bar (#00c8ff, #0095ff, #3164d4) + Thin Gray Line */}
-                <div className="flex items-center w-full">
-                  <div className="h-[3.5px] w-[78px] bg-[#00c8ff] shrink-0" />
-                  <div className="h-[3.5px] w-[78px] bg-[#0095ff] shrink-0" />
-                  <div className="h-[3.5px] w-[78px] bg-[#3164d4] shrink-0" />
-                  <div className="h-[1px] flex-1 bg-[#cbd5e1]" />
-                </div>
+              {/* 1:1 WSKZ Header Image */}
+              <div className="pb-2 select-none">
+                <img
+                  src="/wskz-header.png"
+                  alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
+                  className="w-full h-auto block object-contain"
+                />
               </div>
 
               {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
