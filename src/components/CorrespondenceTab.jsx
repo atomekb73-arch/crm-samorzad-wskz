@@ -365,12 +365,12 @@ export default function CorrespondenceTab({
   };
 
   // ── Stan i obsługa sortowania wielokolumnowego ────────────────────────────
-  const [sortConfig, setSortConfig] = useState({ key: 'dataWplywu', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'dataWplywu', direction: 'asc' });
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
 
@@ -405,13 +405,26 @@ export default function CorrespondenceTab({
     let sortableItems = [...filteredList];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        // Jeśli sortujemy po dacie, porównaj timestampy chronologicznie (wraz z godziną i minutą)
+        // Jeśli sortujemy po dacie, porównaj timestampy chronologicznie (wraz z godziną i minutą), a przy równej dacie po sygnaturze
         if (sortConfig.key === 'dataWplywu') {
           const rawA = a.dataWplywu || a.data || a.date || a.Data_Wplywu || "";
           const rawB = b.dataWplywu || b.data || b.date || b.Data_Wplywu || "";
           const timeA = parseDateToTimestamp(rawA);
           const timeB = parseDateToTimestamp(rawB);
-          return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA;
+          if (timeA !== timeB) {
+            return sortConfig.direction === 'asc' ? timeA - timeB : timeB - timeA;
+          }
+          const sygA = String(a.sygnatura || a.id || "");
+          const sygB = String(b.sygnatura || b.id || "");
+          const cmpSyg = sygA.localeCompare(sygB, 'pl', { numeric: true, sensitivity: 'base' });
+          return sortConfig.direction === 'asc' ? cmpSyg : -cmpSyg;
+        }
+
+        if (sortConfig.key === 'sygnatura') {
+          const sygA = String(a.sygnatura || a.id || "");
+          const sygB = String(b.sygnatura || b.id || "");
+          const cmpSyg = sygA.localeCompare(sygB, 'pl', { numeric: true, sensitivity: 'base' });
+          return sortConfig.direction === 'asc' ? cmpSyg : -cmpSyg;
         }
 
         let aVal = a[sortConfig.key] || "";
@@ -734,11 +747,28 @@ export default function CorrespondenceTab({
     if (!newEntry.subject || !newEntry.sender) return;
 
     const typ = newEntry.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące';
-    const nextId = `DK/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(correspondence.length + 1).padStart(2, '0')}`;
-    
     const formattedDataWyslania = prepareDateTimeForPayload(newEntry.dataWyslania);
     const formattedDataWplywu = prepareDateTimeForPayload(newEntry.dataWplywu || getCurrentLocalDateTimeString());
     const displayDate = formattedDataWplywu.slice(0, 10);
+
+    // Sekwencyjny generator sygnatur DK/RRRR/MM/NR (od 01 w danym miesiącu, lub najwyższy numer + 1)
+    const dateMatch = displayDate.match(/^(\d{4})-(\d{2})/);
+    const yearStr = dateMatch ? dateMatch[1] : String(new Date().getFullYear());
+    const monthStr = dateMatch ? dateMatch[2] : String(new Date().getMonth() + 1).padStart(2, '0');
+    const prefix = `DK/${yearStr}/${monthStr}/`;
+    const sourceList = (Array.isArray(allCorrespondence) && allCorrespondence.length > 0) ? allCorrespondence : correspondence;
+    let maxSeq = 0;
+    sourceList.forEach((item) => {
+      const syg = String(item?.sygnatura || item?.id || '').trim();
+      if (syg.startsWith(prefix)) {
+        const tail = syg.slice(prefix.length);
+        const num = parseInt(tail, 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+    const nextId = `${prefix}${String(maxSeq + 1).padStart(2, '0')}`;
 
     const entryToSave = {
       action: "zarejestruj_pismo",

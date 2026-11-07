@@ -409,6 +409,289 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
   }
 }
 
+// ─── Oficjalny wsad korespondencji Samorządu na rok akademicki 2026/2027 ─────
+export const OFFICIAL_2026_2027_CORRESPONDENCE = [
+  {
+    sygnatura: "DK/2026/10/01",
+    dataWplywu: "2026-10-01 12:11",
+    typ: "Wchodzące",
+    nadawca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Organizacja asysty i opieki nad studentami I roku podczas Immatrykulacji",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/02",
+    dataWplywu: "2026-10-01 12:41",
+    typ: "Wchodzące",
+    nadawca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    odbiorca: "Agnieszka Rusnarczyk, Agnieszka Pietr",
+    przedmiot: "Przekazanie wykazu kontaktowego studentów biorących udział w Immatrykulacji",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/03",
+    dataWplywu: "2026-10-06 14:05",
+    typ: "Wchodzące",
+    nadawca: "Szymon Szumigała (Psychologia, alb. 15716)",
+    odbiorca: "Prorektor ds. Studenckich, Samorząd",
+    przedmiot: "Wniosek o interwencję: status studenta na urlopie dziekańskim, zaświadczenie ZUS oraz mLegitymacja",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/04",
+    dataWplywu: "2026-10-07 16:18",
+    typ: "Wchodzące",
+    nadawca: "dr Krzysztof Siuda (Prodziekan W. Psychologii)",
+    odbiorca: "Agnieszka Rusnarczyk / DW: dr B. Bartosz",
+    przedmiot: "Wyjaśnienie kryteriów formalnych przy opiniowaniu wniosków o urlop dziekański",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/05",
+    dataWplywu: "2026-10-07 21:07",
+    typ: "Wchodzące",
+    nadawca: "dr Sylwia Zakrzewska (Prodziekan WPBik)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Uzgodnienia dotyczące opracowania Informatora Studenckiego dla trybu hybrydowego",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/06",
+    dataWplywu: "2026-10-08 17:50",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Złożenie oświadczenia o zgodzie na kandydowanie na Starostę Roku (III rok Zarządzania)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/07",
+    dataWplywu: "2026-10-10 17:06",
+    typ: "Wchodzące",
+    nadawca: "Agnieszka Rusnarczyk",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Formalne zgłoszenie kandydatury na Przewodniczącą Samorządu Studenckiego (kadencja 2026–2028)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/08",
+    dataWplywu: "2026-10-10 19:11",
+    typ: "Wchodzące",
+    nadawca: "dr Aneta Kazanecka",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Udostępnienie projektu: Informator dla Społeczności Studenckiej Wydziału Psychologii",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/09",
+    dataWplywu: "2026-10-14 13:13",
+    typ: "Wchodzące",
+    nadawca: "Katarzyna Tuzikiewicz-Pokorska",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Zapytanie dotyczące interpretacji zasad obowiązkowej obecności na modułach zjazdowych",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/10",
+    dataWplywu: "2026-10-14 14:30",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Wdrożenie procedury wyłaniania starostów grup w instytutach WAZI",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/11",
+    dataWplywu: "2026-10-16 20:01",
+    typ: "Wchodzące",
+    nadawca: "Błażej Skakuj (Psychologia)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Zgłoszenie gotowości do podjęcia działalności w strukturach Samorządu Studenckiego",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/12",
+    dataWplywu: "2026-10-16 21:44",
+    typ: "Wchodzące",
+    nadawca: "Szymon Manikowski (Prawo / Psychologia, alb. 35172)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Oficjalny wniosek o przyjęcie do struktur Samorządu Studenckiego WSKZ",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/13",
+    dataWplywu: "2026-10-17 15:19",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "Władze Uczelni, Dziekani, Dyrektorzy Instytutów",
+    przedmiot: "Urzędowe powiadomienie o jednogłośnym wyborze Przewodniczącej Samorządu na kadencję 2026–2028",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/14",
+    dataWplywu: "2026-10-18 17:10",
+    typ: "Wchodzące",
+    nadawca: "Klaudia Pięta (Administracja)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Wniosek o weryfikację rozbieżności godzinowych w harmonogramach grup ADM_AP 5-1 i 5-2",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/15",
+    dataWplywu: "2026-10-19 12:06",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Przekazanie podpisanego oświadczenia kandydatki na Starostę Roku (Administracja)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/16",
+    dataWplywu: "2026-10-20 14:53",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Społeczność Akademicka, Samorząd",
+    przedmiot: "Komunikat Dziekański o wydziałowym spotkaniu informacyjnym ws. prac etapowych",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/17",
+    dataWplywu: "2026-10-20 17:28",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Przekazanie oświadczeń starostów grup kierunku Zarządzanie (ZR1-5, ZR1-6)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/18",
+    dataWplywu: "2026-10-21 07:50",
+    typ: "Wchodzące",
+    nadawca: "Wojciech Korczyk (Administracja, alb. 5289)",
+    odbiorca: "Prodziekan ds. jakości / DW: RPS, Samorząd",
+    przedmiot: "Wniosek o dostosowanie formy egzaminu dyplomowego ze względów zdrowotnych (tryb zdalny)",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/19",
+    dataWplywu: "2026-10-25 18:24",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Przekazanie formularza zgody na pełnienie funkcji Starosty (III rok Administracji)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/20",
+    dataWplywu: "2026-10-26 12:52",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Przekazanie skanów oświadczeń starostów grup 5.1 oraz 5.2",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/21",
+    dataWplywu: "2026-10-27 12:17",
+    typ: "Wchodzące",
+    nadawca: "dr Katarzyna Majchrzak / dr Ł. Cymbaluk",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Zgłoszenie wyboru starosty grupy ADM_TiR 5-1",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/22",
+    dataWplywu: "2026-10-27 13:39",
+    typ: "Wchodzące",
+    nadawca: "Magdalena Maj / dr Ł. Cymbaluk",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Przekazanie deklaracji objęcia funkcji starosty grupy ADM 1-4",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/23",
+    dataWplywu: "2026-10-27 19:12",
+    typ: "Wchodzące",
+    nadawca: "Weronika Ciok (alb. 45837), Angelina Tarnowska (alb. 48951)",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Wniosek o ujednolicenie przydziału do wspólnej grupy zjazdowej z przyczyn logistycznych",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/24",
+    dataWplywu: "2026-10-27 19:44",
+    typ: "Wchodzące",
+    nadawca: "Wiktoria Maj",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Wniosek o interwencję Samorządu ws. braku precyzyjnych wytycznych do prac etapowych i testów",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/25",
+    dataWplywu: "2026-10-28 07:50",
+    typ: "Wchodzące",
+    nadawca: "Oliwia Błońska (w imieniu III sem. Administracji)",
+    odbiorca: "Prodziekan ds. jakości, Samorząd, Dziekanat",
+    przedmiot: "Petycja zbiorowa studentów III semestru ws. trybu zaliczeń, prac etapowych i limitów czasowych",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/26",
+    dataWplywu: "2026-10-28 18:04",
+    typ: "Wchodzące",
+    nadawca: "Izabela Nowakowska (PSB_PZ 4-1, alb. 23815)",
+    odbiorca: "Dział Obsługi Studenta / DW: Samorząd",
+    przedmiot: "Zgłoszenie trudności w usprawiedliwieniu nieobecności na zjeździe na podstawie druku ZUS",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/27",
+    dataWplywu: "2026-10-30 13:01",
+    typ: "Wchodzące",
+    nadawca: "Aleksandra Gadalińska",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Zawiadomienie o wyborze na starostę grupy PS_PS 6-1 (Psychologia sądowa)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/11/01",
+    dataWplywu: "2026-11-03 17:18",
+    typ: "Wchodzące",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk",
+    przedmiot: "Przekazanie adresów biur dziekanatów, papieru firmowego oraz zaproszenia na panel KN GeoPolitica",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/11/02",
+    dataWplywu: "2026-11-04 07:45",
+    typ: "Wchodzące",
+    nadawca: "Krystian Wyszomirski",
+    odbiorca: "Samorząd Studencki",
+    przedmiot: "Propozycje rozwiązań organizacyjnych i usprawnień komunikacyjnych na wydziale",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/11/03",
+    dataWplywu: "2026-11-04 13:22",
+    typ: "Wchodzące",
+    nadawca: "dr Aneta Kazanecka (Prorektor ds. Studenckich)",
+    odbiorca: "Władze wydziałowe, Samorząd Studencki",
+    przedmiot: "Zaproszenie na posiedzenie Kolegium ds. Studenckich w Sky Tower (9 listopada)",
+    status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/11/04",
+    dataWplywu: "2026-11-05 11:24",
+    typ: "Wchodzące",
+    nadawca: "dr Magdalena El Ghamari (Prodziekan WPBik)",
+    odbiorca: "Tomasz Bratkowski (Sekretarz RSS)",
+    przedmiot: "Dystrybucja zaproszenia na anglojęzyczne studia Peacebuilding ze zniżką studencką",
+    status: "Zatwierdzone"
+  }
+];
+
 // ─── Pobieranie danych SSOT z backendu Google Apps Script ─────────────────────
 export async function fetchAllKancelariaData() {
   let res = await fetch(`${APPS_SCRIPT_URL}?action=pobierz_dane`);
@@ -430,7 +713,10 @@ export async function fetchAllKancelariaData() {
   }
 
   if (json && json.status === "success") {
-    const rawKorespondencja = Array.isArray(json.korespondencja) ? json.korespondencja : [];
+    const cloudKorespondencja = Array.isArray(json.korespondencja) ? json.korespondencja : [];
+    const seenSygnatury = new Set(cloudKorespondencja.map(it => String(it?.sygnatura || it?.id || '').trim()));
+    const missingSeed = OFFICIAL_2026_2027_CORRESPONDENCE.filter(it => !seenSygnatury.has(it.sygnatura));
+    const rawKorespondencja = [...cloudKorespondencja, ...missingSeed];
     const rawZgloszenia = Array.isArray(json.zgloszenia) ? json.zgloszenia : [];
     const rawUstalenia = Array.isArray(json.ustalenia) ? json.ustalenia : [];
     const rawKola = Array.isArray(json.kola) ? json.kola : [];
