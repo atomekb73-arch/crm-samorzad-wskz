@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, startTransition } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Mail,
   Search,
@@ -2164,264 +2165,295 @@ export default function CorrespondenceTab({
       )}
 
       {/* ── Modal: Wbudowany Podgląd i Druk Oficjalnego Pisma A4 (PDF / Print) ── */}
-      {previewLetterItem && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex flex-col items-center p-3 sm:p-6">
-          <style>{`
-            @media print {
-              * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              body * {
-                visibility: hidden !important;
-              }
-              #official-letter-a4-print-area,
-              #official-letter-a4-print-area * {
-                visibility: visible !important;
-              }
-              #official-letter-a4-print-area {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-height: 277mm !important;
-                margin: 0 !important;
-                padding: 12mm 16mm 10mm 16mm !important;
-                box-shadow: none !important;
-                border: none !important;
-              }
-              @page {
-                size: A4 portrait;
-                margin: 8mm;
-              }
-            }
-          `}</style>
-
-          {/* Top Action Bar (Hidden in Print) */}
-          <div className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
-                <FileText size={16} />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">
-                  Szablon dokumentu WSKZ (.DOCX / Format A4)
-                </h4>
-                <p className="text-[11px] text-slate-500 font-mono">
-                  Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {!isPreviewEditable ? (
-                <button
-                  type="button"
-                  onClick={() => setIsPreviewEditable(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
-                >
-                  <Edit3 size={14} />
-                  <span>Edytuj treść na druku</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSavePreviewChanges}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
-                >
-                  <Save size={14} />
-                  <span>Zapisz treść pisma</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#3164d4] hover:bg-[#254fb0] shadow-sm transition cursor-pointer"
-              >
-                <Printer size={14} />
-                <span>Drukuj / Zapisz PDF</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPreviewLetterItem(null)}
-                className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
-                title="Zamknij podgląd"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* A4 Sheet Area — 1:1 Szablon dokumentu WSKZ .DOCX */}
+      {previewLetterItem &&
+        createPortal(
           <div
-            id="official-letter-a4-print-area"
-            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-            className="w-full max-w-[794px] min-h-[1123px] bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-10 pb-8 flex flex-col justify-between relative select-text"
+            id="official-letter-a4-modal-backdrop"
+            className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex flex-col items-center p-3 sm:p-6"
           >
-            {/* TOP & BODY SECTION */}
-            <div>
-              {/* 1:1 WSKZ Header Image */}
-              <div className="pb-2 select-none">
+            <style>{`
+              @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: 8mm 12mm;
+                }
+                * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                html, body {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                  background: #ffffff !important;
+                }
+                #root,
+                #official-letter-a4-top-bar {
+                  display: none !important;
+                }
+                #official-letter-a4-modal-backdrop {
+                  position: static !important;
+                  display: block !important;
+                  overflow: visible !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  background: transparent !important;
+                  backdrop-filter: none !important;
+                  -webkit-backdrop-filter: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                }
+                #official-letter-a4-print-area {
+                  position: static !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: 98vh !important;
+                  min-height: 98vh !important;
+                  max-height: 98vh !important;
+                  margin: 0 !important;
+                  padding: 2mm 4mm !important;
+                  box-sizing: border-box !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  justify-content: space-between !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+              }
+            `}</style>
+
+            {/* Top Action Bar (Hidden in Print) */}
+            <div
+              id="official-letter-a4-top-bar"
+              className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    Szablon dokumentu WSKZ (.DOCX / Format A4)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {!isPreviewEditable ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewEditable(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
+                  >
+                    <Edit3 size={14} />
+                    <span>Edytuj treść na druku</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSavePreviewChanges}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
+                  >
+                    <Save size={14} />
+                    <span>Zapisz treść pisma</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#3164d4] hover:bg-[#254fb0] shadow-sm transition cursor-pointer"
+                >
+                  <Printer size={14} />
+                  <span>Drukuj / Zapisz PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewLetterItem(null)}
+                  className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                  title="Zamknij podgląd"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* A4 Sheet Area — 1:1 Szablon dokumentu WSKZ .DOCX */}
+            <div
+              id="official-letter-a4-print-area"
+              style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+              className="w-full max-w-[794px] min-h-[1123px] bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-10 pb-8 flex flex-col justify-between relative select-text"
+            >
+              {/* TOP & BODY SECTION */}
+              <div>
+                {/* 1:1 WSKZ Header Image */}
+                <div className="pb-2 select-none">
+                  <img
+                    src="/wskz-header.png"
+                    alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
+                    className="w-full h-auto block object-contain"
+                  />
+                </div>
+
+                {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
+                <div className="pt-5 space-y-5 text-[11pt] leading-[1.5] text-[#111827]">
+                  {/* Place, Date & Reference Number */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    {/* Sender info on left */}
+                    <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
+                      {isPreviewEditable ? (
+                        <input
+                          type="text"
+                          value={previewFields.nadawca}
+                          onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                          className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
+                        />
+                      ) : (
+                        <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
+                      )}
+                      <div>Wyższa Szkoła Kształcenia Zawodowego</div>
+                      <div className="text-[9.5pt] text-[#4b5563]">
+                        Sygn. akt: <strong className="text-[#111827]">{previewFields.sygnatura}</strong>
+                      </div>
+                    </div>
+
+                    {/* Place & Date on right */}
+                    <div className="text-right text-[10.5pt]">
+                      {isPreviewEditable ? (
+                        <input
+                          type="text"
+                          value={previewFields.miejsceData}
+                          onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
+                          className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
+                        />
+                      ) : (
+                        <div>{previewFields.miejsceData}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recipient Block (Right-aligned in classic Polish official style) */}
+                  <div className="flex justify-end pt-1">
+                    <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
+                      <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
+                        Adresat:
+                      </div>
+                      {isPreviewEditable ? (
+                        <input
+                          type="text"
+                          value={previewFields.odbiorca}
+                          onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                          className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
+                        />
+                      ) : (
+                        <div className="font-bold text-[#111827]">
+                          Sz. P. {previewFields.odbiorca}
+                        </div>
+                      )}
+                      <div className="text-[#374151]">
+                        Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subject (Dotyczy) */}
+                  <div className="pt-1">
+                    {isPreviewEditable ? (
+                      <div>
+                        <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
+                          Dotyczy sprawy:
+                        </span>
+                        <input
+                          type="text"
+                          value={previewFields.temat}
+                          onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
+                          className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                        />
+                      </div>
+                    ) : (
+                      <div className="font-bold text-[11pt] text-[#111827]">
+                        <span className="underline">Dotyczy:</span> {previewFields.temat}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Main Letter Body */}
+                  <div className="pt-1 text-[11pt] leading-[1.6] text-[#111827]">
+                    {isPreviewEditable ? (
+                      <div className="space-y-1.5">
+                        <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
+                          Treść pisma (edytowalna):
+                        </label>
+                        <textarea
+                          rows={10}
+                          value={previewFields.tresc}
+                          onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
+                          className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-justify min-h-[220px] print:min-h-0">
+                        {previewFields.tresc}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Signature Block */}
+                  <div className="pt-6 flex justify-end break-inside-avoid">
+                    <div className="w-64 text-center space-y-1">
+                      <p className="text-[10.5pt] italic text-[#374151] mb-6">Z wyrazami szacunku,</p>
+                      {isPreviewEditable ? (
+                        <input
+                          type="text"
+                          value={previewFields.autor}
+                          onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
+                          className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold text-center bg-blue-50/30"
+                        />
+                      ) : (
+                        <p className="text-[10.5pt] font-bold text-[#111827]">{previewFields.autor}</p>
+                      )}
+                      <p className="text-[9.5pt] text-[#374151]">
+                        {previewFields.stanowisko}
+                      </p>
+                      <p className="text-[9pt] text-[#6b7280]">
+                        Samorząd Studencki WSKZ
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 1:1 WSKZ FOOTER SECTION */}
+              <div className="pt-4 mt-4 break-inside-avoid select-none">
+                {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
+                <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
+                  <span>
+                    Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
+                  </span>
+                  <span>
+                    Sygn.: {previewFields.sygnatura}
+                  </span>
+                </div>
+
+                {/* Official WSKZ Footer Image */}
                 <img
-                  src="/wskz-header.png"
-                  alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
+                  src="/wskz-footer.png"
+                  alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
                   className="w-full h-auto block object-contain"
                 />
               </div>
-
-              {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
-              <div className="pt-6 space-y-6 text-[11pt] leading-[1.5] text-[#111827]">
-                {/* Place, Date & Reference Number */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  {/* Sender info on left */}
-                  <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
-                    {isPreviewEditable ? (
-                      <input
-                        type="text"
-                        value={previewFields.nadawca}
-                        onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
-                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
-                      />
-                    ) : (
-                      <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
-                    )}
-                    <div>Wyższa Szkoła Kształcenia Zawodowego</div>
-                    <div className="text-[9.5pt] text-[#4b5563]">
-                      Sygn. akt: <strong className="text-[#111827]">{previewFields.sygnatura}</strong>
-                    </div>
-                  </div>
-
-                  {/* Place & Date on right */}
-                  <div className="text-right text-[10.5pt]">
-                    {isPreviewEditable ? (
-                      <input
-                        type="text"
-                        value={previewFields.miejsceData}
-                        onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
-                        className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
-                      />
-                    ) : (
-                      <div>{previewFields.miejsceData}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Recipient Block (Right-aligned in classic Polish official style) */}
-                <div className="flex justify-end pt-2">
-                  <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
-                    <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
-                      Adresat:
-                    </div>
-                    {isPreviewEditable ? (
-                      <input
-                        type="text"
-                        value={previewFields.odbiorca}
-                        onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
-                        className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
-                      />
-                    ) : (
-                      <div className="font-bold text-[#111827]">
-                        Sz. P. {previewFields.odbiorca}
-                      </div>
-                    )}
-                    <div className="text-[#374151]">
-                      Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subject (Dotyczy) */}
-                <div className="pt-2">
-                  {isPreviewEditable ? (
-                    <div>
-                      <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
-                        Dotyczy sprawy:
-                      </span>
-                      <input
-                        type="text"
-                        value={previewFields.temat}
-                        onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
-                        className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
-                      />
-                    </div>
-                  ) : (
-                    <div className="font-bold text-[11pt] text-[#111827]">
-                      <span className="underline">Dotyczy:</span> {previewFields.temat}
-                    </div>
-                  )}
-                </div>
-
-                {/* Main Letter Body */}
-                <div className="pt-2 text-[11pt] leading-[1.6] text-[#111827]">
-                  {isPreviewEditable ? (
-                    <div className="space-y-1.5">
-                      <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
-                        Treść pisma (edytowalna):
-                      </label>
-                      <textarea
-                        rows={12}
-                        value={previewFields.tresc}
-                        onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
-                        className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  ) : (
-                    <div className="whitespace-pre-wrap text-justify min-h-[280px]">
-                      {previewFields.tresc}
-                    </div>
-                  )}
-                </div>
-
-                {/* Signature Block */}
-                <div className="pt-8 flex justify-end break-inside-avoid">
-                  <div className="w-64 text-center space-y-1">
-                    <p className="text-[10.5pt] italic text-[#374151] mb-8">Z wyrazami szacunku,</p>
-                    {isPreviewEditable ? (
-                      <input
-                        type="text"
-                        value={previewFields.autor}
-                        onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
-                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold text-center bg-blue-50/30"
-                      />
-                    ) : (
-                      <p className="text-[10.5pt] font-bold text-[#111827]">{previewFields.autor}</p>
-                    )}
-                    <p className="text-[9.5pt] text-[#374151]">
-                      {previewFields.stanowisko}
-                    </p>
-                    <p className="text-[9pt] text-[#6b7280]">
-                      Samorząd Studencki WSKZ
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
-
-            {/* 1:1 WSKZ FOOTER SECTION */}
-            <div className="pt-8 mt-8 break-inside-avoid select-none">
-              {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
-              <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-2 px-1">
-                <span>
-                  Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
-                </span>
-                <span>
-                  Sygn.: {previewFields.sygnatura}
-                </span>
-              </div>
-
-              {/* Official WSKZ Footer Image */}
-              <img
-                src="/wskz-footer.png"
-                alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
-                className="w-full h-auto block object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
