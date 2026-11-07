@@ -27,7 +27,8 @@ const envSheetInput = import.meta.env?.VITE_GOOGLE_SHEET_ID || import.meta.env?.
 export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : decodeSheetKey(OBFUSCATED_SHEET_KEY);
 
 // ─── Produkcyjny Endpoint Google Apps Script (SSOT) ──────────────────────────
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywGTxS2UGOBS0MW-Y1FpHJdrhIGMaHwepRV7pMQWDZEJj0CKUFBEyn5cgkeiEMPX7ULg/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJdbQmolnJiNCYwSvymVPg7xFBHRpZHqcbHHp3-EfsyxyfOHXVcF8CeLU55M7n5AiMEA/exec";
+export const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywGTxS2UGOBS0MW-Y1FpHJdrhIGMaHwepRV7pMQWDZEJj0CKUFBEyn5cgkeiEMPX7ULg/exec";
 
 // ─── Jednolity nadrzędny identyfikator źródła (Kancelaria_API_Public) ───────
 export const PUBLIC_SHEET_GID = "79778458"; // Zakładka: Kancelaria_API_Public
@@ -410,9 +411,23 @@ export async function fetchPublicKancelariaData(sheetId = SHEET_ID) {
 
 // ─── Pobieranie danych SSOT z backendu Google Apps Script ─────────────────────
 export async function fetchAllKancelariaData() {
-  const res = await fetch(`${APPS_SCRIPT_URL}?action=pobierz_dane`);
+  let res = await fetch(`${APPS_SCRIPT_URL}?action=pobierz_dane`);
   if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-  const json = await res.json();
+  let json = await res.json();
+
+  if ((!json || json.status !== "success") && FALLBACK_APPS_SCRIPT_URL) {
+    try {
+      const fbRes = await fetch(`${FALLBACK_APPS_SCRIPT_URL}?action=pobierz_dane`);
+      if (fbRes.ok) {
+        const fbJson = await fbRes.json();
+        if (fbJson && fbJson.status === "success") {
+          json = fbJson;
+        }
+      }
+    } catch (e) {
+      console.warn("Fallback Apps Script GET failed:", e);
+    }
+  }
 
   if (json && json.status === "success") {
     const rawKorespondencja = Array.isArray(json.korespondencja) ? json.korespondencja : [];
@@ -569,7 +584,22 @@ export async function sendToBackend(payload) {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
-    const result = await response.json();
+    let result = await response.json();
+    if (result.status !== "success" && FALLBACK_APPS_SCRIPT_URL && payload?.action !== "generuj_pismo_drive") {
+      try {
+        const fbResponse = await fetch(FALLBACK_APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const fbResult = await fbResponse.json();
+        if (fbResult && fbResult.status === "success") {
+          return fbResult;
+        }
+      } catch (e) {
+        console.warn("Fallback Apps Script POST failed:", e);
+      }
+    }
     if (result.status !== "success") {
       throw new Error(result.message || "Błąd zapisu w Google Apps Script");
     }

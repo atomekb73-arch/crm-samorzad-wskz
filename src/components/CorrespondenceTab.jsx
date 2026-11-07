@@ -694,9 +694,11 @@ export default function CorrespondenceTab({
       console.error('Błąd generowania dokumentu:', err);
       setGenerateDocNotice({
         type: 'error',
-        text: `Otwarto wbudowany druk A4 w aplikacji (status chmury Drive: ${err.message}). Możesz od razu wydrukować lub zapisać pismo jako PDF.`,
+        text: `Status chmury Drive: ${err.message}. Poniżej masz gotowy druk A4 w aplikacji – możesz go od razu wydrukować lub zapisać jako PDF.`,
       });
-      handleOpenPrintPreview(item);
+      if (!previewLetterItem) {
+        handleOpenPrintPreview(item);
+      }
     } finally {
       setIsGeneratingDoc(false);
     }
@@ -2389,7 +2391,22 @@ export default function CorrespondenceTab({
                   <button
                     type="button"
                     disabled={isGeneratingDoc}
-                    onClick={() => handleGenerateDoc(previewLetterItem)}
+                    onClick={() =>
+                      handleGenerateDoc({
+                        ...previewLetterItem,
+                        sygnatura: previewFields.sygnatura || previewLetterItem.sygnatura || previewLetterItem.id,
+                        nadawca: previewFields.nadawca || previewLetterItem.nadawca,
+                        odbiorca: previewFields.odbiorca || previewLetterItem.odbiorca,
+                        przedmiot: previewFields.temat || previewLetterItem.przedmiot,
+                        temat: previewFields.temat || previewLetterItem.temat,
+                        subject: previewFields.temat || previewLetterItem.subject,
+                        tresc: previewFields.tresc || previewLetterItem.tresc,
+                        summary: previewFields.tresc || previewLetterItem.summary,
+                        autor: previewFields.stanowisko
+                          ? `${previewFields.autor}\n${previewFields.stanowisko}`
+                          : previewFields.autor,
+                      })
+                    }
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
                     title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
                   >
@@ -2449,6 +2466,31 @@ export default function CorrespondenceTab({
                   Arkusz poniżej to czysty, oficjalny wydruk bez kontrolek formularza.
                 </div>
               </div>
+
+              {generateDocNotice && (
+                <div
+                  className={`p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 ${
+                    generateDocNotice.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : generateDocNotice.type === 'error'
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-blue-50 border-blue-200 text-blue-900'
+                  }`}
+                >
+                  <span className="font-medium">{generateDocNotice.text}</span>
+                  {generateDocNotice.url && (
+                    <a
+                      href={generateDocNotice.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 shrink-0"
+                    >
+                      <ExternalLink size={12} />
+                      <span>Otwórz w Google Docs</span>
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* A4 Sheet Area — 1:1 Szablon dokumentu WSKZ .DOCX */}
