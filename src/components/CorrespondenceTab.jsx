@@ -1155,8 +1155,9 @@ export default function CorrespondenceTab({
             >
               
               {/* Drawer Header */}
-              <div className="p-5 border-b border-slate-200 bg-slate-50/80 flex items-start justify-between gap-3">
-                <div className="space-y-1 flex-1 min-w-0">
+              <div className="p-5 border-b border-slate-200 bg-slate-50/80 space-y-3">
+                {/* Górny wiersz: Sygnatura i status po lewej, przyciski akcji po prawej */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-extrabold text-[#1e3a8a] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
                       {activeDrawerItem.sygnatura || activeDrawerItem.id}
@@ -1177,8 +1178,84 @@ export default function CorrespondenceTab({
                       </span>
                     )}
                   </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
+                          title="Otwórz wbudowany podgląd oficjalnego druku A4 Samorządu (Drukuj / PDF)"
+                        >
+                          <Printer size={13} className="text-indigo-700" />
+                          <span>Druk A4 / PDF</span>
+                        </button>
+                        {activeDrawerItem.lokalizacjaDrive ? (
+                          <a
+                            href={activeDrawerItem.lokalizacjaDrive}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                            title="Otwórz oficjalne pismo w Google Docs"
+                          >
+                            <ExternalLink size={13} />
+                            <span>Google Docs</span>
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={isGeneratingDoc}
+                            onClick={() => handleGenerateDoc(activeDrawerItem)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
+                            title="Wypal oficjalne pismo z szablonu w Google Docs"
+                          >
+                            <Sparkles size={13} className="text-amber-300" />
+                            <span>{isGeneratingDoc ? 'Wypalanie...' : 'Wypal w Google Docs'}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(activeDrawerItem)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium shadow-2xs"
+                        >
+                          <Edit3 size={14} className="text-slate-700 shrink-0" />
+                          <span>Edytuj sprawę</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
+                        >
+                          Anuluj
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveEdit}
+                          disabled={isSaving}
+                          className="bg-blue-900 hover:bg-blue-950 text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        >
+                          <Save size={14} className="shrink-0" />
+                          <span>Zapisz zmiany</span>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={handleCloseDrawer}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer ml-0.5"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Dolny wiersz: Pełna szerokość dla tytułu sprawy (bez ściskania w wąską kolumnę) */}
+                <div className="w-full">
                   {!isEditing ? (
-                    <h3 id="drawer-title" className="text-base font-bold text-slate-900 leading-snug">
+                    <h3 id="drawer-title" className="text-base font-bold text-slate-900 leading-snug break-words">
                       {activeDrawerItem.subject || activeDrawerItem.przedmiot || activeDrawerItem.temat}
                     </h3>
                   ) : (
@@ -1186,78 +1263,6 @@ export default function CorrespondenceTab({
                       Edycja wpisu w Dzienniku Korespondencji Kancelarii
                     </p>
                   )}
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {!isEditing ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPrintPreview(activeDrawerItem)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
-                        title="Otwórz wbudowany podgląd oficjalnego druku A4 Samorządu (Drukuj / PDF)"
-                      >
-                        <Printer size={13} className="text-indigo-700" />
-                        <span>Druk A4 / PDF</span>
-                      </button>
-                      {activeDrawerItem.lokalizacjaDrive ? (
-                        <a
-                          href={activeDrawerItem.lokalizacjaDrive}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition"
-                          title="Otwórz oficjalne pismo w Google Docs"
-                        >
-                          <ExternalLink size={13} />
-                          <span>Google Docs</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={isGeneratingDoc}
-                          onClick={() => handleGenerateDoc(activeDrawerItem)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
-                          title="Wypal oficjalne pismo z szablonu w Google Docs"
-                        >
-                          <Sparkles size={13} className="text-amber-300" />
-                          <span>{isGeneratingDoc ? 'Wypalanie...' : 'Wypal w Google Docs'}</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(activeDrawerItem)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium shadow-2xs"
-                      >
-                        <Edit3 size={14} className="text-slate-700 shrink-0" />
-                        <span>Edytuj sprawę</span>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="border border-slate-300 text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
-                      >
-                        Anuluj
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveEdit}
-                        disabled={isSaving}
-                        className="bg-blue-900 hover:bg-blue-950 text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
-                      >
-                        <Save size={14} className="shrink-0" />
-                        <span>Zapisz zmiany</span>
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={handleCloseDrawer}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer ml-1"
-                  >
-                    <X size={18} />
-                  </button>
                 </div>
               </div>
 

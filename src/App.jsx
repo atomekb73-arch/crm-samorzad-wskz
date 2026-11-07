@@ -474,6 +474,19 @@ export default function App() {
   const handleAddCorrespondence = useCallback(async (entry) => {
     const nextId = entry.sygnatura || entry.id || `DK/${Date.now()}`;
     const typ = entry.direction === 'OUT' || entry.typ === 'Wychodzące' ? 'Wychodzące' : 'Wchodzące';
+    const cleanPrzedmiot = entry.przedmiot || entry.subject || entry.temat || '';
+    const customBody = entry.tresc || entry.summary || '';
+
+    if (customBody && customBody !== cleanPrzedmiot) {
+      try {
+        const storedBodies = JSON.parse(localStorage.getItem('kanc_letter_bodies_v1') || '{}');
+        storedBodies[nextId] = customBody;
+        localStorage.setItem('kanc_letter_bodies_v1', JSON.stringify(storedBodies));
+      } catch (e) {
+        console.warn('Nie udało się zapisać treści pisma lokalnie:', e);
+      }
+    }
+
     const payload = {
       action: "zarejestruj_pismo",
       sygnatura: nextId,
@@ -481,18 +494,28 @@ export default function App() {
       nadawca: entry.sender || entry.nadawca || 'Kancelaria Samorządu Studenckiego WSKZ',
       odbiorca: entry.recipient || entry.odbiorca || 'Kancelaria Samorządu Studenckiego WSKZ',
       autor: entry.autor || user?.name || user?.email || 'Kancelaria Samorządu Studenckiego WSKZ',
-      przedmiot: entry.subject || entry.przedmiot || '',
+      przedmiot: cleanPrzedmiot,
       status: entry.status || "W toku",
       lokalizacjaDrive: entry.lokalizacjaDrive || "",
       dataWplywu: prepareDateTimeForPayload(entry.dataWplywu || entry.data || entry.date),
       dataWyslania: prepareDateTimeForPayload(entry.dataWyslania),
-      tresc: entry.summary || entry.tresc || "",
       sourceCitation: entry.sourceCitation || "",
       notes: entry.notes || "",
     };
 
     // Optimistic UI update
-    setCorrespondence(prev => [{ ...entry, ...payload, id: nextId, sygnatura: nextId, typ, direction: typ === 'Wychodzące' ? 'OUT' : 'IN' }, ...prev]);
+    setCorrespondence(prev => [{
+      ...entry,
+      ...payload,
+      id: nextId,
+      sygnatura: nextId,
+      subject: cleanPrzedmiot,
+      przedmiot: cleanPrzedmiot,
+      tresc: customBody || cleanPrzedmiot,
+      summary: customBody || cleanPrzedmiot,
+      typ,
+      direction: typ === 'Wychodzące' ? 'OUT' : 'IN'
+    }, ...prev]);
     setToastMessage(`Zapisywanie pisma ${nextId}...`);
 
     try {
@@ -505,21 +528,34 @@ export default function App() {
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [loadData]);
+  }, [loadData, user]);
 
   const handleEditCorrespondence = useCallback(async (entry) => {
     const sygnatura = entry.sygnatura || entry.id;
     const typ = entry.direction === 'OUT' || entry.typ === 'Wychodzące' ? 'Wychodzące' : 'Wchodzące';
+    const cleanPrzedmiot = entry.przedmiot || entry.subject || entry.temat || '';
+    const customBody = entry.tresc || entry.summary || '';
+
+    if (customBody && customBody !== cleanPrzedmiot) {
+      try {
+        const storedBodies = JSON.parse(localStorage.getItem('kanc_letter_bodies_v1') || '{}');
+        storedBodies[sygnatura] = customBody;
+        localStorage.setItem('kanc_letter_bodies_v1', JSON.stringify(storedBodies));
+      } catch (e) {
+        console.warn('Nie udało się zapisać treści pisma lokalnie:', e);
+      }
+    }
+
+    // Nie wysyłamy pola `tresc` do Kod.gs w `edytuj_pismo`, ponieważ Apps Script nadpisuje nim kolumnę `Przedmiot` w Arkuszu Google
     const payload = {
       action: "edytuj_pismo",
       sygnatura: sygnatura,
       id: sygnatura,
-      przedmiot: entry.przedmiot || entry.subject || entry.temat || '',
-      temat: entry.przedmiot || entry.subject || entry.temat || '',
+      przedmiot: cleanPrzedmiot,
+      temat: cleanPrzedmiot,
       nadawca: entry.nadawca || entry.sender || '',
       odbiorca: entry.odbiorca || entry.recipient || '',
       autor: entry.autor || '',
-      tresc: entry.tresc || entry.summary || '',
       dataWplywu: prepareDateTimeForPayload(entry.dataWplywu || entry.data || entry.date),
       dataWyslania: prepareDateTimeForPayload(entry.dataWyslania),
       typ: typ,
@@ -531,7 +567,15 @@ export default function App() {
     };
 
     // Optimistic UI update
-    setCorrespondence(prev => prev.map(item => (item.id === sygnatura || item.sygnatura === sygnatura) ? { ...item, ...payload, ...entry } : item));
+    setCorrespondence(prev => prev.map(item => (item.id === sygnatura || item.sygnatura === sygnatura) ? {
+      ...item,
+      ...payload,
+      ...entry,
+      subject: cleanPrzedmiot,
+      przedmiot: cleanPrzedmiot,
+      tresc: customBody || item.tresc || cleanPrzedmiot,
+      summary: customBody || item.summary || cleanPrzedmiot,
+    } : item));
     setToastMessage(`Zapisywanie zmian w piśmie ${sygnatura}...`);
 
     try {

@@ -422,12 +422,38 @@ export async function fetchAllKancelariaData() {
     const rawFasada = Array.isArray(json.fasada) ? json.fasada : [];
 
     // Normalizacja Korespondencji
+    let storedBodies = {};
+    try {
+      if (typeof localStorage !== 'undefined') {
+        storedBodies = JSON.parse(localStorage.getItem('kanc_letter_bodies_v1') || '{}');
+      }
+    } catch (_) {
+      storedBodies = {};
+    }
+
     const correspondence = rawKorespondencja.map((item, idx) => {
       const id = item.sygnatura || item.id || `DK/${idx + 1}`;
       const isOut = item.typ === 'Wychodzące' || item.direction === 'OUT' || /wychod/i.test(item.typ || item.status || '');
       const rawItemDate = item.dataWplywu || item.data || item.date || item.dataWyslania;
       const date = formatDate(rawItemDate);
       const status = sanitizeStatus(item.status || 'W toku');
+
+      const rawSubject = String(item.przedmiot || item.subject || '').trim();
+      let cleanSubject = rawSubject;
+      let extractedBody = item.tresc || item.summary || item.streszczenie || storedBodies[id] || '';
+
+      // Zabezpieczenie przed pełną treścią pisma nadpisaną w kolumnie Przedmiot
+      if (/^Szanowni Państwo/i.test(rawSubject) || (rawSubject.length > 160 && rawSubject.includes('\n'))) {
+        if (!extractedBody) extractedBody = rawSubject;
+        const matchSprawie = rawSubject.match(/zwracamy się w sprawie:\s*([^\n]+?)(?:\.\s*\n|\.$|$)/i);
+        if (matchSprawie && matchSprawie[1]) {
+          cleanSubject = matchSprawie[1].trim();
+        } else {
+          const firstLine = rawSubject.split('\n').map(l => l.trim()).find(l => l && !/^Szanowni Państwo/i.test(l));
+          cleanSubject = firstLine ? firstLine.slice(0, 140) : rawSubject.slice(0, 120);
+        }
+      }
+
       return {
         ...item,
         id,
@@ -442,9 +468,10 @@ export async function fetchAllKancelariaData() {
         nadawca: item.nadawca || item.sender || (isOut ? 'Kancelaria Samorządu Studenckiego WSKZ' : 'Dziekanat / Samorząd'),
         recipient: item.odbiorca || item.recipient || (isOut ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
         odbiorca: item.odbiorca || item.recipient || (isOut ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
-        subject: item.przedmiot || item.subject || '',
-        przedmiot: item.przedmiot || item.subject || '',
-        summary: item.summary || item.streszczenie || item.przedmiot || '',
+        subject: cleanSubject,
+        przedmiot: cleanSubject,
+        tresc: extractedBody || cleanSubject,
+        summary: extractedBody || cleanSubject,
         autor: item.autor || item.sporzadzil || item.utworzonePrzez || item.przygotowal || '',
         status,
         statusUjednolicenia: status,
