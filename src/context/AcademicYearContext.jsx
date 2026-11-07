@@ -3,11 +3,11 @@ import { getAcademicYearKey } from '../utils/academicYear';
 
 const AcademicYearContext = createContext(null);
 
-const STORAGE_KEY_SESSION = 'crm_psychoonkologia_academic_year_session';
-const STORAGE_KEY_LOCAL = 'crm_psychoonkologia_academic_year';
+const STORAGE_KEY_SESSION = 'kanc_crm_academic_year_session';
+const STORAGE_KEY_LOCAL = 'kanc_crm_academic_year';
 
 export function AcademicYearProvider({ children }) {
-  // Domyślny rok dla SKN Psychoonkologii WSKZ to 2025/2026 (gdzie zarejestrowane są spotkania w Teamup)
+  // Domyślny rok akademicki dla Kancelarii Samorządu to bieżący rok 2026/2027
   const [academicYear, setAcademicYearState] = useState(() => {
     try {
       const fromSession = sessionStorage.getItem(STORAGE_KEY_SESSION);
@@ -16,11 +16,11 @@ export function AcademicYearProvider({ children }) {
       const fromLocal = localStorage.getItem(STORAGE_KEY_LOCAL);
       if (fromLocal) return fromLocal;
     } catch {}
-    return '2025/2026';
+    return '2026/2027';
   });
 
-  const [customStartDate, setCustomStartDate] = useState('2025-10-01');
-  const [customEndDate, setCustomEndDate] = useState('2026-09-30');
+  const [customStartDate, setCustomStartDate] = useState('2026-10-01');
+  const [customEndDate, setCustomEndDate] = useState('2027-09-30');
 
   const setAcademicYear = useCallback((newYear) => {
     if (!newYear) return;
@@ -34,6 +34,9 @@ export function AcademicYearProvider({ children }) {
 
   const getRangeForYear = useCallback((yr = academicYear, cStart = customStartDate, cEnd = customEndDate) => {
     const key = getAcademicYearKey(yr);
+    if (key === 'ALL') {
+      return { startDate: '2024-10-01', endDate: '2030-09-30', yearPrefix: 'Wszystkie' };
+    }
     if (key === '2025/2026') {
       return { startDate: '2025-10-01', endDate: '2026-09-30', yearPrefix: '25/26' };
     }

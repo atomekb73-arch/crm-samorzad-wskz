@@ -27,8 +27,9 @@ export function parseRomanOrArabic(yearStr) {
  * Bezpieczna normalizacja klucza roku akademickiego
  */
 export function getYearKey(yearStr) {
-  if (!yearStr) return '2025/2026';
+  if (!yearStr) return '2026/2027';
   const s = String(yearStr).trim();
+  if (s === 'ALL' || s === 'all' || s === 'wszystkie' || s === 'Wszystkie') return 'ALL';
   if (s.includes('25/26') || s.includes('2025/2026')) return '2025/2026';
   if (s.includes('26/27') || s.includes('2026/2027')) return '2026/2027';
   if (s === 'custom') return 'custom';
@@ -36,6 +37,39 @@ export function getYearKey(yearStr) {
 }
 
 export const getAcademicYearKey = getYearKey;
+
+/**
+ * Wyznacza rok akademicki w formacie 'YYYY/YYYY+1' na podstawie dowolnej daty.
+ * W polskim szkolnictwie wyższym rok akademicki rozpoczyna się 1 października (miesiąc 9 - 0-indexed).
+ * Np. 2026-06-02 -> '2025/2026'
+ * Np. 2026-09-10 -> '2025/2026'
+ * Np. 2026-10-01 -> '2026/2027'
+ * Np. 2026-11-07 -> '2026/2027'
+ */
+export function getAcademicYearFromDate(dateInput) {
+  if (!dateInput) return null;
+  let d = null;
+  if (dateInput instanceof Date) {
+    d = dateInput;
+  } else {
+    const s = String(dateInput).trim();
+    const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      d = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    } else {
+      const dmyMatch = s.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+      if (dmyMatch) {
+        d = new Date(Number(dmyMatch[3]), Number(dmyMatch[2]) - 1, Number(dmyMatch[1]));
+      } else {
+        d = new Date(s);
+      }
+    }
+  }
+  if (!d || isNaN(d.getTime())) return null;
+  const startYr = getAcademicStartYear(d);
+  if (!startYr) return null;
+  return `${startYr}/${startYr + 1}`;
+}
 
 /**
  * Zwraca początkowy rok akademicki dla danej daty (rok akademicki startuje 1 października)

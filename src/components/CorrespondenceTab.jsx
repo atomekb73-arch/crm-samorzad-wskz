@@ -219,6 +219,8 @@ const CorrespondenceTableRow = React.memo(function CorrespondenceTableRow({ item
 
 export default function CorrespondenceTab({
   correspondence = [],
+  allCorrespondence = [],
+  academicYear = '2026/2027',
   onAddCorrespondence = () => {},
   onEditCorrespondence = () => {},
   onDeleteCorrespondence = () => {},
@@ -583,10 +585,23 @@ export default function CorrespondenceTab({
       {/* ── Top Header & Actions ────────────────────────────────────────── */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Mail className="text-[#1e3a8a]" size={20} />
-            Dziennik Korespondencji Kancelarii Samorządu
-          </h2>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Mail className="text-[#1e3a8a]" size={20} />
+              Dziennik Korespondencji Kancelarii Samorządu
+            </h2>
+            {academicYear && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#1e3a8a] border border-blue-200">
+                <Calendar size={12} className="text-[#1e3a8a]" />
+                <span>Rok {academicYear === 'ALL' ? 'Wszystkie lata' : academicYear}</span>
+                {academicYear === '2026/2027' && (
+                  <span className="px-1 py-0.2 rounded bg-amber-400 text-slate-950 text-[9px] font-extrabold uppercase">
+                    Bieżący
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Oficjalny rejestr pism przychodzących i wychodzących z weryfikacją formalną i statusem ujednolicenia
           </p>
@@ -844,8 +859,17 @@ export default function CorrespondenceTab({
             <tbody className="divide-y divide-slate-200">
               {sortedData.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
-                    Brak zarejestrowanych wpisów w Kancelarii
+                  <td colSpan={8} className="py-12 text-center text-slate-500 font-medium">
+                    <div className="max-w-md mx-auto space-y-2">
+                      <p className="text-sm font-semibold text-slate-700">
+                        Brak pism zarejestrowanych w roku akademickim {academicYear === 'ALL' ? 'wszystkich' : academicYear}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {academicYear === '2026/2027'
+                          ? 'Kliknij przycisk „Zarejestruj pismo”, aby dodać pierwszą sprawę w bieżącym roku, lub przełącz na 2025/2026 w nagłówku, aby przejrzeć historię.'
+                          : 'Brak pism spełniających wybrane kryteria wyszukiwania.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

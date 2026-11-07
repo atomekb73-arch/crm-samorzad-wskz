@@ -21,6 +21,7 @@ export default function DashboardTab({
   itIssues = [],
   organizations = [],
   decisions = [],
+  academicYear = '2026/2027',
   onNavigateTab = () => {},
   onSelectCorrespondence = () => {},
 }) {

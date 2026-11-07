@@ -41,7 +41,7 @@ import { useAcademicYear } from './context/AcademicYearContext';
 import { fetchAllData, fetchAllKancelariaData, sendToBackend, AUTHORIZED_INDEXES } from './services/googleSheets';
 import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
 import { getRecordKey } from './utils/helpers';
-import { getAcademicYearKey } from './utils/academicYear';
+import { getAcademicYearKey, getAcademicYearFromDate } from './utils/academicYear';
 import { prepareDateTimeForPayload } from './utils/dateUtils';
 import { getCanonicalMeetingsForOrg, filterLegitimateMeetings } from './utils/canonicalMeetings';
 import {
@@ -1045,6 +1045,41 @@ export default function App() {
     m => (m.status === 'active' || !m.status) && !m.isArchived && m.status !== 'resigned' && m.status !== 'archived'
   ).length;
 
+  // ── Filtrowanie danych Kancelarii według wybranego roku akademickiego ─────────
+  const filteredCorrespondence = useMemo(() => {
+    if (!academicYear || academicYear === 'ALL') return correspondence;
+    return correspondence.filter(item => {
+      const rawDate = item.dataWplywu || item.data || item.date || item.dataWyslania || item.createdAt;
+      const itemYear = getAcademicYearFromDate(rawDate);
+      if (!itemYear) {
+        if (academicYear === '2025/2026' && /2025|2026\/0[1-9]|2026-0[1-9]/i.test(item.sygnatura || '')) return true;
+        if (academicYear === '2026/2027' && /2026\/1[0-2]|2026-1[0-2]|2027/i.test(item.sygnatura || '')) return true;
+        return true;
+      }
+      return itemYear === academicYear;
+    });
+  }, [correspondence, academicYear]);
+
+  const filteredItIssues = useMemo(() => {
+    if (!academicYear || academicYear === 'ALL') return itIssues;
+    return itIssues.filter(item => {
+      const rawDate = item.data || item.date || item.createdAt;
+      const itemYear = getAcademicYearFromDate(rawDate);
+      if (!itemYear) return true;
+      return itemYear === academicYear;
+    });
+  }, [itIssues, academicYear]);
+
+  const filteredDecisions = useMemo(() => {
+    if (!academicYear || academicYear === 'ALL') return decisions;
+    return decisions.filter(item => {
+      const rawDate = item.data || item.date || item.createdAt;
+      const itemYear = getAcademicYearFromDate(rawDate);
+      if (!itemYear) return true;
+      return itemYear === academicYear;
+    });
+  }, [decisions, academicYear]);
+
   const syncLabel = lastSync
     ? lastSync.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null;
@@ -1145,6 +1180,55 @@ export default function App() {
                 </>
               )}
             </div>
+
+            {/* ── Academic Year Switcher (Rok Akademicki) ────────────────── */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs shrink-0 whitespace-nowrap ml-1 sm:ml-2">
+              <span className="text-[10.5px] font-bold text-slate-500 uppercase px-2 flex items-center gap-1.5">
+                <CalendarDays size={14} className="text-[#1e3a8a]" />
+                <span className="hidden xl:inline">Rok akad.:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setAcademicYear('2025/2026')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-xs ${
+                  academicYear === '2025/2026'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Pokaż sprawy i historię z roku akademickiego 2025/2026"
+              >
+                2025/2026
+              </button>
+              <button
+                type="button"
+                onClick={() => setAcademicYear('2026/2027')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 ${
+                  academicYear === '2026/2027'
+                    ? 'bg-[#1e3a8a] text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Przejdź do bieżącego roku akademickiego 2026/2027"
+              >
+                <span>2026/2027</span>
+                <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold uppercase ${
+                  academicYear === '2026/2027' ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  Bieżący
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAcademicYear('ALL')}
+                className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer text-xs ${
+                  academicYear === 'ALL'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Pokaż wszystkie sprawy ze wszystkich lat"
+              >
+                Wszystkie
+              </button>
+            </div>
           </div>
 
           {/* Sync status + Settings + refresh */}
@@ -1172,11 +1256,11 @@ export default function App() {
             {/* Record count (Single-line row) */}
             {lastSync && !error && (
               <div className="hidden lg:flex items-center gap-3 text-xs text-slate-600 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
-                <span>Pisma: <strong className="text-slate-900 font-semibold">{correspondence.length}</strong></span>
+                <span>Pisma: <strong className="text-slate-900 font-semibold">{filteredCorrespondence.length}</strong></span>
                 <span className="text-slate-300">•</span>
-                <span>Wady IT: <strong className="text-amber-700 font-semibold">{itIssues.length}</strong></span>
+                <span>Wady IT: <strong className="text-amber-700 font-semibold">{filteredItIssues.length}</strong></span>
                 <span className="text-slate-300">•</span>
-                <span>Ustalenia: <strong className="text-[#1e3a8a] font-semibold">{decisions.length}</strong></span>
+                <span>Ustalenia: <strong className="text-[#1e3a8a] font-semibold">{filteredDecisions.length}</strong></span>
               </div>
             )}
 
@@ -1232,8 +1316,8 @@ export default function App() {
         <Navbar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          pendingCorrespondenceCount={correspondence.filter(c => c.status === 'W toku' || c.weryfikacjaFormalna === 'Weryfikacja').length}
-          pendingItCount={itIssues.filter(i => i.ectsImpact?.includes('Krytyczny') || i.status?.includes('Oczekuje')).length}
+          pendingCorrespondenceCount={filteredCorrespondence.filter(c => c.status === 'W toku' || c.weryfikacjaFormalna === 'Weryfikacja').length}
+          pendingItCount={filteredItIssues.filter(i => i.ectsImpact?.includes('Krytyczny') || i.status?.includes('Oczekuje')).length}
         />
 
         {/* Skeleton loading state on first load */}
@@ -1256,10 +1340,11 @@ export default function App() {
                 case 'dashboard':
                   return (
                     <DashboardTab
-                      correspondence={correspondence}
-                      itIssues={itIssues}
+                      correspondence={filteredCorrespondence}
+                      itIssues={filteredItIssues}
                       organizations={orgsList}
-                      decisions={decisions}
+                      decisions={filteredDecisions}
+                      academicYear={academicYear}
                       onNavigateTab={setActiveTab}
                       onSelectCorrespondence={(item) => {
                         setSelectedCorrespondenceItem(item);
@@ -1273,7 +1358,9 @@ export default function App() {
                 case 'poczta':
                   return (
                     <CorrespondenceTab
-                      correspondence={correspondence}
+                      correspondence={filteredCorrespondence}
+                      allCorrespondence={correspondence}
+                      academicYear={academicYear}
                       onAddCorrespondence={handleAddCorrespondence}
                       onEditCorrespondence={handleEditCorrespondence}
                       onDeleteCorrespondence={handleDeleteCorrespondence}
@@ -1289,7 +1376,8 @@ export default function App() {
                 case 'it':
                   return (
                     <ItIssuesTab
-                      itIssues={itIssues}
+                      itIssues={filteredItIssues}
+                      academicYear={academicYear}
                       onAddItIssue={handleAddItIssue}
                       onChangeStatus={(id, newStatus) => handleChangeStatus('zgloszenia', id, newStatus)}
                       onRefreshData={loadData}
@@ -1301,7 +1389,8 @@ export default function App() {
                 case 'ustalenia':
                   return (
                     <OperationalDecisionsTab
-                      decisions={decisions}
+                      decisions={filteredDecisions}
+                      academicYear={academicYear}
                       onAddDecision={handleAddDecision}
                     />
                   );
