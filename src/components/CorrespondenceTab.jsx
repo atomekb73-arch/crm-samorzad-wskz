@@ -550,6 +550,11 @@ export default function CorrespondenceTab({
         if (onEditCorrespondence) {
           await onEditCorrespondence(updated);
         }
+        try {
+          window.open(result.docUrl, '_blank');
+        } catch (e) {
+          console.warn('Nie udało się automatycznie otworzyć karty:', e);
+        }
         setGenerateDocNotice({
           type: 'success',
           text: `Dokument dla ${sygnatura} został pomyślnie wygenerowany na Dysku!`,
@@ -635,6 +640,7 @@ export default function CorrespondenceTab({
       hash: `${nextId}_${Date.now()}`,
     };
 
+    const isDocMode = modalMode === 'createDoc';
     onAddCorrespondence(entryToSave);
     setIsAddModalOpen(false);
     setParseNotice(null);
@@ -656,6 +662,10 @@ export default function CorrespondenceTab({
       dataWyslania: '',
       dataWplywu: getCurrentLocalDateTimeString(),
     });
+
+    if (isDocMode) {
+      handleGenerateDoc(entryToSave);
+    }
   };
 
   return (
@@ -687,8 +697,37 @@ export default function CorrespondenceTab({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            type="button"
+            onClick={() => {
+              setNewEntry(prev => ({
+                ...prev,
+                direction: 'OUT',
+                sender: 'Kancelaria Samorządu Studenckiego WSKZ',
+                recipient: 'Dziekanat WNS / Władze Uczelni WSKZ',
+                autor: currentUserName,
+                subject: '',
+                summary: '',
+                status: 'W toku',
+                dataWplywu: getCurrentLocalDateTimeString(),
+                dataWyslania: getCurrentLocalDateTimeString(),
+              }));
+              setModalMode('createDoc');
+              setIsAddModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            title="Utwórz nowe oficjalne pismo wypalone z szablonu w Google Docs"
+          >
+            <Sparkles size={15} className="text-amber-300" />
+            <span>Utwórz pismo (Google Docs)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setModalMode('form');
+              setIsAddModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <Plus size={15} />
             <span>Zarejestruj pismo</span>
@@ -1023,14 +1062,39 @@ export default function CorrespondenceTab({
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {!isEditing ? (
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(activeDrawerItem)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium shadow-2xs"
-                    >
-                      <Edit3 size={14} className="text-slate-700 shrink-0" />
-                      <span>Edytuj sprawę</span>
-                    </button>
+                    <>
+                      {activeDrawerItem.lokalizacjaDrive ? (
+                        <a
+                          href={activeDrawerItem.lokalizacjaDrive}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                          title="Otwórz oficjalne pismo w Google Docs"
+                        >
+                          <ExternalLink size={13} />
+                          <span>Google Docs</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isGeneratingDoc}
+                          onClick={() => handleGenerateDoc(activeDrawerItem)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
+                          title="Wypal oficjalne pismo z szablonu w Google Docs"
+                        >
+                          <Sparkles size={13} className="text-amber-300" />
+                          <span>{isGeneratingDoc ? 'Wypalanie...' : 'Wypal w Google Docs'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(activeDrawerItem)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-xs font-medium shadow-2xs"
+                      >
+                        <Edit3 size={14} className="text-slate-700 shrink-0" />
+                        <span>Edytuj sprawę</span>
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button
@@ -1548,13 +1612,36 @@ export default function CorrespondenceTab({
                         <Edit3 size={14} className="text-slate-700 shrink-0" />
                         <span>Edytuj sprawę</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => alert(`Sprawa ${activeDrawerItem.id || activeDrawerItem.sygnatura} została pomyślnie zarchiwizowana.`)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
-                      >
-                        Drukuj / Eksportuj PDF
-                      </button>
+                      {activeDrawerItem.lokalizacjaDrive ? (
+                        <a
+                          href={activeDrawerItem.lokalizacjaDrive}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition cursor-pointer"
+                        >
+                          <ExternalLink size={14} />
+                          <span>Otwórz w Google Docs</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isGeneratingDoc}
+                          onClick={() => handleGenerateDoc(activeDrawerItem)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                        >
+                          {isGeneratingDoc ? (
+                            <>
+                              <Clock size={14} className="animate-spin" />
+                              <span>Wypalanie pisma...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={14} className="text-amber-300" />
+                              <span>Wypal pismo w Google Docs</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -1609,8 +1696,17 @@ export default function CorrespondenceTab({
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-200 bg-white flex items-center justify-between">
               <h3 id="modal-title" className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus size={18} className="text-[#1e3a8a]" />
-                Rejestracja nowego pisma w Dzienniku Korespondencji
+                {modalMode === 'createDoc' ? (
+                  <>
+                    <Sparkles size={18} className="text-[#1e3a8a]" />
+                    <span>Nowe oficjalne pismo Samorządu (Google Docs)</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} className="text-[#1e3a8a]" />
+                    <span>Rejestracja nowego pisma w Dzienniku Korespondencji</span>
+                  </>
+                )}
               </h3>
               <button
                 onClick={() => {
@@ -1628,26 +1724,47 @@ export default function CorrespondenceTab({
               <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-300">
                 <button
                   type="button"
+                  onClick={() => {
+                    setNewEntry(prev => ({
+                      ...prev,
+                      direction: 'OUT',
+                      sender: 'Kancelaria Samorządu Studenckiego WSKZ',
+                      recipient: prev.recipient && prev.recipient !== 'Kancelaria Samorządu Studenckiego WSKZ' ? prev.recipient : 'Dziekanat WNS / Władze Uczelni WSKZ',
+                      autor: prev.autor || currentUserName,
+                    }));
+                    setModalMode('createDoc');
+                  }}
+                  className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    modalMode === 'createDoc'
+                      ? 'bg-blue-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Sparkles size={14} className={modalMode === 'createDoc' ? 'text-amber-300' : 'text-slate-400'} />
+                  <span>📄 Utwórz pismo (Docs)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setModalMode('parser')}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     modalMode === 'parser'
                       ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Sparkles size={14} className={modalMode === 'parser' ? 'text-blue-600' : 'text-slate-400'} />
-                  <span>📋 Wklej i Rozpoznaj (Parser)</span>
+                  <FileText size={14} className={modalMode === 'parser' ? 'text-blue-600' : 'text-slate-400'} />
+                  <span>📋 Parser ze schowka</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalMode('form')}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     modalMode === 'form'
                       ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>✍️ Formularz ręczny</span>
+                  <span>✍️ Rejestracja pisma</span>
                   {newEntry.subject && (
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                   )}
@@ -1734,8 +1851,19 @@ export default function CorrespondenceTab({
                 </div>
               </div>
             ) : (
-              /* TAB 2: FORMULARZ RĘCZNY */
+              /* TAB 2: FORMULARZ RĘCZNY / GENERATOR DOCS */
               <form onSubmit={handleCreateSubmit} className="p-5 pt-2 space-y-4 text-xs">
+                {modalMode === 'createDoc' && (
+                  <div className="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-1">
+                    <div className="flex items-center gap-1.5 text-blue-900 font-bold text-xs">
+                      <Sparkles size={14} className="text-amber-500" />
+                      <span>Oficjalny Szablon Samorządu Studenckiego WSKZ</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Po zatwierdzeniu pismo zostanie zarejestrowane w CRM oraz wypalone w dedykowanym folderze na Dysku Google Kancelarii Samorządu z Twoim nazwiskiem w stopce dokumentu.
+                    </p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="new-direction" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
@@ -1938,9 +2066,16 @@ export default function CorrespondenceTab({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl font-semibold bg-blue-900 hover:bg-blue-950 text-white shadow-sm transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white shadow-sm transition cursor-pointer"
                   >
-                    Zarejestruj pismo
+                    {modalMode === 'createDoc' ? (
+                      <>
+                        <Sparkles size={15} className="text-amber-300" />
+                        <span>Wypal i otwórz na Dysku Google</span>
+                      </>
+                    ) : (
+                      <span>Zarejestruj pismo</span>
+                    )}
                   </button>
                 </div>
               </form>
