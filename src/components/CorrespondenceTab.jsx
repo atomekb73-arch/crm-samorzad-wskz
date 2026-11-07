@@ -2168,6 +2168,10 @@ export default function CorrespondenceTab({
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex flex-col items-center p-3 sm:p-6">
           <style>{`
             @media print {
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
               body * {
                 visibility: hidden !important;
               }
@@ -2181,30 +2185,31 @@ export default function CorrespondenceTab({
                 top: 0 !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                min-height: 277mm !important;
                 margin: 0 !important;
-                padding: 12mm 14mm !important;
+                padding: 12mm 16mm 10mm 16mm !important;
                 box-shadow: none !important;
                 border: none !important;
               }
               @page {
                 size: A4 portrait;
-                margin: 10mm;
+                margin: 8mm;
               }
             }
           `}</style>
 
           {/* Top Action Bar (Hidden in Print) */}
-          <div className="w-full max-w-[800px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center shrink-0">
+          <div className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
                 <FileText size={16} />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">
-                  Oficjalny Druk Pisma Samorządu WSKZ (Format A4)
+                  Szablon dokumentu WSKZ (.DOCX / Format A4)
                 </h4>
                 <p className="text-[11px] text-slate-500 font-mono">
-                  Sygnatura: <strong>{previewFields.sygnatura}</strong> • Autor: <strong>{previewFields.autor}</strong>
+                  Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
                 </p>
               </div>
             </div>
@@ -2233,7 +2238,7 @@ export default function CorrespondenceTab({
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#1e3a8a] hover:bg-[#1d4ed8] shadow-sm transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#3164d4] hover:bg-[#254fb0] shadow-sm transition cursor-pointer"
               >
                 <Printer size={14} />
                 <span>Drukuj / Zapisz PDF</span>
@@ -2250,170 +2255,295 @@ export default function CorrespondenceTab({
             </div>
           </div>
 
-          {/* A4 Sheet Area */}
+          {/* A4 Sheet Area — 1:1 Szablon dokumentu WSKZ .DOCX */}
           <div
             id="official-letter-a4-print-area"
-            className="w-full max-w-[800px] min-h-[1080px] bg-white text-slate-900 rounded-sm shadow-2xl border border-slate-300 p-10 sm:p-14 flex flex-col justify-between relative select-text"
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+            className="w-full max-w-[794px] min-h-[1123px] bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-10 pb-8 flex flex-col justify-between relative select-text"
           >
-            {/* Upper Document Section */}
-            <div className="space-y-8">
-              {/* Official Letterhead Header */}
-              <div className="border-b-2 border-[#1e3a8a] pb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[#1e3a8a]">
-                    <Award className="w-6 h-6 shrink-0" />
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest">
-                      Wyższa Szkoła Kształcenia Zawodowego
-                    </span>
+            {/* TOP & BODY SECTION */}
+            <div>
+              {/* 1:1 WSKZ Header */}
+              <div className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3.5">
+                  {/* Left: Official WSKZ Logo (Blue Book Square + Wing + 3-line Title) */}
+                  <div className="flex items-end gap-3.5 select-none">
+                    {/* Blue Square Book Emblem */}
+                    <svg
+                      width="56"
+                      height="56"
+                      viewBox="0 0 64 64"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0"
+                    >
+                      <rect width="64" height="64" fill="#3164d4" />
+                      {/* Upper right bird/open-book wing */}
+                      <path
+                        d="M30 22 C35 16, 41 18, 44 23 C48 17, 54 15, 59 18 C54 22, 48 25, 44 29 C39 25, 35 23, 30 22 Z"
+                        fill="#ffffff"
+                      />
+                      {/* Lower open book pages */}
+                      <path
+                        d="M6 34 C16 34, 25 38, 32 45 C39 38, 48 34, 58 34 L58 40 C48 40, 39 44, 32 51 C25 44, 16 40, 6 40 Z"
+                        fill="#ffffff"
+                      />
+                      <path
+                        d="M6 44 C16 44, 25 48, 32 55 C39 48, 48 44, 58 44 L58 49 C48 49, 39 53, 32 60 C25 53, 16 49, 6 49 Z"
+                        fill="#ffffff"
+                      />
+                    </svg>
+
+                    {/* Right of Square: Small Wing + WYŻSZA SZKOŁA KSZTAŁCENIA ZAWODOWEGO */}
+                    <div className="flex flex-col justify-between pb-0.5">
+                      <svg
+                        width="24"
+                        height="10"
+                        viewBox="0 0 28 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="mb-1"
+                      >
+                        <path
+                          d="M1 3 C6 1, 11 4, 14 8 C17 4, 22 1, 27 3 C23 6, 18 9, 14 11 C10 9, 5 6, 1 3 Z"
+                          fill="#3164d4"
+                        />
+                      </svg>
+                      <div className="text-[#3164d4] text-[12px] leading-[1.22] tracking-[0.08em] font-normal uppercase">
+                        <div>WYŻSZA SZKOŁA</div>
+                        <div>KSZTAŁCENIA</div>
+                        <div>ZAWODOWEGO</div>
+                      </div>
+                    </div>
                   </div>
-                  <h1 className="text-lg font-extrabold tracking-tight text-slate-900 uppercase">
-                    Samorząd Studencki WSKZ
-                  </h1>
-                  <p className="text-[11px] text-slate-600 font-medium">
-                    Kancelaria Samorządu Studenckiego • ul. Wagonowa 9, 53-609 Wrocław
-                  </p>
-                  <p className="text-[10.5px] text-slate-500 font-mono">
-                    e-mail: samorzad@wskz.pl • Rejestr Korespondencji Kancelarii
-                  </p>
+
+                  {/* Right: Mark Twain Quote */}
+                  <div className="text-right text-[#9ca3af] italic text-[10.5px] leading-[1.35] pb-0.5">
+                    <div>„Zacną rzeczą jest uczyć się, lecz jeszcze zacniejszą – nauczać.”</div>
+                    <div>– Mark Twain</div>
+                  </div>
                 </div>
 
-                <div className="text-left sm:text-right space-y-1 shrink-0 font-mono text-xs">
+                {/* 3-Color Bar (#00c8ff, #0095ff, #3164d4) + Thin Gray Line */}
+                <div className="flex items-center w-full">
+                  <div className="h-[3.5px] w-[78px] bg-[#00c8ff] shrink-0" />
+                  <div className="h-[3.5px] w-[78px] bg-[#0095ff] shrink-0" />
+                  <div className="h-[3.5px] w-[78px] bg-[#3164d4] shrink-0" />
+                  <div className="h-[1px] flex-1 bg-[#cbd5e1]" />
+                </div>
+              </div>
+
+              {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
+              <div className="pt-6 space-y-6 text-[11pt] leading-[1.5] text-[#111827]">
+                {/* Place, Date & Reference Number */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  {/* Sender info on left */}
+                  <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
+                    {isPreviewEditable ? (
+                      <input
+                        type="text"
+                        value={previewFields.nadawca}
+                        onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
+                      />
+                    ) : (
+                      <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
+                    )}
+                    <div>Wyższa Szkoła Kształcenia Zawodowego</div>
+                    <div className="text-[9.5pt] text-[#4b5563]">
+                      Sygn. akt: <strong className="text-[#111827]">{previewFields.sygnatura}</strong>
+                    </div>
+                  </div>
+
+                  {/* Place & Date on right */}
+                  <div className="text-right text-[10.5pt]">
+                    {isPreviewEditable ? (
+                      <input
+                        type="text"
+                        value={previewFields.miejsceData}
+                        onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
+                        className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
+                      />
+                    ) : (
+                      <div>{previewFields.miejsceData}</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recipient Block (Right-aligned in classic Polish official style) */}
+                <div className="flex justify-end pt-2">
+                  <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
+                    <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
+                      Adresat:
+                    </div>
+                    {isPreviewEditable ? (
+                      <input
+                        type="text"
+                        value={previewFields.odbiorca}
+                        onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                        className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
+                      />
+                    ) : (
+                      <div className="font-bold text-[#111827]">
+                        Sz. P. {previewFields.odbiorca}
+                      </div>
+                    )}
+                    <div className="text-[#374151]">
+                      Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subject (Dotyczy) */}
+                <div className="pt-2">
                   {isPreviewEditable ? (
-                    <input
-                      type="text"
-                      value={previewFields.miejsceData}
-                      onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
-                      className="border border-blue-400 rounded px-2 py-0.5 text-xs font-mono text-right bg-blue-50/40"
-                    />
+                    <div>
+                      <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
+                        Dotyczy sprawy:
+                      </span>
+                      <input
+                        type="text"
+                        value={previewFields.temat}
+                        onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
+                        className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                      />
+                    </div>
                   ) : (
-                    <p className="text-slate-700 font-semibold">{previewFields.miejsceData}</p>
+                    <div className="font-bold text-[11pt] text-[#111827]">
+                      <span className="underline">Dotyczy:</span> {previewFields.temat}
+                    </div>
                   )}
-                  <div className="inline-block bg-slate-100 border border-slate-300 px-2.5 py-1 rounded text-[11px] font-bold text-[#1e3a8a]">
-                    Sygn. akt: {previewFields.sygnatura}
-                  </div>
                 </div>
-              </div>
 
-              {/* Sender & Recipient Block */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 text-xs">
-                <div className="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Nadawca pisma:
-                  </span>
+                {/* Main Letter Body */}
+                <div className="pt-2 text-[11pt] leading-[1.6] text-[#111827]">
                   {isPreviewEditable ? (
-                    <input
-                      type="text"
-                      value={previewFields.nadawca}
-                      onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
-                      className="w-full border border-blue-400 rounded px-2 py-1 text-xs font-semibold bg-white"
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
+                        Treść pisma (edytowalna):
+                      </label>
+                      <textarea
+                        rows={12}
+                        value={previewFields.tresc}
+                        onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
+                        className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   ) : (
-                    <p className="font-bold text-slate-900 leading-snug">{previewFields.nadawca}</p>
+                    <div className="whitespace-pre-wrap text-justify min-h-[280px]">
+                      {previewFields.tresc}
+                    </div>
                   )}
-                  <p className="text-[11px] text-slate-600">Organ kolegialny samorządu uczelnianego</p>
-                </div>
-
-                <div className="bg-slate-50/80 p-3.5 rounded-lg border border-slate-200 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Adresat / Do wiadomości:
-                  </span>
-                  {isPreviewEditable ? (
-                    <input
-                      type="text"
-                      value={previewFields.odbiorca}
-                      onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
-                      className="w-full border border-blue-400 rounded px-2 py-1 text-xs font-semibold bg-white"
-                    />
-                  ) : (
-                    <p className="font-bold text-slate-900 leading-snug">Sz. P. {previewFields.odbiorca}</p>
-                  )}
-                  <p className="text-[11px] text-slate-600">Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu</p>
-                </div>
-              </div>
-
-              {/* Subject Line (DOTYCZY) */}
-              <div className="border-l-4 border-[#1e3a8a] pl-4 py-1.5 bg-blue-50/30">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#1e3a8a] block mb-0.5">
-                  Dotyczy sprawy:
-                </span>
-                {isPreviewEditable ? (
-                  <input
-                    type="text"
-                    value={previewFields.temat}
-                    onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
-                    className="w-full border border-blue-400 rounded px-2.5 py-1 text-sm font-bold text-slate-900 bg-white"
-                  />
-                ) : (
-                  <h2 className="text-sm sm:text-base font-bold text-slate-950 leading-snug">
-                    {previewFields.temat}
-                  </h2>
-                )}
-              </div>
-
-              {/* Main Body Text */}
-              <div className="pt-2 text-xs sm:text-[13px] leading-relaxed text-slate-800">
-                {isPreviewEditable ? (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-blue-800 block">
-                      Treść pisma (edytowalna):
-                    </label>
-                    <textarea
-                      rows={12}
-                      value={previewFields.tresc}
-                      onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
-                      className="w-full border border-blue-400 rounded-lg p-3 text-xs sm:text-[13px] leading-relaxed text-slate-900 bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                ) : (
-                  <div className="whitespace-pre-wrap text-justify space-y-3 min-h-[260px]">
-                    {previewFields.tresc}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Signature & Institutional Audit Footer */}
-            <div className="pt-12 mt-12 space-y-8 break-inside-avoid">
-              <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-8">
-                {/* Official Stamp Placeholder */}
-                <div className="text-[10px] text-slate-400 font-mono border border-dashed border-slate-300 rounded-lg px-4 py-3 text-center">
-                  [Pieczęć podłużna / elektroniczna]<br />
-                  Kancelaria Samorządu Studenckiego WSKZ<br />
-                  Sygn.: {previewFields.sygnatura}
                 </div>
 
                 {/* Signature Block */}
-                <div className="w-64 text-center space-y-1.5 ml-auto">
-                  <p className="text-xs italic text-slate-600 mb-6">Z wyrazami szacunku,</p>
-                  <div className="border-b border-slate-400 pb-1">
+                <div className="pt-8 flex justify-end break-inside-avoid">
+                  <div className="w-64 text-center space-y-1">
+                    <p className="text-[10.5pt] italic text-[#374151] mb-8">Z wyrazami szacunku,</p>
                     {isPreviewEditable ? (
                       <input
                         type="text"
                         value={previewFields.autor}
                         onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
-                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-xs font-bold text-center bg-white"
+                        className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold text-center bg-blue-50/30"
                       />
                     ) : (
-                      <p className="text-xs font-bold text-slate-900">{previewFields.autor}</p>
+                      <p className="text-[10.5pt] font-bold text-[#111827]">{previewFields.autor}</p>
                     )}
+                    <p className="text-[9.5pt] text-[#374151]">
+                      {previewFields.stanowisko}
+                    </p>
+                    <p className="text-[9pt] text-[#6b7280]">
+                      Samorząd Studencki WSKZ
+                    </p>
                   </div>
-                  <p className="text-[10.5px] font-semibold text-[#1e3a8a]">
-                    {previewFields.stanowisko}
-                  </p>
-                  <p className="text-[9.5px] text-slate-500">
-                    Samorząd Studencki WSKZ we Wrocławiu
-                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Permanent Institutional Footer */}
-              <div className="border-t border-slate-200 pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[9.5px] text-slate-500 font-mono">
+            {/* 1:1 WSKZ FOOTER SECTION */}
+            <div className="pt-8 mt-8 break-inside-avoid select-none">
+              {/* Subtle Author & Registry Attribution above the WSKZ chevron */}
+              <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-2 px-1">
                 <span>
-                  Dokument sporządził(a): <strong className="text-slate-700">{previewFields.autor}</strong> | Kancelaria Samorządu Studenckiego WSKZ
+                  Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
                 </span>
                 <span>
-                  ID Rejestru: {previewFields.sygnatura} • Rok akademicki {academicYear === 'ALL' ? '2026/2027' : academicYear}
+                  Sygn.: {previewFields.sygnatura}
                 </span>
+              </div>
+
+              {/* Centered Blue WSKZ Wing Emblem */}
+              <div className="flex justify-center mb-3">
+                <svg
+                  width="52"
+                  height="18"
+                  viewBox="0 0 56 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 5 C12 1, 22 7, 28 15 C34 7, 44 1, 54 5 C46 10, 36 15, 28 19 C20 15, 10 10, 2 5 Z"
+                    fill="#3164d4"
+                  />
+                </svg>
+              </div>
+
+              {/* 3-Column Colored Footer Bar (#00c8ff | #0095ff | #325cd2) */}
+              <div className="grid grid-cols-3 w-full text-white text-[9.5px] leading-[1.35]">
+                {/* Column 1: Cyan (#00c8ff) — Phone & Email */}
+                <div className="bg-[#00c8ff] py-4 px-3 sm:px-5 flex items-center justify-center gap-2.5">
+                  {/* Speech Bubbles Icon */}
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
+                  >
+                    <path
+                      d="M12 3C6.5 3 2 6.58 2 11C2 12.88 2.81 14.61 4.18 15.97C4.05 17.16 3.54 18.43 2.77 19.38C2.58 19.62 2.75 19.98 3.05 19.95C4.88 19.76 6.58 19.04 7.76 18.23C9.07 18.72 10.5 19 12 19C17.5 19 22 15.42 22 11C22 6.58 17.5 3 12 3Z"
+                      fill="#ffffff"
+                    />
+                  </svg>
+                  <div className="font-medium tracking-wide">
+                    <div>+22 153 04 31</div>
+                    <div>kontakt@wskz.pl</div>
+                  </div>
+                </div>
+
+                {/* Column 2: Medium Blue (#0095ff) — University Name, NIP & REGON */}
+                <div className="bg-[#0095ff] py-4 px-2 sm:px-3 flex flex-col items-center justify-center text-center">
+                  <div className="font-bold tracking-tight">
+                    Wyższa Szkoła Kształcenia Zawodowego
+                  </div>
+                  <div className="text-[9px] opacity-95 mt-0.5">
+                    NIP: 7952214640 &nbsp;|&nbsp; REGON: 651432712
+                  </div>
+                </div>
+
+                {/* Column 3: Royal Blue (#325cd2) — Address */}
+                <div className="bg-[#325cd2] py-4 px-3 sm:px-5 flex items-center justify-center gap-2.5">
+                  {/* Map Pin Icon */}
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
+                  >
+                    <path
+                      d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z"
+                      fill="#ffffff"
+                    />
+                  </svg>
+                  <div className="font-medium tracking-wide">
+                    <div>Pl. Powstańców Śląskich 1/201,</div>
+                    <div>53-329 Wrocław</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
