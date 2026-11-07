@@ -50,33 +50,18 @@ export const OFFICIAL_SIGNATURE_PROFILES = [
     id: 'agnieszka_rusnarczyk',
     name: 'Agnieszka Rusnarczyk',
     title: 'Przewodnicząca Samorządu Studenckiego',
-    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
-    term: 'Kadencja 2026-2028',
-    email: 'samorzad@wskz.pl',
-    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
-    websiteUrl: 'https://wskz.pl',
     closing: 'Z wyrazami szacunku,',
   },
   {
     id: 'aleksandra_zerdzinska',
     name: 'Aleksandra Żerdzińska',
     title: 'Zastępca Przewodniczącej Samorządu Studenckiego',
-    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
-    term: 'Kadencja 2026-2028',
-    email: 'samorzad@wskz.pl',
-    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
-    websiteUrl: 'https://wskz.pl',
     closing: 'Z wyrazami szacunku,',
   },
   {
     id: 'tomasz_bratkowski',
     name: 'Tomasz Bratkowski',
     title: 'Sekretarz Samorządu Studenckiego',
-    organization: 'Wyższa Szkoła Kształcenia Zawodowego',
-    term: 'Kadencja 2026-2028',
-    email: 'samorzad@wskz.pl',
-    website: 'https://studia-wroclaw.pl/samorzad-studencki/',
-    websiteUrl: 'https://wskz.pl',
     closing: 'Z wyrazami szacunku,',
   },
 ];
@@ -599,11 +584,6 @@ export default function CorrespondenceTab({
       selectedSignatureId: matchedProfile ? matchedProfile.id : 'custom',
       autor: matchedProfile ? matchedProfile.name : initialAuthor,
       stanowisko: matchedProfile ? matchedProfile.title : 'Samorząd Studencki WSKZ',
-      uczelnia: matchedProfile ? matchedProfile.organization : 'Wyższa Szkoła Kształcenia Zawodowego',
-      kadencja: matchedProfile ? matchedProfile.term : 'Kadencja 2026-2028',
-      email: matchedProfile ? matchedProfile.email : 'samorzad@wskz.pl',
-      website: matchedProfile ? matchedProfile.website : 'https://studia-wroclaw.pl/samorzad-studencki/',
-      websiteUrl: matchedProfile ? matchedProfile.websiteUrl : 'https://wskz.pl',
       closing: matchedProfile ? matchedProfile.closing : 'Z wyrazami szacunku,',
       isCustomAuthor: !matchedProfile,
     });
@@ -629,11 +609,6 @@ export default function CorrespondenceTab({
       selectedSignatureId: profile.id,
       autor: profile.name,
       stanowisko: profile.title,
-      uczelnia: profile.organization,
-      kadencja: profile.term,
-      email: profile.email,
-      website: profile.website,
-      websiteUrl: profile.websiteUrl,
       closing: profile.closing,
       isCustomAuthor: false,
     }));
@@ -2596,7 +2571,7 @@ export default function CorrespondenceTab({
                     <div className="w-80 text-right space-y-1">
                       <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
                       
-                      {/* Dane osoby podpisującej — CZYSTY DOKUMENT A4 BEZ KONTROLEK */}
+                      {/* Dane osoby podpisującej — CZYSTY, OFICJALNY DOKUMENT A4 */}
                       <div className="space-y-0.5 text-right font-sans">
                         {isPreviewEditable || previewFields.isCustomAuthor ? (
                           <div className="space-y-1 pt-1">
@@ -2625,18 +2600,6 @@ export default function CorrespondenceTab({
                             </div>
                           </>
                         )}
-                        <div className="text-[9.5pt] text-[#374151] leading-tight">
-                          {previewFields.uczelnia || 'Wyższa Szkoła Kształcenia Zawodowego'}
-                        </div>
-                        <div className="text-[9pt] text-[#6b7280] leading-tight">
-                          {previewFields.kadencja || 'Kadencja 2026-2028'}
-                        </div>
-                        <div className="text-[8.5pt] text-[#4b5563] pt-0.5 leading-tight">
-                          E-mail: <a href={`mailto:${previewFields.email || 'samorzad@wskz.pl'}`} className="text-[#3164d4] hover:underline">{previewFields.email || 'samorzad@wskz.pl'}</a>
-                        </div>
-                        <div className="text-[8.5pt] text-[#4b5563] leading-tight">
-                          WWW: <a href={previewFields.websiteUrl || 'https://wskz.pl'} target="_blank" rel="noopener noreferrer" className="text-[#3164d4] hover:underline">{previewFields.website || 'https://studia-wroclaw.pl/samorzad-studencki/'}</a>
-                        </div>
                       </div>
                     </div>
                   </div>
