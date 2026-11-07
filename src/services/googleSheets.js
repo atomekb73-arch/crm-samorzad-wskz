@@ -425,7 +425,8 @@ export async function fetchAllKancelariaData() {
     const correspondence = rawKorespondencja.map((item, idx) => {
       const id = item.sygnatura || item.id || `DK/${idx + 1}`;
       const isOut = item.typ === 'Wychodzące' || item.direction === 'OUT' || /wychod/i.test(item.typ || item.status || '');
-      const date = formatDate(item.data || item.date);
+      const rawItemDate = item.dataWplywu || item.data || item.date || item.dataWyslania;
+      const date = formatDate(rawItemDate);
       const status = sanitizeStatus(item.status || 'W toku');
       return {
         ...item,
