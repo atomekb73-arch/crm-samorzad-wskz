@@ -444,6 +444,7 @@ export async function fetchAllKancelariaData() {
         subject: item.przedmiot || item.subject || '',
         przedmiot: item.przedmiot || item.subject || '',
         summary: item.summary || item.streszczenie || item.przedmiot || '',
+        autor: item.autor || item.sporzadzil || item.utworzonePrzez || item.przygotowal || '',
         status,
         statusUjednolicenia: status,
         weryfikacjaFormalna: item.weryfikacjaFormalna || 'Zatwierdzone',

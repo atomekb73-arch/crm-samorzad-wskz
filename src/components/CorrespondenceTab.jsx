@@ -38,6 +38,8 @@ import {
   prepareDateTimeForPayload,
   normalizeDateTimeForBackend,
 } from '../utils/dateUtils';
+import { useAuth } from '../context/AuthContext';
+import { sendToBackend } from '../services/googleSheets';
 
 export function parseIncomingEmailText(rawText) {
   if (!rawText) return null;
@@ -229,6 +231,9 @@ export default function CorrespondenceTab({
   selectedItem = null,
   onSelectItem = () => {},
 }) {
+  const { user } = useAuth();
+  const currentUserName = user?.name || user?.email || 'Agnieszka (Samorząd)';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, IN, OUT
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, Zatwierdzone, W toku, Weryfikacja
@@ -236,6 +241,8 @@ export default function CorrespondenceTab({
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [generateDocNotice, setGenerateDocNotice] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('parser'); // 'parser' | 'form'
   const [rawPastedText, setRawPastedText] = useState('');
@@ -257,6 +264,7 @@ export default function CorrespondenceTab({
       sender: item.sender || item.nadawca || '',
       odbiorca: item.recipient || item.odbiorca || '',
       recipient: item.recipient || item.odbiorca || '',
+      autor: item.autor || currentUserName,
       tresc: item.summary || item.tresc || '',
       summary: item.summary || item.tresc || '',
       dataWplywu: dWplywu,
@@ -269,7 +277,7 @@ export default function CorrespondenceTab({
       sourceCitation: item.sourceCitation || '',
       notes: item.notes || '',
     });
-  }, []);
+  }, [currentUserName]);
 
   useEffect(() => {
     if (selectedItem) {
@@ -284,6 +292,7 @@ export default function CorrespondenceTab({
     direction: 'IN',
     sender: '',
     recipient: 'Kancelaria Samorządu Studenckiego WSKZ',
+    autor: currentUserName,
     subject: '',
     summary: '',
     status: 'W toku',
@@ -443,6 +452,7 @@ export default function CorrespondenceTab({
       sender: editForm.nadawca || editForm.sender || '',
       odbiorca: editForm.odbiorca || editForm.recipient || '',
       recipient: editForm.odbiorca || editForm.recipient || '',
+      autor: editForm.autor || activeDrawerItem.autor || currentUserName,
       tresc: editForm.tresc || editForm.summary || '',
       summary: editForm.tresc || editForm.summary || '',
       dataWplywu: normDataWplywu,
@@ -490,6 +500,72 @@ export default function CorrespondenceTab({
       console.error('Błąd usuwania pisma:', err);
     } finally {
       handleCloseDrawer();
+    }
+  };
+
+  const handleGenerateDoc = async (item) => {
+    if (!item) return;
+    const sygnatura = item.sygnatura || item.id;
+    const authorToUse = item.autor || currentUserName || 'Kancelaria Samorządu';
+
+    const ok = window.confirm(
+      `Czy chcesz wygenerować oficjalny dokument z szablonu w Google Docs dla sprawy ${sygnatura}?\n\n` +
+      `• Autor / Sporządził(a): ${authorToUse}\n` +
+      `• Szablon: Oficjalny Druk Samorządu WSKZ\n` +
+      `• Folder docelowy: Dysk Google Kancelarii (1R5sVAKtc13WI93wf9FBPWpA0lWhKk90l)\n\n` +
+      `Dokument zostanie utworzony w Twoim imieniu z trwałym oznaczeniem autora w metadanych i stopce.`
+    );
+    if (!ok) return;
+
+    setIsGeneratingDoc(true);
+    setGenerateDocNotice({ type: 'info', text: 'Trwa wypalanie pisma na oficjalnym szablonie w Google Docs...' });
+
+    try {
+      const payload = {
+        action: "generuj_pismo_drive",
+        sygnatura: sygnatura,
+        id: sygnatura,
+        autor: authorToUse,
+        data: item.dataWplywu || item.data || item.date || getCurrentLocalDateTimeString(),
+        dataWplywu: item.dataWplywu || item.data || item.date || getCurrentLocalDateTimeString(),
+        nadawca: item.sender || item.nadawca || 'Kancelaria Samorządu Studenckiego WSKZ',
+        odbiorca: item.recipient || item.odbiorca || 'Dziekanat / Samorząd',
+        temat: item.subject || item.przedmiot || item.temat || 'Pismo urzędowe',
+        przedmiot: item.subject || item.przedmiot || item.temat || 'Pismo urzędowe',
+        tresc: item.summary || item.tresc || '',
+        typ: item.typ || (item.direction === 'OUT' ? 'Wychodzące' : 'Wchodzące'),
+        direction: item.direction || (item.typ === 'Wychodzące' ? 'OUT' : 'IN'),
+      };
+
+      const result = await sendToBackend(payload);
+      if (result && result.docUrl) {
+        const updated = {
+          ...item,
+          lokalizacjaDrive: result.docUrl,
+          autor: authorToUse,
+        };
+        startTransition(() => {
+          setActiveDrawerItem(updated);
+        });
+        if (onEditCorrespondence) {
+          await onEditCorrespondence(updated);
+        }
+        setGenerateDocNotice({
+          type: 'success',
+          text: `Dokument dla ${sygnatura} został pomyślnie wygenerowany na Dysku!`,
+          url: result.docUrl,
+        });
+      } else {
+        throw new Error(result?.message || 'Brak zwrotnego adresu URL dokumentu');
+      }
+    } catch (err) {
+      console.error('Błąd generowania dokumentu:', err);
+      setGenerateDocNotice({
+        type: 'error',
+        text: `Błąd generowania na Drive: ${err.message}`,
+      });
+    } finally {
+      setIsGeneratingDoc(false);
     }
   };
 
@@ -541,6 +617,7 @@ export default function CorrespondenceTab({
       sender: newEntry.sender,
       odbiorca: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
       recipient: newEntry.recipient || (newEntry.direction === 'OUT' ? 'Dziekanat / Samorząd' : 'Kancelaria Samorządu Studenckiego WSKZ'),
+      autor: newEntry.autor || currentUserName,
       przedmiot: newEntry.subject,
       subject: newEntry.subject,
       tresc: newEntry.summary,
@@ -567,6 +644,7 @@ export default function CorrespondenceTab({
       direction: 'IN',
       sender: '',
       recipient: 'Kancelaria Samorządu Studenckiego WSKZ',
+      autor: currentUserName,
       subject: '',
       summary: '',
       status: 'W toku',
@@ -1039,6 +1117,13 @@ export default function CorrespondenceTab({
                         <User size={13} className="text-slate-400" /> {activeDrawerItem.recipient || activeDrawerItem.odbiorca}
                       </p>
                     </div>
+                    <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">Sporządził(a) / Autor:</span>
+                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                        <User size={13} className="text-[#1e3a8a]" />
+                        {activeDrawerItem.autor || currentUserName}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Streszczenie / Treść sprawy */}
@@ -1075,24 +1160,102 @@ export default function CorrespondenceTab({
                     </div>
                   )}
 
-                  {/* Załączniki / Dysk Google */}
+                  {/* Załączniki / Dysk Google & Generator Szablonu */}
                   <div className="space-y-3">
+                    {/* Wypalanie pisma na oficjalnym szablonie Samorządu */}
                     {activeDrawerItem.lokalizacjaDrive ? (
-                      <div className="border border-slate-200 bg-slate-50 rounded-xl p-3.5 space-y-1.5">
-                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-                          Lokalizacja na Drive
-                        </label>
-                        <a
-                          href={activeDrawerItem.lokalizacjaDrive}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900 transition-colors hover:underline"
-                        >
-                          <ExternalLink size={15} className="shrink-0 text-blue-700" />
-                          <span>Otwórz dokument na Drive</span>
-                        </a>
+                      <div className="border border-emerald-300 bg-emerald-50/70 rounded-xl p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold uppercase text-emerald-900 flex items-center gap-1.5">
+                            <FileText size={15} className="text-emerald-700" />
+                            Oficjalne Pismo w Google Docs (Drive)
+                          </label>
+                          <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
+                            Wypalony z szablonu
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          Dokument w folderze Kancelarii. Sporządził(a): <strong className="text-slate-900">{activeDrawerItem.autor || currentUserName}</strong>
+                        </p>
+                        <div className="flex items-center gap-3 pt-1">
+                          <a
+                            href={activeDrawerItem.lokalizacjaDrive}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors"
+                          >
+                            <ExternalLink size={14} />
+                            <span>Otwórz dokument na Drive</span>
+                          </a>
+                          <button
+                            type="button"
+                            disabled={isGeneratingDoc}
+                            onClick={() => handleGenerateDoc(activeDrawerItem)}
+                            className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                          >
+                            <Sparkles size={13} />
+                            <span>{isGeneratingDoc ? 'Generowanie...' : 'Wygeneruj ponownie'}</span>
+                          </button>
+                        </div>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="border border-blue-200 bg-blue-50/60 rounded-xl p-4 space-y-2.5">
+                        <div className="flex items-start gap-2.5">
+                          <Sparkles className="text-blue-700 shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-900">
+                              Wypal oficjalne pismo w Google Docs (szablon Samorządu)
+                            </h5>
+                            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                              Tworzy sformatowany dokument w folderze Dysku Samorządu z Twoim nazwiskiem jako autora (<strong className="text-slate-800">{activeDrawerItem.autor || currentUserName}</strong>) oraz sygnaturą sprawy.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            disabled={isGeneratingDoc}
+                            onClick={() => handleGenerateDoc(activeDrawerItem)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                          >
+                            {isGeneratingDoc ? (
+                              <>
+                                <Clock size={14} className="animate-spin" />
+                                <span>Wypalanie pisma na Drive...</span>
+                              </>
+                            ) : (
+                              <>
+                                <FileText size={14} />
+                                <span>Wypal pismo w Google Docs</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {generateDocNotice && (
+                      <div className={`p-3 rounded-xl text-xs ${
+                        generateDocNotice.type === 'success'
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : generateDocNotice.type === 'error'
+                          ? 'bg-red-100 text-red-900 border border-red-300'
+                          : 'bg-blue-100 text-blue-900 border border-blue-300'
+                      }`}>
+                        <p className="font-medium">{generateDocNotice.text}</p>
+                        {generateDocNotice.url && (
+                          <a
+                            href={generateDocNotice.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1.5 font-bold text-emerald-950 underline"
+                          >
+                            <ExternalLink size={12} />
+                            <span>Kliknij tutaj, aby otworzyć dokument na Google Drive</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
 
                     {/* Pozostałe załączniki */}
                     {((activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) || !activeDrawerItem.lokalizacjaDrive) && (
@@ -1316,6 +1479,22 @@ export default function CorrespondenceTab({
                       value={editForm.notes || ''}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                       placeholder="Wewnętrzne notatki, przydział do osoby..."
+                      className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Sporządził(a) / Autor */}
+                  <div>
+                    <label htmlFor="edit-autor" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                      Sporządził(a) / Autor wpisu
+                    </label>
+                    <input
+                      id="edit-autor"
+                      name="editAutor"
+                      type="text"
+                      value={editForm.autor || ''}
+                      onChange={(e) => setEditForm({ ...editForm, autor: e.target.value })}
+                      placeholder="np. Agnieszka, Tomasz Bratkowski"
                       className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
@@ -1678,6 +1857,25 @@ export default function CorrespondenceTab({
                     onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
                     className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="new-autor" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
+                    Sporządził(a) / Autor pisma *
+                  </label>
+                  <input
+                    id="new-autor"
+                    name="newAutor"
+                    type="text"
+                    required
+                    placeholder="np. Agnieszka, Tomasz Bratkowski"
+                    value={newEntry.autor || ''}
+                    onChange={(e) => setNewEntry({ ...newEntry, autor: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Imię i nazwisko osoby sporządzającej pismo (zostanie trwale wypalone w stopce dokumentu Google Docs oraz w rejestrze).
+                  </p>
                 </div>
 
                 <div>
