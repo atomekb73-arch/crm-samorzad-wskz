@@ -782,6 +782,11 @@ export async function fetchAllKancelariaData() {
         notes: item.notes || item.notatki || '',
         hash: `${id}_${date}`,
       };
+    }).sort((a, b) => {
+      const dA = String(a.dataWplywu || a.date || '');
+      const dB = String(b.dataWplywu || b.date || '');
+      if (dA !== dB) return dA.localeCompare(dB, 'pl', { numeric: true });
+      return String(a.sygnatura || '').localeCompare(String(b.sygnatura || ''), 'pl', { numeric: true });
     });
 
     // Normalizacja Zgłoszeń Technicznych
