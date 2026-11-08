@@ -465,6 +465,7 @@ export default function CorrespondenceTab({
   }, [filteredList, sortConfig]);
 
   const handleOpenDrawer = useCallback((item) => {
+    setGenerateDocNotice(null);
     startTransition(() => {
       setActiveDrawerItem(item);
       setIsEditing(false);
@@ -474,6 +475,7 @@ export default function CorrespondenceTab({
   }, [initEditForm, onSelectItem]);
 
   const handleCloseDrawer = useCallback(() => {
+    setGenerateDocNotice(null);
     startTransition(() => {
       setActiveDrawerItem(null);
       setIsEditing(false);
@@ -577,16 +579,22 @@ export default function CorrespondenceTab({
 
   const handleOpenPrintPreview = useCallback((item) => {
     if (!item) return;
+    setGenerateDocNotice(null);
     const isIncoming = item.direction === 'IN' || item.typ === 'Wchodzące';
     const rawDateFull = String(item.dataWplywu || item.data || item.date || new Date().toISOString()).trim();
     const rawDate = rawDateFull.slice(0, 10);
     const rawBody = (item.tresc || item.summary || '').trim();
     const rawSubj = (item.przedmiot || item.subject || item.temat || 'Sprawa urzędowa').trim();
+    const syg = item.sygnatura || item.id || 'DK/2026/11/01';
+    const inSender = item.nadawca || item.sender || (isIncoming ? 'Nadawca zewnętrzny' : 'Samorząd Studencki WSKZ');
+    const inRecipient = item.odbiorca || item.recipient || (isIncoming ? 'Samorząd Studencki WSKZ' : 'Dziekanat WNS / Władze Uczelni WSKZ');
 
     // Dla pism wychodzących generujemy treść oficjalnego pisma Samorządu;
-    // dla pism przychodzących zachowujemy autentyczną treść/streszczenie wpływu bez dopisywania formuł Samorządu
+    // dla pism przychodzących zachowujemy autentyczną treść wiadomości lub (gdy w bazie zapisano tylko tytuł) generujemy neutralny opis kancelaryjny wpływu bez powtarzania samego tytułu 1:1
     const defaultBody = isIncoming
-      ? (rawBody || rawSubj)
+      ? (!rawBody || rawBody === rawSubj)
+        ? `Wpływ korespondencji zewnętrznej nadesłanej przez: ${inSender}, skierowanej do: ${inRecipient}.\n\nZakres merytoryczny wystąpienia:\n${rawSubj}.\n\nDokument został przyjęty do ewidencji Dziennika Korespondencji Kancelarii Samorządu Studenckiego WSKZ pod sygnaturą ${syg} (data doręczenia: ${rawDateFull}).`
+        : rawBody
       : (!rawBody || rawBody === rawSubj)
         ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
         : rawBody;
@@ -600,9 +608,9 @@ export default function CorrespondenceTab({
       isIncoming,
       miejsceData: `Wrocław, dnia ${rawDate} r.`,
       dataWplywuFull: rawDateFull,
-      sygnatura: item.sygnatura || item.id || 'DK/2026/11/01',
-      nadawca: item.nadawca || item.sender || (isIncoming ? 'Nadawca zewnętrzny' : 'Samorząd Studencki WSKZ'),
-      odbiorca: item.odbiorca || item.recipient || (isIncoming ? 'Samorząd Studencki WSKZ' : 'Dziekanat WNS / Władze Uczelni WSKZ'),
+      sygnatura: syg,
+      nadawca: inSender,
+      odbiorca: inRecipient,
       temat: rawSubj,
       tresc: defaultBody,
       status: item.status || 'W toku',
@@ -620,6 +628,7 @@ export default function CorrespondenceTab({
 
   const handleReplyToIncoming = useCallback((item) => {
     if (!item) return;
+    setGenerateDocNotice(null);
     const inSyg = item.sygnatura || item.id || '';
     const inDate = String(item.dataWplywu || item.data || item.date || '').slice(0, 10);
     const inSender = item.nadawca || item.sender || 'Adresat';
@@ -748,9 +757,37 @@ export default function CorrespondenceTab({
       }
     } catch (err) {
       console.error('Błąd generowania dokumentu:', err);
+      const rawDate = String(item.dataWplywu || item.data || item.date || getCurrentLocalDateTimeString()).slice(0, 10);
+      const docTextToCopy = [
+        `Wrocław, dnia ${rawDate} r.`,
+        `${item.sender || item.nadawca || 'Samorząd Studencki WSKZ'}`,
+        `Wyższa Szkoła Kształcenia Zawodowego`,
+        `Sygn. akt: ${sygnatura}`,
+        ``,
+        `ADRESAT:`,
+        `Sz. P. ${item.recipient || item.odbiorca || 'Dziekanat / Władze Uczelni WSKZ'}`,
+        `Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu`,
+        ``,
+        `Dotyczy: ${item.subject || item.przedmiot || item.temat || ''}`,
+        ``,
+        `${item.summary || item.tresc || ''}`,
+        ``,
+        `Z wyrazami szacunku,`,
+        `${authorToUse}`,
+      ].join('\n');
+
+      try {
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(docTextToCopy);
+        }
+      } catch (_) {
+        // Ignoruj brak uprawnień schowka
+      }
+
       setGenerateDocNotice({
-        type: 'error',
-        text: `Status chmury Drive: ${err.message}. Poniżej masz gotowy druk A4 w aplikacji – możesz go od razu wydrukować lub zapisać jako PDF.`,
+        type: 'info',
+        text: `Skopiowano gotową treść pisma ${sygnatura} do schowka! Możesz od razu zapisać pismo jako PDF poniżej lub kliknąć obok, aby utworzyć kopię szablonu w Google Docs i wkleić treść (Ctrl+V).`,
+        url: 'https://docs.google.com/document/d/1r3dydKEtoL0VxBEOuAp8X8fXrUP_Eoec/copy',
       });
       if (!previewLetterItem) {
         handleOpenPrintPreview(item);
@@ -867,7 +904,7 @@ export default function CorrespondenceTab({
     });
 
     if (isDocMode) {
-      handleGenerateDoc(entryToSave);
+      handleOpenPrintPreview(entryToSave);
     }
   };
 
@@ -1586,28 +1623,31 @@ export default function CorrespondenceTab({
                       </div>
                     )}
 
-                    {generateDocNotice && (
-                      <div className={`p-3 rounded-xl text-xs ${
-                        generateDocNotice.type === 'success'
-                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                          : generateDocNotice.type === 'error'
-                          ? 'bg-red-100 text-red-900 border border-red-300'
-                          : 'bg-blue-100 text-blue-900 border border-blue-300'
-                      }`}>
-                        <p className="font-medium">{generateDocNotice.text}</p>
-                        {generateDocNotice.url && (
-                          <a
-                            href={generateDocNotice.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mt-1.5 font-bold text-emerald-950 underline"
-                          >
-                            <ExternalLink size={12} />
-                            <span>Kliknij tutaj, aby otworzyć dokument na Google Drive</span>
-                          </a>
-                        )}
-                      </div>
-                    )}
+                    {generateDocNotice &&
+                      !(activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące') && (
+                        <div
+                          className={`p-3 rounded-xl text-xs ${
+                            generateDocNotice.type === 'success'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                              : generateDocNotice.type === 'error'
+                              ? 'bg-red-100 text-red-900 border border-red-300'
+                              : 'bg-blue-50 text-blue-950 border border-blue-200'
+                          }`}
+                        >
+                          <p className="font-medium">{generateDocNotice.text}</p>
+                          {generateDocNotice.url && (
+                            <a
+                              href={generateDocNotice.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 mt-1.5 font-bold text-blue-900 underline"
+                            >
+                              <ExternalLink size={12} />
+                              <span>Otwórz kopię szablonu w Google Docs</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
 
                     {/* Pozostałe załączniki */}
                     {((activeDrawerItem.attachments && activeDrawerItem.attachments.length > 0) || !activeDrawerItem.lokalizacjaDrive) && (
@@ -2500,7 +2540,7 @@ export default function CorrespondenceTab({
             {/* Top Action Bar (Hidden in Print) */}
             <div
               id="official-letter-a4-top-bar"
-              className="w-full max-w-[794px] bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-col gap-3 print:hidden"
+              className="w-full max-w-[794px] shrink-0 bg-white rounded-2xl border border-slate-300 shadow-lg p-3.5 mb-4 flex flex-col gap-3 print:hidden"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
@@ -2654,7 +2694,7 @@ export default function CorrespondenceTab({
                 </div>
               )}
 
-              {generateDocNotice && (
+              {generateDocNotice && !previewFields.isIncoming && (
                 <div
                   className={`p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 ${
                     generateDocNotice.type === 'success'
@@ -2684,7 +2724,7 @@ export default function CorrespondenceTab({
             <div
               id="official-letter-a4-print-area"
               style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-              className="w-full max-w-[794px] min-h-[1123px] bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-10 pb-8 flex flex-col justify-between relative select-text"
+              className="w-full max-w-[794px] min-h-[1123px] shrink-0 bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-8 pb-7 flex flex-col justify-between relative select-text mb-8"
             >
               {previewFields.isIncoming ? (
                 /* ════════════════════════════════════════════════════════════════════════
@@ -2694,7 +2734,7 @@ export default function CorrespondenceTab({
                 <>
                   <div>
                     {/* 1:1 WSKZ Header Image */}
-                    <div className="pb-2 select-none">
+                    <div className="pb-1.5 select-none">
                       <img
                         src="/wskz-header.png"
                         alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
@@ -2703,15 +2743,15 @@ export default function CorrespondenceTab({
                     </div>
 
                     {/* Top Row: Kancelaria Info + Prezentata Stamp Box */}
-                    <div className="pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-[#1e3a8a] pb-4">
-                      <div className="space-y-1">
-                        <div className="text-[9pt] font-bold uppercase tracking-widest text-[#1e3a8a]">
+                    <div className="pt-3 flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-[#1e3a8a] pb-3">
+                      <div className="space-y-0.5">
+                        <div className="text-[8.5pt] font-bold uppercase tracking-widest text-[#1e3a8a]">
                           Ewidencja Korespondencji Przychodzącej • Rok akad. 2026/2027
                         </div>
-                        <h2 className="text-[13.5pt] font-bold text-[#111827] leading-snug uppercase tracking-tight">
+                        <h2 className="text-[13pt] font-bold text-[#111827] leading-snug uppercase tracking-tight">
                           Karta Ewidencyjna Wpływu Kancelaryjnego
                         </h2>
-                        <p className="text-[9.5pt] text-[#4b5563]">
+                        <p className="text-[9pt] text-[#4b5563]">
                           Urzędowy odpis wiadomości / dokumentu zewnętrznego zarejestrowanego w Dzienniku Korespondencji Samorządu Studenckiego WSKZ
                         </p>
                       </div>
@@ -2734,7 +2774,7 @@ export default function CorrespondenceTab({
                     </div>
 
                     {/* Metryczka Wpływu (2x2 Grid) */}
-                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#f8fafc] border border-[#cbd5e1] rounded-md p-3.5 text-[10pt]">
+                    <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-[#f8fafc] border border-[#cbd5e1] rounded-md p-3 text-[9.5pt]">
                       <div className="space-y-0.5">
                         <div className="text-[8pt] font-bold uppercase tracking-wider text-[#475569]">
                           Nadawca zewnętrzny (Od kogo wpłynęło):
@@ -2747,7 +2787,7 @@ export default function CorrespondenceTab({
                             className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
                           />
                         ) : (
-                          <div className="font-bold text-[#0f172a] text-[10.5pt]">{previewFields.nadawca}</div>
+                          <div className="font-bold text-[#0f172a] text-[10pt]">{previewFields.nadawca}</div>
                         )}
                       </div>
 
@@ -2763,7 +2803,7 @@ export default function CorrespondenceTab({
                             className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
                           />
                         ) : (
-                          <div className="font-bold text-[#0f172a] text-[10.5pt]">{previewFields.odbiorca}</div>
+                          <div className="font-bold text-[#0f172a] text-[10pt]">{previewFields.odbiorca}</div>
                         )}
                       </div>
 
@@ -2785,7 +2825,7 @@ export default function CorrespondenceTab({
                     </div>
 
                     {/* Przedmiot Wpływu */}
-                    <div className="mt-4">
+                    <div className="mt-3.5">
                       <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1">
                         Przedmiot sprawy / Tytuł wpływu:
                       </div>
@@ -2794,59 +2834,59 @@ export default function CorrespondenceTab({
                           type="text"
                           value={previewFields.temat}
                           onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
-                          className="w-full border border-blue-400 rounded px-2.5 py-1.5 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                          className="w-full border border-blue-400 rounded px-2.5 py-1.5 text-[10.5pt] font-bold text-[#111827] bg-blue-50/30"
                         />
                       ) : (
-                        <div className="font-bold text-[11pt] text-[#111827] bg-[#f1f5f9] border-l-4 border-[#1e3a8a] px-3 py-2 rounded-r">
+                        <div className="font-bold text-[10.5pt] text-[#111827] bg-[#f1f5f9] border-l-4 border-[#1e3a8a] px-3 py-2 rounded-r">
                           {previewFields.temat}
                         </div>
                       )}
                     </div>
 
                     {/* Treść Otrzymanej Wiadomości / Streszczenie Merytoryczne Wpływu */}
-                    <div className="mt-4">
-                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#475569] mb-1.5">
+                    <div className="mt-3.5">
+                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#475569] mb-1">
                         Treść otrzymanej wiadomości / Streszczenie merytoryczne wpływu:
                       </div>
                       {isPreviewEditable ? (
                         <textarea
-                          rows={8}
+                          rows={6}
                           value={previewFields.tresc}
                           onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
-                          className="w-full border border-blue-400 rounded-md p-3 text-[10.5pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full border border-blue-400 rounded-md p-3 text-[10pt] leading-[1.55] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       ) : (
-                        <div className="border border-[#cbd5e1] rounded-md p-4 bg-white text-[10.5pt] leading-[1.6] text-[#111827] whitespace-pre-wrap text-justify min-h-[190px]">
+                        <div className="border border-[#cbd5e1] rounded-md p-3.5 bg-white text-[10pt] leading-[1.55] text-[#111827] whitespace-pre-wrap text-justify min-h-[135px]">
                           {previewFields.tresc}
                         </div>
                       )}
-                      <div className="mt-1 text-[8.5pt] text-[#64748b] italic">
+                      <div className="mt-1 text-[8pt] text-[#64748b] italic">
                         Powyższy zapis stanowi odpis / streszczenie treści korespondencji nadesłanej przez nadawcę zewnętrznego ({previewFields.nadawca}).
                       </div>
                     </div>
 
                     {/* Adnotacje Kancelaryjne / Dekretacja i Sposób Załatwienia */}
-                    <div className="mt-5 pt-3 border-t border-[#cbd5e1] break-inside-avoid">
-                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1.5">
+                    <div className="mt-4 pt-2.5 border-t border-[#cbd5e1] break-inside-avoid">
+                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1">
                         Adnotacje Kancelaryjne / Dekretacja i Sposób Załatwienia Sprawy:
                       </div>
                       {isPreviewEditable ? (
                         <textarea
-                          rows={3}
+                          rows={2}
                           value={previewFields.notes || ''}
                           onChange={(e) => setPreviewFields({ ...previewFields, notes: e.target.value })}
                           placeholder="Wpisz dyspozycje, dekretację lub adnotacje kancelaryjne..."
-                          className="w-full border border-blue-400 rounded-md p-2.5 text-[10pt] text-[#111827] bg-blue-50/20"
+                          className="w-full border border-blue-400 rounded-md p-2 text-[9.5pt] text-[#111827] bg-blue-50/20"
                         />
                       ) : (
-                        <div className="border border-dashed border-[#94a3b8] rounded-md p-3 bg-[#f8fafc] text-[9.5pt] text-[#334155] min-h-[64px] whitespace-pre-wrap">
+                        <div className="border border-dashed border-[#94a3b8] rounded-md p-2.5 bg-[#f8fafc] text-[9.5pt] text-[#334155] min-h-[52px] whitespace-pre-wrap">
                           {previewFields.notes
                             ? previewFields.notes
                             : `Przyjęto do ewidencji Dziennika Korespondencji Kancelarii Samorządu Studenckiego WSKZ pod sygnaturą ${previewFields.sygnatura}. Skierowano do właściwego odbiorcy (${previewFields.odbiorca}) celem rozpatrzenia zgodnie z właściwością.`}
                         </div>
                       )}
 
-                      <div className="mt-3 flex items-center justify-between text-[9pt] text-[#475569]">
+                      <div className="mt-2.5 flex items-center justify-between text-[9pt] text-[#475569]">
                         <div>
                           Wpis przyjął(a) do rejestru:{' '}
                           {isPreviewEditable ? (
@@ -2868,7 +2908,7 @@ export default function CorrespondenceTab({
                   </div>
 
                   {/* 1:1 WSKZ FOOTER SECTION */}
-                  <div className="pt-4 mt-4 break-inside-avoid select-none">
+                  <div className="pt-3 mt-3 break-inside-avoid select-none">
                     <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
                       <span>
                         Karta Ewidencyjna Wpływu • Przyjął(a) do rejestru:{' '}
