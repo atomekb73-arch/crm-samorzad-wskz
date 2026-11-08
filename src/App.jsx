@@ -36,6 +36,7 @@ import OperationalDecisionsTab from './components/OperationalDecisionsTab';
 import OrganizationsTab from './components/OrganizationsTab';
 import AccessControlTab from './components/AccessControlTab';
 import ContactsTab from './components/ContactsTab';
+import { getLocalContacts, saveLocalContact } from './services/contactsService';
 import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
@@ -161,7 +162,22 @@ export default function App() {
   const [orgsList, setOrgsList] = useState(() => {
     try {
       const stored = localStorage.getItem('kanc_organizations');
-      return stored ? JSON.parse(stored) : [];
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return getLocalContacts().clubs.map(c => ({
+        id: c.id,
+        name: c.name,
+        category: 'Koło Naukowe',
+        status: c.status || 'Aktywne',
+        leader: 'Zarząd Koła',
+        supervisor: c.supervisor || 'Instytut / Katedra WSKZ',
+        email: c.email || '',
+        description: c.description || '',
+        faculty: c.faculty || 'Wydział WSKZ',
+        membersCount: 0,
+      }));
     } catch {
       return [];
     }
@@ -708,6 +724,21 @@ export default function App() {
       } catch {}
       return updated;
     });
+
+    try {
+      saveLocalContact('clubs', {
+        id: org.id || `KN-${Date.now().toString().slice(-4)}`,
+        name: org.name,
+        faculty: org.faculty || 'Wydział WSKZ',
+        supervisor: org.supervisor || '',
+        email: org.email || '',
+        description: org.description || '',
+        status: org.status || 'Aktywne',
+      });
+    } catch (e) {
+      console.warn('Sync to contacts failed:', e);
+    }
+
     setToastMessage(`Zarejestrowano organizację ${org.name}`);
     setTimeout(() => setToastMessage(null), 4000);
   }, []);
@@ -1481,6 +1512,7 @@ export default function App() {
                     <OrganizationsTab
                       organizations={orgsList}
                       onAddOrganization={handleAddOrganization}
+                      onNavigateToLetter={handleNavigateToLetterFromContact}
                     />
                   );
 

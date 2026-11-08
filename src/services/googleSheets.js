@@ -1,3 +1,5 @@
+import { SEED_CLUBS_CONTACTS } from './contactsService';
+
 export function extractSheetId(input) {
   if (!input) return '';
   const str = String(input).trim();
@@ -1022,20 +1024,65 @@ export async function fetchAllKancelariaData(forceRefresh = false) {
       };
     });
 
-    // Normalizacja Kół i Organizacji
-    const studentClubs = rawKola.map((item, idx) => {
-      const id = item.sygnatura || item.id || `KN/${idx + 1}`;
+    // Normalizacja Kół i Organizacji z backendu Google Sheets
+    const normalizedCloudClubs = rawKola.map((item, idx) => {
+      const id = item.idOrganizacji || item.sygnatura || item.id || `KN/${idx + 1}`;
       return {
         ...item,
         id,
         sygnatura: id,
         name: item.nazwa || item.name || item.przedmiot || '',
         nazwa: item.nazwa || item.name || item.przedmiot || '',
-        leader: item.lider || item.leader || item.jednostka || 'Zarząd Koła',
-        lider: item.lider || item.leader || item.jednostka || 'Zarząd Koła',
+        leader: item.zarzad || item.lider || item.leader || item.jednostka || 'Zarząd Koła',
+        lider: item.zarzad || item.lider || item.leader || item.jednostka || 'Zarząd Koła',
+        supervisor: item.opiekun || item.supervisor || '',
+        opiekun: item.opiekun || item.supervisor || '',
         status: item.status || 'Aktywne',
+        email: item.email || '',
+        description: item.description || item.opis || '',
+        category: item.category || 'Koło Naukowe',
       };
     });
+
+    // Fuzja z oficjalną bazą 18 kół WSKZ (aby żadne koło, email ani opiekun nie zaginęły)
+    const seenNames = new Set(normalizedCloudClubs.map(c => (c.name || '').toLowerCase().trim()));
+    const missingOfficialClubs = (SEED_CLUBS_CONTACTS || []).filter(
+      c => !seenNames.has((c.name || '').toLowerCase().trim())
+    ).map(c => ({
+      id: c.id,
+      sygnatura: c.id,
+      name: c.name,
+      nazwa: c.name,
+      leader: 'Zarząd Koła',
+      lider: 'Zarząd Koła',
+      supervisor: c.supervisor || 'Instytut / Katedra WSKZ',
+      opiekun: c.supervisor || 'Instytut / Katedra WSKZ',
+      faculty: c.faculty || 'Wydział WSKZ',
+      category: 'Koło Naukowe',
+      status: c.status || 'Aktywne',
+      email: c.email || '',
+      description: c.description || '',
+      membersCount: 0,
+    }));
+
+    const studentClubs = [
+      ...normalizedCloudClubs.map(c => {
+        const official = (SEED_CLUBS_CONTACTS || []).find(o => 
+          (o.name || '').toLowerCase().trim() === (c.name || '').toLowerCase().trim() ||
+          (c.name || '').toLowerCase().includes((o.name || '').toLowerCase().slice(0, 15))
+        );
+        return {
+          ...c,
+          category: c.category || 'Koło Naukowe',
+          supervisor: c.supervisor || official?.supervisor || 'Instytut / Katedra WSKZ',
+          opiekun: c.opiekun || official?.supervisor || 'Instytut / Katedra WSKZ',
+          email: c.email || official?.email || '',
+          description: c.description || official?.description || '',
+          faculty: c.faculty || official?.faculty || 'Wydział WSKZ',
+        };
+      }),
+      ...missingOfficialClubs
+    ];
 
     const finalResult = {
       fasada: rawFasada,
