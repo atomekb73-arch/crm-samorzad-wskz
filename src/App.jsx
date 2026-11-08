@@ -35,6 +35,7 @@ import ItIssuesTab from './components/ItIssuesTab';
 import OperationalDecisionsTab from './components/OperationalDecisionsTab';
 import OrganizationsTab from './components/OrganizationsTab';
 import AccessControlTab from './components/AccessControlTab';
+import ContactsTab from './components/ContactsTab';
 import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
@@ -167,6 +168,24 @@ export default function App() {
   });
 
   const [selectedCorrespondenceItem, setSelectedCorrespondenceItem] = useState(null);
+
+  const handleNavigateToLetterFromContact = useCallback((contactInfo) => {
+    const recipientStr = contactInfo?.recipient || contactInfo?.name || '';
+    const nowIso = new Date().toISOString();
+    const draftItem = {
+      id: `DRAFT-${Date.now().toString().slice(-4)}`,
+      _mode: 'new_outgoing_letter',
+      direction: 'OUT',
+      typ: 'Wychodzące',
+      nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
+      odbiorca: recipientStr,
+      przedmiot: '',
+      status: 'W toku',
+      dataWplywu: nowIso.slice(0, 16).replace('T', ' '),
+    };
+    setSelectedCorrespondenceItem(draftItem);
+    setActiveTab('correspondence');
+  }, [setActiveTab]);
 
   // Master Data State for Koło / Members
   const [members, setMembers]       = useState([]);
@@ -1413,6 +1432,16 @@ export default function App() {
                       onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}
                       onSelectItem={setSelectedCorrespondenceItem}
+                    />
+                  );
+
+                case 'contacts':
+                case 'kontakty':
+                case 'ksiazka_adresowa':
+                case 'address_book':
+                  return (
+                    <ContactsTab
+                      onNavigateToLetter={handleNavigateToLetterFromContact}
                     />
                   );
 

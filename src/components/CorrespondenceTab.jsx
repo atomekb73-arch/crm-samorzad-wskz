@@ -43,6 +43,7 @@ import {
 } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
 import { sendToBackend } from '../services/googleSheets';
+import { getAddressBookAutocompleteOptions } from '../services/contactsService';
 
 // ── Oficjalne stopki podpisów Samorządu Studenckiego WSKZ (Kadencja 2026-2028) ───
 export const OFFICIAL_SIGNATURE_PROFILES = [
@@ -332,13 +333,7 @@ function CorrespondenceTab({
     });
   }, [currentUserName]);
 
-  useEffect(() => {
-    if (selectedItem) {
-      setActiveDrawerItem(selectedItem);
-      setIsEditing(false);
-      initEditForm(selectedItem);
-    }
-  }, [selectedItem, initEditForm]);
+  const addressBookOptions = useMemo(() => getAddressBookAutocompleteOptions(), []);
 
   // Form state for adding new correspondence
   const [newEntry, setNewEntry] = useState({
@@ -565,6 +560,26 @@ function CorrespondenceTab({
     }
   };
 
+  const getNextSignature = useCallback((dateStr, sourceList = []) => {
+    const dateMatch = String(dateStr || '').match(/^(\d{4})-(\d{2})/);
+    const now = new Date();
+    const yearStr = dateMatch ? dateMatch[1] : String(now.getFullYear());
+    const monthStr = dateMatch ? dateMatch[2] : String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `DK/${yearStr}/${monthStr}/`;
+    let maxSeq = 0;
+    (sourceList || []).forEach((item) => {
+      const syg = String(item?.sygnatura || item?.id || '').trim();
+      if (syg.startsWith(prefix)) {
+        const tail = syg.slice(prefix.length);
+        const num = parseInt(tail, 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+    return `${prefix}${String(maxSeq + 1).padStart(2, '0')}`;
+  }, []);
+
   const handleOpenPrintPreview = useCallback((item) => {
     if (!item) return;
     setGenerateDocNotice(null);
@@ -613,6 +628,32 @@ function CorrespondenceTab({
     setIsPreviewEditable(false);
     setPreviewLetterItem(item);
   }, [currentUserName]);
+
+  useEffect(() => {
+    if (selectedItem) {
+      if (selectedItem._mode === 'new_outgoing_letter') {
+        const sourceList = Array.isArray(allCorrespondence) && allCorrespondence.length > 0 ? allCorrespondence : correspondence;
+        const nextSig = getNextSignature(getCurrentLocalDateTimeString(), sourceList);
+        handleOpenPrintPreview({
+          ...selectedItem,
+          sygnatura: nextSig,
+          id: nextSig,
+          typ: 'Wychodzące',
+          direction: 'OUT',
+          przedmiot: selectedItem.przedmiot || 'Wystąpienie Kancelarii Samorządu Studenckiego',
+          nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
+          odbiorca: selectedItem.odbiorca || '',
+          dataWplywu: getCurrentLocalDateTimeString(),
+          status: 'W toku',
+          tresc: '',
+        });
+      } else {
+        setActiveDrawerItem(selectedItem);
+        setIsEditing(false);
+        initEditForm(selectedItem);
+      }
+    }
+  }, [selectedItem, initEditForm, handleOpenPrintPreview, getNextSignature, allCorrespondence, correspondence]);
 
   const handleReplyToIncoming = useCallback((item) => {
     if (!item) return;
@@ -820,23 +861,8 @@ function CorrespondenceTab({
     const displayDate = formattedDataWplywu.slice(0, 10);
 
     // Sekwencyjny generator sygnatur DK/RRRR/MM/NR (od 01 w danym miesiącu, lub najwyższy numer + 1)
-    const dateMatch = displayDate.match(/^(\d{4})-(\d{2})/);
-    const yearStr = dateMatch ? dateMatch[1] : String(new Date().getFullYear());
-    const monthStr = dateMatch ? dateMatch[2] : String(new Date().getMonth() + 1).padStart(2, '0');
-    const prefix = `DK/${yearStr}/${monthStr}/`;
     const sourceList = (Array.isArray(allCorrespondence) && allCorrespondence.length > 0) ? allCorrespondence : correspondence;
-    let maxSeq = 0;
-    sourceList.forEach((item) => {
-      const syg = String(item?.sygnatura || item?.id || '').trim();
-      if (syg.startsWith(prefix)) {
-        const tail = syg.slice(prefix.length);
-        const num = parseInt(tail, 10);
-        if (!isNaN(num) && num > maxSeq) {
-          maxSeq = num;
-        }
-      }
-    });
-    const nextId = `${prefix}${String(maxSeq + 1).padStart(2, '0')}`;
+    const nextId = getNextSignature(displayDate, sourceList);
 
     const entryToSave = {
       action: "zarejestruj_pismo",
@@ -898,6 +924,15 @@ function CorrespondenceTab({
 
   return (
     <div className="space-y-4">
+      {/* Central Datalist for Address Book Autocomplete */}
+      <datalist id="addressBookOptions">
+        {addressBookOptions.map((opt, idx) => (
+          <option key={idx} value={opt.label}>
+            {opt.badge} • {opt.institution}
+          </option>
+        ))}
+      </datalist>
+
       {/* ── Top Header & Actions ────────────────────────────────────────── */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
@@ -1790,6 +1825,7 @@ function CorrespondenceTab({
                         id="edit-nadawca"
                         name="editNadawca"
                         type="text"
+                        list="addressBookOptions"
                         required
                         value={editForm.nadawca || ''}
                         onChange={(e) => setEditForm({ ...editForm, nadawca: e.target.value, sender: e.target.value })}
@@ -1806,6 +1842,7 @@ function CorrespondenceTab({
                         id="edit-odbiorca"
                         name="editOdbiorca"
                         type="text"
+                        list="addressBookOptions"
                         required
                         value={editForm.odbiorca || ''}
                         onChange={(e) => setEditForm({ ...editForm, odbiorca: e.target.value, recipient: e.target.value })}
@@ -2304,6 +2341,7 @@ function CorrespondenceTab({
                       id="new-sender"
                       name="newSender"
                       type="text"
+                      list="addressBookOptions"
                       required
                       placeholder="np. Dziekanat WNS / Koło Naukowe"
                       value={newEntry.sender}
@@ -2320,6 +2358,7 @@ function CorrespondenceTab({
                       id="new-recipient"
                       name="newRecipient"
                       type="text"
+                      list="addressBookOptions"
                       required
                       placeholder="np. Kancelaria Samorządu Studenckiego WSKZ"
                       value={newEntry.recipient}
@@ -2770,6 +2809,7 @@ function CorrespondenceTab({
                         {isPreviewEditable ? (
                           <input
                             type="text"
+                            list="addressBookOptions"
                             value={previewFields.nadawca}
                             onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
                             className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
@@ -2786,6 +2826,7 @@ function CorrespondenceTab({
                         {isPreviewEditable ? (
                           <input
                             type="text"
+                            list="addressBookOptions"
                             value={previewFields.odbiorca}
                             onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
                             className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
@@ -2938,6 +2979,7 @@ function CorrespondenceTab({
                           {isPreviewEditable ? (
                             <input
                               type="text"
+                              list="addressBookOptions"
                               value={previewFields.nadawca}
                               onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
                               className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
@@ -2975,6 +3017,7 @@ function CorrespondenceTab({
                           {isPreviewEditable ? (
                             <input
                               type="text"
+                              list="addressBookOptions"
                               value={previewFields.odbiorca}
                               onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
                               className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
