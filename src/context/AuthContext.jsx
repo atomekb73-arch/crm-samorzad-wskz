@@ -227,9 +227,11 @@ export function AuthProvider({ children }) {
           }
           return {
             ...parsed,
-            name: MASTER_ADMIN_EMAILS.some(m => m.toLowerCase() === email)
+            name: (email.includes('atomek') || email.includes('atonex') || name.includes('bratkowski') || name.includes('tomasz'))
+              ? 'Tomasz Bratkowski'
+              : MASTER_ADMIN_EMAILS.some(m => m.toLowerCase() === email)
               ? 'Kancelaria Samorządu Studenckiego WSKZ'
-              : (parsed.name || 'Kancelaria Samorządu Studenckiego WSKZ'),
+              : (parsed.name || 'Tomasz Bratkowski'),
           };
         }
       }
@@ -326,7 +328,9 @@ export function AuthProvider({ children }) {
 
     if (isMaster) {
       role = 'SUPER_ADMIN';
-      name = 'Kancelaria Samorządu Studenckiego WSKZ';
+      name = (cleanEmail.includes('atomek') || cleanEmail.includes('atonex'))
+        ? 'Tomasz Bratkowski'
+        : 'Kancelaria Samorządu Studenckiego WSKZ';
     } else if (isDefaultBoard) {
       role = 'SUPER_ADMIN';
       name = 'Kancelaria Samorządu Studenckiego WSKZ';
@@ -605,7 +609,11 @@ export function AuthProvider({ children }) {
 
     const newUser = {
       email,
-      name: isMaster ? 'Kancelaria Samorządu Studenckiego WSKZ' : (payload.name || payload.given_name || email.split('@')[0]),
+      name: (email.includes('atomek') || email.includes('atonex') || email.includes('bratkowski'))
+        ? 'Tomasz Bratkowski'
+        : isMaster
+        ? 'Kancelaria Samorządu Studenckiego WSKZ'
+        : (payload.name || payload.given_name || email.split('@')[0]),
       avatarUrl: payload.picture || '',
       role: isMaster ? 'SUPER_ADMIN' : 'COORDINATOR',
       accessibleOrgs: ['*'],

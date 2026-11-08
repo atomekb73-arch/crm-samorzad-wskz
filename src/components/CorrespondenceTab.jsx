@@ -48,6 +48,12 @@ import { getAddressBookAutocompleteOptions } from '../services/contactsService';
 // ── Oficjalne stopki podpisów Samorządu Studenckiego WSKZ (Kadencja 2026-2028) ───
 export const OFFICIAL_SIGNATURE_PROFILES = [
   {
+    id: 'tomasz_bratkowski',
+    name: 'Tomasz Bratkowski',
+    title: 'Sekretarz Samorządu Studenckiego',
+    closing: 'Z wyrazami szacunku,',
+  },
+  {
     id: 'agnieszka_rusnarczyk',
     name: 'Agnieszka Rusnarczyk',
     title: 'Przewodnicząca Samorządu Studenckiego',
@@ -57,12 +63,6 @@ export const OFFICIAL_SIGNATURE_PROFILES = [
     id: 'aleksandra_zerdzinska',
     name: 'Aleksandra Żerdzińska',
     title: 'Zastępca Przewodniczącej Samorządu Studenckiego',
-    closing: 'Z wyrazami szacunku,',
-  },
-  {
-    id: 'tomasz_bratkowski',
-    name: 'Tomasz Bratkowski',
-    title: 'Sekretarz Samorządu Studenckiego',
     closing: 'Z wyrazami szacunku,',
   },
 ];
@@ -272,7 +272,12 @@ function CorrespondenceTab({
   onSelectItem = () => {},
 }) {
   const { user } = useAuth();
-  const currentUserName = user?.name || user?.email || 'Agnieszka (Samorząd)';
+  const currentUserName =
+    (user?.name && !user.name.includes('Kancelaria'))
+      ? user.name
+      : (user?.email?.toLowerCase().includes('atomek') || user?.email?.toLowerCase().includes('atonex'))
+      ? 'Tomasz Bratkowski'
+      : user?.name || user?.email || 'Tomasz Bratkowski';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, IN, OUT
