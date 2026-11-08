@@ -689,6 +689,177 @@ export const OFFICIAL_2026_2027_CORRESPONDENCE = [
     odbiorca: "Tomasz Bratkowski (Sekretarz RSS)",
     przedmiot: "Dystrybucja zaproszenia na anglojęzyczne studia Peacebuilding ze zniżką studencką",
     status: "Zatwierdzone"
+  },
+  {
+    sygnatura: "DK/2026/10/28",
+    dataWplywu: "2026-10-01 12:27",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    przedmiot: "Potwierdzenie gotowości Samorządu do asysty organizacyjnej podczas Immatrykulacji",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/29",
+    dataWplywu: "2026-10-05 21:45",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    przedmiot: "Wniosek o zarządzenie wyborów Starostów Roku wraz ze wzorem formularza zgody i plakatem",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/30",
+    dataWplywu: "2026-10-05 21:48",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    przedmiot: "Przekazanie wniosku studenta (Sz. Szumigała) ws. uprawnień na urlopie i mLegitymacji",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/31",
+    dataWplywu: "2026-10-07 07:06",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Bogna Bartosz (Prorektor ds. Studenckich)",
+    przedmiot: "Wystąpienie Samorządu o zmianę terminu zjazdu stacjonarnego z 2-3 stycznia 2027 r. (kwestie ekonomiczne)",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/32",
+    dataWplywu: "2026-10-07 07:25",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Joanna Lauer (Studentka psychologii)",
+    przedmiot: "Wyjaśnienie struktury organów samorządowych, trybu reprezentacji oraz bieżących priorytetów",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/33",
+    dataWplywu: "2026-10-07 07:49",
+    typ: "Wychodzące",
+    nadawca: "Tomasz Bratkowski (Sekretarz RSS)",
+    odbiorca: "Małgorzata Leszczyńska / DW: dr M. El Ghamari",
+    przedmiot: "Potwierdzenie rejestracji wykładu prof. L. Hajdariego w kalendarzu wydarzeń studenckich",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/34",
+    dataWplywu: "2026-10-07 07:54",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Krzysztof Siuda (Prodziekan W. Psychologii)",
+    przedmiot: "Przekazanie wniosku o urlop dziekański studentki (A. Mikołajczyk) z prośbą o wsparcie",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/35",
+    dataWplywu: "2026-10-07 08:03",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Prodziekani: dr S. Zakrzewska, dr Ł. Cymbaluk, dr K. Siuda",
+    przedmiot: "Zapytanie dotyczące oficjalnego harmonogramu organizacji roku 2026/2027 dla studiów hybrydowych",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/36",
+    dataWplywu: "2026-10-07 08:07",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Prodziekani: dr S. Zakrzewska, dr K. Siuda, dr Ł. Cymbaluk",
+    przedmiot: "Zgłoszenie składu zespołu roboczego ds. opracowania Informatora Studenckiego (Wrocław / Hybryda)",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/37",
+    dataWplywu: "2026-10-07 14:06",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Aleksandra Lipińska (Psychologia)",
+    przedmiot: "Pouczenie o ścieżce formalnej składania wniosków o indywidualną zmianę grupy zajęciowej",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/38",
+    dataWplywu: "2026-10-12 15:58",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Ireneusz Pawlik (alb. 30645)",
+    przedmiot: "Pouczenie proceduralne dotyczące różnicy między mandatem Starosty Roku a Starosty Grupy",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/39",
+    dataWplywu: "2026-10-12 17:59",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "dr Krzysztof Siuda (Prodziekan W. Psychologii)",
+    przedmiot: "Zawiadomienie o rezygnacji kandydata z ubiegania się o funkcję Starosty Roku Psychologii",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/40",
+    dataWplywu: "2026-10-13 12:33",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Błażej Skakuj",
+    przedmiot: "Informacja o kalendarzu wyborczym oraz terminie rekrutacji uzupełniającej do Samorządu",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/41",
+    dataWplywu: "2026-10-13 12:35",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Zastępczyni Przewodniczącej)",
+    odbiorca: "Szymon Szumigała / DW: dr B. Bartosz",
+    przedmiot: "Wskazanie jednostki właściwej (Dziekanat) do procedowania przedłużenia legitymacji",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/42",
+    dataWplywu: "2026-10-20 13:16",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "Szymon Manikowski (alb. 35172)",
+    przedmiot: "Zaproszenie na spotkanie rekrutacyjne online dotyczące działalności w strukturach Samorządu",
+    status: "W toku"
+  },
+  {
+    sygnatura: "DK/2026/10/43",
+    dataWplywu: "2026-10-21 09:42",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "dr Sylwia Zakrzewska (Prodziekan WPBik)",
+    przedmiot: "Zadeklarowanie współpracy wydziałowej, pozyskanie przedstawiciela studentów Prawa i dyżur na Koszarowej",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/44",
+    dataWplywu: "2026-10-21 15:46",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "dr Kamil Stępniak (Dziekan) / DW: dr A. Kazanecka, dr B. Bartosz",
+    przedmiot: "Oficjalne sprawozdanie z przebiegu procedury wyborczej i kalendarza wyborów Starostów Roku",
+    status: "Zakończone"
+  },
+  {
+    sygnatura: "DK/2026/10/45",
+    dataWplywu: "2026-10-23 12:44",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "dr Bogna Bartosz / DW: dr A. Kazanecka, dr K. Stępniak, A. Piguła",
+    przedmiot: "Złożenie oświadczenia o rezygnacji z funkcji Przewodniczącej Samorządu Studenckiego",
+    status: "Wycofane"
+  },
+  {
+    sygnatura: "DK/2026/10/46",
+    dataWplywu: "2026-10-24 07:32",
+    typ: "Wychodzące",
+    nadawca: "Agnieszka Rusnarczyk (Przewodnicząca RSS)",
+    odbiorca: "dr Bogna Bartosz / DW: dr A. Kazanecka, dr K. Stępniak, A. Piguła",
+    przedmiot: "Oficjalny wniosek o wycofanie rezygnacji z funkcji Przewodniczącej Samorządu Studenckiego",
+    status: "Zatwierdzone"
   }
 ];
 
