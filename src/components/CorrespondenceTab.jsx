@@ -7,6 +7,7 @@ import {
   Plus,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeft,
   X,
   FileText,
   Paperclip,
@@ -270,6 +271,7 @@ function CorrespondenceTab({
   onRefreshData = () => {},
   selectedItem = null,
   onSelectItem = () => {},
+  onReturnToTab = null,
 }) {
   const { user } = useAuth();
   const currentUserName =
@@ -585,27 +587,32 @@ function CorrespondenceTab({
     return `${prefix}${String(maxSeq + 1).padStart(2, '0')}`;
   }, []);
 
-  const handleOpenPrintPreview = useCallback((item) => {
+  const handleOpenPrintPreview = useCallback((item, startInEditMode = false) => {
     if (!item) return;
     setGenerateDocNotice(null);
     const isIncoming = item.direction === 'IN' || item.typ === 'Wchodzące';
+    const isNew = Boolean(item.isNewLetter || item._mode === 'new_outgoing_letter');
     const rawDateFull = String(item.dataWplywu || item.data || item.date || new Date().toISOString()).trim();
     const rawDate = rawDateFull.slice(0, 10);
     const rawBody = (item.tresc || item.summary || '').trim();
-    const rawSubj = (item.przedmiot || item.subject || item.temat || 'Sprawa urzędowa').trim();
+    const rawSubj = (item.przedmiot || item.subject || item.temat || (isNew ? '' : 'Sprawa urzędowa')).trim();
     const syg = item.sygnatura || item.id || 'DK/2026/11/01';
     const inSender = item.nadawca || item.sender || (isIncoming ? 'Nadawca zewnętrzny' : 'Samorząd Studencki WSKZ');
     const inRecipient = item.odbiorca || item.recipient || (isIncoming ? 'Samorząd Studencki WSKZ' : 'Dziekanat WNS / Władze Uczelni WSKZ');
 
-    // Dla pism wychodzących generujemy treść oficjalnego pisma Samorządu;
-    // dla pism przychodzących zachowujemy autentyczną treść wiadomości lub (gdy w bazie zapisano tylko tytuł) generujemy neutralny opis kancelaryjny wpływu bez powtarzania samego tytułu 1:1
-    const defaultBody = isIncoming
-      ? (!rawBody || rawBody === rawSubj)
+    // Dla nowego pisma nie wstawiamy sztucznej, gotowej treści – użytkownik tworzy dokument od podstaw
+    let defaultBody = '';
+    if (isIncoming) {
+      defaultBody = (!rawBody || rawBody === rawSubj)
         ? `Wpływ korespondencji zewnętrznej nadesłanej przez: ${inSender}, skierowanej do: ${inRecipient}.\n\nZakres merytoryczny wystąpienia:\n${rawSubj}.\n\nDokument został przyjęty do ewidencji Dziennika Korespondencji Kancelarii Samorządu Studenckiego WSKZ pod sygnaturą ${syg} (data doręczenia: ${rawDateFull}).`
-        : rawBody
-      : (!rawBody || rawBody === rawSubj)
+        : rawBody;
+    } else if (isNew) {
+      defaultBody = rawBody || '';
+    } else {
+      defaultBody = (!rawBody || rawBody === rawSubj)
         ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
         : rawBody;
+    }
 
     const candidateSigner = !isIncoming
       ? (item.autor || item.nadawca || item.sender || currentUserName || DEFAULT_OFFICIAL_SIGNATURE.name)
@@ -614,6 +621,8 @@ function CorrespondenceTab({
 
     setPreviewFields({
       isIncoming,
+      isNewLetter: isNew,
+      originTab: item.originTab || selectedItem?.originTab || null,
       miejsceData: `Wrocław, dnia ${rawDate} r.`,
       dataWplywuFull: rawDateFull,
       sygnatura: syg,
@@ -626,32 +635,44 @@ function CorrespondenceTab({
       sourceCitation: item.sourceCitation || '',
       selectedSignatureId: matchedProfile ? matchedProfile.id : 'custom',
       autor: matchedProfile ? matchedProfile.name : candidateSigner,
-      stanowisko: matchedProfile ? matchedProfile.title : 'Samorząd Studencki WSKZ',
+      stanowisko: matchedProfile ? matchedProfile.title : 'Sekretarz Samorządu Studenckiego',
       closing: matchedProfile ? matchedProfile.closing : 'Z wyrazami szacunku,',
       isCustomAuthor: !matchedProfile,
     });
-    setIsPreviewEditable(false);
+    setIsPreviewEditable(Boolean(startInEditMode || isNew));
     setPreviewLetterItem(item);
-  }, [currentUserName]);
+  }, [currentUserName, selectedItem]);
+
+  const handleClosePreviewModal = useCallback(() => {
+    const origin = previewFields?.originTab || previewLetterItem?.originTab || selectedItem?.originTab;
+    setPreviewLetterItem(null);
+    if (onSelectItem) onSelectItem(null);
+    if (origin && onReturnToTab) {
+      onReturnToTab(origin);
+    }
+  }, [previewFields, previewLetterItem, selectedItem, onSelectItem, onReturnToTab]);
 
   useEffect(() => {
     if (selectedItem) {
       if (selectedItem._mode === 'new_outgoing_letter') {
         const sourceList = Array.isArray(allCorrespondence) && allCorrespondence.length > 0 ? allCorrespondence : correspondence;
         const nextSig = getNextSignature(getCurrentLocalDateTimeString(), sourceList);
+        setActiveDrawerItem(null); // Nie otwieramy bocznego panelu pod modalem
+        setIsEditing(false);
         handleOpenPrintPreview({
           ...selectedItem,
           sygnatura: nextSig,
           id: nextSig,
           typ: 'Wychodzące',
           direction: 'OUT',
-          przedmiot: selectedItem.przedmiot || 'Wystąpienie Kancelarii Samorządu Studenckiego',
+          przedmiot: selectedItem.przedmiot || '',
           nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
           odbiorca: selectedItem.odbiorca || '',
           dataWplywu: getCurrentLocalDateTimeString(),
           status: 'W toku',
           tresc: '',
-        });
+          isNewLetter: true,
+        }, true);
       } else {
         setActiveDrawerItem(selectedItem);
         setIsEditing(false);
@@ -714,6 +735,7 @@ function CorrespondenceTab({
 
   const handleSavePreviewChanges = async () => {
     if (!previewLetterItem) return;
+    const isNew = Boolean(previewLetterItem.isNewLetter || previewLetterItem._mode === 'new_outgoing_letter');
     const updated = {
       ...previewLetterItem,
       przedmiot: previewFields.temat,
@@ -727,15 +749,29 @@ function CorrespondenceTab({
       summary: previewFields.tresc,
       autor: previewFields.autor,
       notes: previewFields.notes !== undefined ? previewFields.notes : previewLetterItem.notes,
+      isNewLetter: false,
+      _mode: undefined,
     };
     setPreviewLetterItem(updated);
     if (activeDrawerItem && (activeDrawerItem.id === updated.id || activeDrawerItem.sygnatura === updated.sygnatura)) {
       setActiveDrawerItem(updated);
     }
     setIsPreviewEditable(false);
-    if (onEditCorrespondence) {
+
+    const exists = correspondence.some(
+      (c) => (c.sygnatura && c.sygnatura === updated.sygnatura) || (c.id && c.id === updated.id)
+    );
+
+    if (!exists && onAddCorrespondence) {
+      await onAddCorrespondence(updated);
+    } else if (onEditCorrespondence) {
       await onEditCorrespondence(updated);
     }
+
+    setGenerateDocNotice({
+      type: 'success',
+      text: `Pismo zostało zapisane w Dzienniku Korespondencji (${updated.sygnatura}). Możesz teraz pobrać wydruk PDF lub zapisać w Google Docs.`,
+    });
   };
 
   const handleGenerateDoc = async (item) => {
@@ -1277,21 +1313,21 @@ function CorrespondenceTab({
         </div>
       </div>
 
-      {/* ── Slide-over Drawer: Szczegóły sprawy i cytaty źródłowe ─────────── */}
+      {/* ── Wyśrodkowany Panel Sprawy: Szczegóły i edycja na środku ekranu ─────────── */}
       {activeDrawerItem && (
-        <div className="fixed inset-0 z-50 overflow-hidden print:hidden">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:hidden animate-in fade-in duration-150">
+          {/* Tło zamykające po kliknięciu poza okno */}
           <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 -z-10"
             onClick={handleCloseDrawer}
           />
 
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+          <div className="w-full max-w-3xl max-h-[92vh] flex flex-col my-auto">
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="drawer-title"
-              className="w-screen max-w-xl bg-white shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200"
+              className="w-full bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col justify-between overflow-hidden animate-in zoom-in-95 duration-150 max-h-[92vh]"
             >
               
               {/* Drawer Header */}
@@ -2675,9 +2711,21 @@ function CorrespondenceTab({
                     <span>Drukuj / Zapisz PDF</span>
                   </button>
 
+                  {(previewFields.originTab === 'contacts' || previewLetterItem?.originTab === 'contacts') && (
+                    <button
+                      type="button"
+                      onClick={handleClosePreviewModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+                      title="Zamknij pismo i wróć do Książki Adresowej"
+                    >
+                      <ArrowLeft size={14} />
+                      <span>Powrót do kontaktów</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => setPreviewLetterItem(null)}
+                    onClick={handleClosePreviewModal}
                     className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
                     title="Zamknij podgląd"
                   >
@@ -3049,12 +3097,13 @@ function CorrespondenceTab({
                               type="text"
                               value={previewFields.temat}
                               onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
-                              className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                              placeholder="Wpisz temat / sprawę (np. Wystąpienie w sprawie organizacji roku)..."
+                              className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                         ) : (
                           <div className="font-bold text-[11pt] text-[#111827]">
-                            <span className="underline">Dotyczy:</span> {previewFields.temat}
+                            <span className="underline">Dotyczy:</span> {previewFields.temat || <span className="text-slate-400 font-normal italic">— (brak tematu)</span>}
                           </div>
                         )}
                       </div>
@@ -3070,12 +3119,13 @@ function CorrespondenceTab({
                               rows={10}
                               value={previewFields.tresc}
                               onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
-                              className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Wpisz treść oficjalnego pisma (np. Szanowni Państwo, ...)..."
+                              className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
                             />
                           </div>
                         ) : (
                           <div className="whitespace-pre-wrap text-justify min-h-[220px] print:min-h-0">
-                            {previewFields.tresc}
+                            {previewFields.tresc || <span className="text-slate-400 italic">Brak treści pisma.</span>}
                           </div>
                         )}
                       </div>

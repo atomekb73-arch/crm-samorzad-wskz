@@ -175,6 +175,7 @@ export default function App() {
     const draftItem = {
       id: `DRAFT-${Date.now().toString().slice(-4)}`,
       _mode: 'new_outgoing_letter',
+      originTab: 'contacts',
       direction: 'OUT',
       typ: 'Wychodzące',
       nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
@@ -1432,6 +1433,10 @@ export default function App() {
                       onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}
                       onSelectItem={setSelectedCorrespondenceItem}
+                      onReturnToTab={(tab) => {
+                        setSelectedCorrespondenceItem(null);
+                        if (tab) setActiveTab(tab);
+                      }}
                     />
                   );
 
