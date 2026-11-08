@@ -27,8 +27,8 @@ const envSheetInput = import.meta.env?.VITE_GOOGLE_SHEET_ID || import.meta.env?.
 export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : decodeSheetKey(OBFUSCATED_SHEET_KEY);
 
 // ─── Produkcyjny Endpoint Google Apps Script (SSOT) ──────────────────────────
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyeHYakuXo9EK0iswEr3YMRDVTcAZakFQ_x7OW66KsFHo5jZJjfeXy73voAmEPun-Kk2g/exec";
-export const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCJqYsmHy4lfHXMm5AVDf-slaMy56nPERpZrdlJkWRomGhSaw-31caDyqEhrd6p6zykw/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyx5x4zaa0WTSX_JwrmAfCk0RUWwnuzDqzG5Dzf5l8zt11wHFt0zVugeMv8BPuUP0PyEA/exec";
+export const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyeHYakuXo9EK0iswEr3YMRDVTcAZakFQ_x7OW66KsFHo5jZJjfeXy73voAmEPun-Kk2g/exec";
 
 // ─── Jednolity nadrzędny identyfikator źródła (Kancelaria_API_Public) ───────
 export const PUBLIC_SHEET_GID = "79778458"; // Zakładka: Kancelaria_API_Public
