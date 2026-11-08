@@ -521,14 +521,13 @@ export default function App() {
     try {
       await sendToBackend(payload);
       setToastMessage(`Zarejestrowano pismo ${nextId} w backendzie`);
-      await loadData();
     } catch (err) {
       console.error('Błąd zapisu pisma w chmurze:', err);
       setToastMessage(`Zapisano lokalnie (błąd chmury: ${err.message})`);
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [loadData, user]);
+  }, [user]);
 
   const handleEditCorrespondence = useCallback(async (entry) => {
     const sygnatura = entry.sygnatura || entry.id;
@@ -581,14 +580,13 @@ export default function App() {
     try {
       await sendToBackend(payload);
       setToastMessage("Pomyślnie zaktualizowano dane pisma w Kancelarii");
-      await loadData();
     } catch (err) {
       console.error('Błąd edycji pisma w chmurze:', err);
       setToastMessage("Pomyślnie zaktualizowano dane pisma w Kancelarii");
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [loadData]);
+  }, []);
 
   const handleDeleteCorrespondence = useCallback(async (sygnatura) => {
     const payload = {
@@ -603,13 +601,12 @@ export default function App() {
 
     try {
       await sendToBackend(payload);
-      await loadData();
     } catch (err) {
       console.error('Błąd usuwania pisma w chmurze:', err);
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [loadData]);
+  }, []);
 
   const handleAddItIssue = useCallback(async (issue) => {
     const nextId = issue.idZgloszenia || issue.id || `IT-2026-${String(itIssues.length + 1).padStart(3, '0')}`;
@@ -630,14 +627,13 @@ export default function App() {
     try {
       await sendToBackend(payload);
       setToastMessage(`Zarejestrowano zgłoszenie ${nextId} w backendzie`);
-      await loadData();
     } catch (err) {
       console.error('Błąd zapisu zgłoszenia IT w chmurze:', err);
       setToastMessage(`Zapisano lokalnie (błąd chmury: ${err.message})`);
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [itIssues.length, loadData]);
+  }, [itIssues.length]);
 
   const handleChangeStatus = useCallback(async (module, id, newStatus) => {
     const isCorrespondence = module === 'correspondence' || module === 'korespondencja';
@@ -660,14 +656,17 @@ export default function App() {
     try {
       await sendToBackend(payload);
       setToastMessage(`Zaktualizowano status ${id} na "${newStatus}"`);
-      await loadData();
     } catch (err) {
       console.error('Błąd aktualizacji statusu sprawy:', err);
       setToastMessage(`Błąd aktualizacji statusu: ${err.message}`);
     } finally {
       setTimeout(() => setToastMessage(null), 4000);
     }
-  }, [loadData]);
+  }, []);
+
+  const handleCorrespondenceStatusChange = useCallback((id, newStatus) => {
+    handleChangeStatus('korespondencja', id, newStatus);
+  }, [handleChangeStatus]);
 
   const handleAddDecision = useCallback((decision) => {
     setDecisions(prev => {
@@ -1410,7 +1409,7 @@ export default function App() {
                       onAddCorrespondence={handleAddCorrespondence}
                       onEditCorrespondence={handleEditCorrespondence}
                       onDeleteCorrespondence={handleDeleteCorrespondence}
-                      onChangeStatus={(id, newStatus) => handleChangeStatus('korespondencja', id, newStatus)}
+                      onChangeStatus={handleCorrespondenceStatusChange}
                       onRefreshData={loadData}
                       selectedItem={selectedCorrespondenceItem}
                       onSelectItem={setSelectedCorrespondenceItem}

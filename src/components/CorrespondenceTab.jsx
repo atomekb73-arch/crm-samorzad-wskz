@@ -258,7 +258,7 @@ const CorrespondenceTableRow = React.memo(function CorrespondenceTableRow({ item
   );
 });
 
-export default function CorrespondenceTab({
+function CorrespondenceTab({
   correspondence = [],
   allCorrespondence = [],
   academicYear = '2026/2027',
@@ -466,35 +466,25 @@ export default function CorrespondenceTab({
 
   const handleOpenDrawer = useCallback((item) => {
     setGenerateDocNotice(null);
-    startTransition(() => {
-      setActiveDrawerItem(item);
-      setIsEditing(false);
-      initEditForm(item);
-    });
-    onSelectItem(item);
-  }, [initEditForm, onSelectItem]);
+    setActiveDrawerItem(item);
+    setIsEditing(false);
+    initEditForm(item);
+  }, [initEditForm]);
 
   const handleCloseDrawer = useCallback(() => {
     setGenerateDocNotice(null);
-    startTransition(() => {
-      setActiveDrawerItem(null);
-      setIsEditing(false);
-    });
-    onSelectItem(null);
-  }, [onSelectItem]);
+    setActiveDrawerItem(null);
+    setIsEditing(false);
+  }, []);
 
   const handleStartEdit = useCallback((item) => {
-    startTransition(() => {
-      initEditForm(item || activeDrawerItem);
-      setIsEditing(true);
-    });
+    initEditForm(item || activeDrawerItem);
+    setIsEditing(true);
   }, [initEditForm, activeDrawerItem]);
 
   const handleCancelEdit = useCallback(() => {
-    startTransition(() => {
-      initEditForm(activeDrawerItem);
-      setIsEditing(false);
-    });
+    initEditForm(activeDrawerItem);
+    setIsEditing(false);
   }, [initEditForm, activeDrawerItem]);
 
   const handleSaveEdit = async () => {
@@ -536,11 +526,9 @@ export default function CorrespondenceTab({
       notes: editForm.notes || '',
     };
 
-    // Optimistic UI update inside transition
-    startTransition(() => {
-      setActiveDrawerItem(updatedEntry);
-      setIsEditing(false);
-    });
+    // Optimistic UI update
+    setActiveDrawerItem(updatedEntry);
+    setIsEditing(false);
 
     try {
       if (onEditCorrespondence) {
@@ -3209,3 +3197,5 @@ export default function CorrespondenceTab({
     </div>
   );
 }
+
+export default React.memo(CorrespondenceTab);

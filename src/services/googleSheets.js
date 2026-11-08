@@ -27,8 +27,8 @@ const envSheetInput = import.meta.env?.VITE_GOOGLE_SHEET_ID || import.meta.env?.
 export const SHEET_ID = envSheetInput ? extractSheetId(envSheetInput) : decodeSheetKey(OBFUSCATED_SHEET_KEY);
 
 // ─── Produkcyjny Endpoint Google Apps Script (SSOT) ──────────────────────────
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJdbQmolnJiNCYwSvymVPg7xFBHRpZHqcbHHp3-EfsyxyfOHXVcF8CeLU55M7n5AiMEA/exec";
-export const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywGTxS2UGOBS0MW-Y1FpHJdrhIGMaHwepRV7pMQWDZEJj0CKUFBEyn5cgkeiEMPX7ULg/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywGTxS2UGOBS0MW-Y1FpHJdrhIGMaHwepRV7pMQWDZEJj0CKUFBEyn5cgkeiEMPX7ULg/exec";
+export const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJdbQmolnJiNCYwSvymVPg7xFBHRpZHqcbHHp3-EfsyxyfOHXVcF8CeLU55M7n5AiMEA/exec";
 
 // ─── Jednolity nadrzędny identyfikator źródła (Kancelaria_API_Public) ───────
 export const PUBLIC_SHEET_GID = "79778458"; // Zakładka: Kancelaria_API_Public
@@ -863,8 +863,22 @@ export const OFFICIAL_2026_2027_CORRESPONDENCE = [
   }
 ];
 
+// ─── Pamięć podręczna w sesji (przyspiesza przeglądanie i nawigację) ─────────
+let _kancelariaCache = null;
+let _kancelariaCacheTime = 0;
+const KANCELARIA_CACHE_TTL = 30000; // 30 sekund pamięci podręcznej
+
+export function invalidateKancelariaCache() {
+  _kancelariaCache = null;
+  _kancelariaCacheTime = 0;
+}
+
 // ─── Pobieranie danych SSOT z backendu Google Apps Script ─────────────────────
-export async function fetchAllKancelariaData() {
+export async function fetchAllKancelariaData(forceRefresh = false) {
+  if (!forceRefresh && _kancelariaCache && (Date.now() - _kancelariaCacheTime < KANCELARIA_CACHE_TTL)) {
+    return _kancelariaCache;
+  }
+
   let res = await fetch(`${APPS_SCRIPT_URL}?action=pobierz_dane`);
   if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
   let json = await res.json();
@@ -1023,7 +1037,7 @@ export async function fetchAllKancelariaData() {
       };
     });
 
-    return {
+    const finalResult = {
       fasada: rawFasada,
       correspondence,
       techIssues,
@@ -1034,12 +1048,16 @@ export async function fetchAllKancelariaData() {
         totalZgloszen: json.totalZgloszen !== undefined ? json.totalZgloszen : techIssues.length,
       }
     };
+    _kancelariaCache = finalResult;
+    _kancelariaCacheTime = Date.now();
+    return finalResult;
   }
   throw new Error(json.message || "Błąd pobierania danych z backendu");
 }
 
 // ─── Zapis danych do bazy (Atomowy POST z ominięciem CORS) ───────────────────
 export async function sendToBackend(payload) {
+  invalidateKancelariaCache();
   try {
     const response = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
@@ -1073,9 +1091,9 @@ export async function sendToBackend(payload) {
 }
 
 // ─── Główna funkcja zasilająca cały system (SSOT) ────────────────────────────
-export async function fetchAllData(sheetId = SHEET_ID) {
+export async function fetchAllData(sheetId = SHEET_ID, forceRefresh = false) {
   try {
-    const res = await fetchAllKancelariaData();
+    const res = await fetchAllKancelariaData(forceRefresh);
     return {
       rows: res.fasada || [],
       correspondence: res.correspondence || [],
