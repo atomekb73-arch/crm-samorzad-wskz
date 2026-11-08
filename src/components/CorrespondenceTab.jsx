@@ -577,25 +577,39 @@ export default function CorrespondenceTab({
 
   const handleOpenPrintPreview = useCallback((item) => {
     if (!item) return;
-    const rawDate = (item.dataWplywu || item.data || item.date || new Date().toISOString()).slice(0, 10);
+    const isIncoming = item.direction === 'IN' || item.typ === 'Wchodzące';
+    const rawDateFull = String(item.dataWplywu || item.data || item.date || new Date().toISOString()).trim();
+    const rawDate = rawDateFull.slice(0, 10);
     const rawBody = (item.tresc || item.summary || '').trim();
     const rawSubj = (item.przedmiot || item.subject || item.temat || 'Sprawa urzędowa').trim();
-    const defaultBody = (!rawBody || rawBody === rawSubj)
-      ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
-      : rawBody;
 
-    const initialAuthor = item.autor || currentUserName || DEFAULT_OFFICIAL_SIGNATURE.name;
-    const matchedProfile = findSignatureProfile(initialAuthor) || DEFAULT_OFFICIAL_SIGNATURE;
+    // Dla pism wychodzących generujemy treść oficjalnego pisma Samorządu;
+    // dla pism przychodzących zachowujemy autentyczną treść/streszczenie wpływu bez dopisywania formuł Samorządu
+    const defaultBody = isIncoming
+      ? (rawBody || rawSubj)
+      : (!rawBody || rawBody === rawSubj)
+        ? `Szanowni Państwo,\n\nDziałając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, zwracamy się w sprawie: ${rawSubj}.\n\nUprzejmie prosimy o weryfikację przedstawionego zagadnienia oraz poinformowanie Kancelarii Samorządu Studenckiego o podjętych ustaleniach i dalszym toku postępowania.`
+        : rawBody;
+
+    const candidateSigner = !isIncoming
+      ? (item.autor || item.nadawca || item.sender || currentUserName || DEFAULT_OFFICIAL_SIGNATURE.name)
+      : (item.autor || currentUserName || DEFAULT_OFFICIAL_SIGNATURE.name);
+    const matchedProfile = findSignatureProfile(candidateSigner) || DEFAULT_OFFICIAL_SIGNATURE;
 
     setPreviewFields({
+      isIncoming,
       miejsceData: `Wrocław, dnia ${rawDate} r.`,
+      dataWplywuFull: rawDateFull,
       sygnatura: item.sygnatura || item.id || 'DK/2026/11/01',
-      nadawca: item.nadawca || item.sender || 'Kancelaria Samorządu Studenckiego WSKZ',
-      odbiorca: item.odbiorca || item.recipient || 'Dziekanat WNS / Władze Uczelni WSKZ',
+      nadawca: item.nadawca || item.sender || (isIncoming ? 'Nadawca zewnętrzny' : 'Samorząd Studencki WSKZ'),
+      odbiorca: item.odbiorca || item.recipient || (isIncoming ? 'Samorząd Studencki WSKZ' : 'Dziekanat WNS / Władze Uczelni WSKZ'),
       temat: rawSubj,
       tresc: defaultBody,
+      status: item.status || 'W toku',
+      notes: item.notes || '',
+      sourceCitation: item.sourceCitation || '',
       selectedSignatureId: matchedProfile ? matchedProfile.id : 'custom',
-      autor: matchedProfile ? matchedProfile.name : initialAuthor,
+      autor: matchedProfile ? matchedProfile.name : candidateSigner,
       stanowisko: matchedProfile ? matchedProfile.title : 'Samorząd Studencki WSKZ',
       closing: matchedProfile ? matchedProfile.closing : 'Z wyrazami szacunku,',
       isCustomAuthor: !matchedProfile,
@@ -603,6 +617,34 @@ export default function CorrespondenceTab({
     setIsPreviewEditable(false);
     setPreviewLetterItem(item);
   }, [currentUserName]);
+
+  const handleReplyToIncoming = useCallback((item) => {
+    if (!item) return;
+    const inSyg = item.sygnatura || item.id || '';
+    const inDate = String(item.dataWplywu || item.data || item.date || '').slice(0, 10);
+    const inSender = item.nadawca || item.sender || 'Adresat';
+    const inSubject = item.przedmiot || item.subject || item.temat || 'sprawy kancelaryjnej';
+    const replySubj = inSubject.startsWith('Odp.:') ? inSubject : `Odp.: ${inSubject}`;
+    const nowStr = getCurrentLocalDateTimeString();
+
+    setPreviewLetterItem(null);
+    setNewEntry((prev) => ({
+      ...prev,
+      direction: 'OUT',
+      sender: 'Agnieszka Rusnarczyk (Przewodnicząca RSS)',
+      recipient: inSender,
+      autor: DEFAULT_OFFICIAL_SIGNATURE.name,
+      subject: replySubj,
+      summary: `Szanowni Państwo,\n\nW odpowiedzi na korespondencję zarejestrowaną w Dzienniku Korespondencji pod sygnaturą ${inSyg}${inDate ? ` z dnia ${inDate} r.` : ''} dotyczącą sprawy: „${inSubject}”, działając w imieniu Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego we Wrocławiu, uprzejmie informujemy, co następuje:\n\nUprzejmie prosimy o przyjęcie powyższego stanowiska Kancelarii Samorządu Studenckiego.`,
+      status: 'W toku',
+      sourceCitation: `W odpowiedzi na wpływ: ${inSyg}`,
+      notes: `Odpowiedź wychodząca na pismo przychodzące ${inSyg} (od: ${inSender})`,
+      dataWplywu: nowStr,
+      dataWyslania: nowStr,
+    }));
+    setModalMode('createDoc');
+    setIsAddModalOpen(true);
+  }, []);
 
   const handleSelectSignatureProfile = (profileId) => {
     if (profileId === 'custom') {
@@ -641,6 +683,7 @@ export default function CorrespondenceTab({
       tresc: previewFields.tresc,
       summary: previewFields.tresc,
       autor: previewFields.autor,
+      notes: previewFields.notes !== undefined ? previewFields.notes : previewLetterItem.notes,
     };
     setPreviewLetterItem(updated);
     if (activeDrawerItem && (activeDrawerItem.id === updated.id || activeDrawerItem.sygnatura === updated.sygnatura)) {
@@ -1214,37 +1257,62 @@ export default function CorrespondenceTab({
                   <div className="flex items-center gap-1.5 shrink-0">
                     {!isEditing ? (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPrintPreview(activeDrawerItem)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
-                          title="Otwórz wbudowany podgląd oficjalnego druku A4 Samorządu (Drukuj / PDF)"
-                        >
-                          <Printer size={13} className="text-indigo-700" />
-                          <span>Druk A4 / PDF</span>
-                        </button>
-                        {activeDrawerItem.lokalizacjaDrive ? (
-                          <a
-                            href={activeDrawerItem.lokalizacjaDrive}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition"
-                            title="Otwórz oficjalne pismo w Google Docs"
-                          >
-                            <ExternalLink size={13} />
-                            <span>Google Docs</span>
-                          </a>
+                        {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
+                              title="Otwórz Kartę Ewidencyjną Wpływu (Prezentatę Kancelarii) do druku A4 / PDF"
+                            >
+                              <Printer size={13} className="text-slate-700" />
+                              <span>Karta wpływu A4</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReplyToIncoming(activeDrawerItem)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                              title="Utwórz oficjalne pismo wychodzące Samorządu w odpowiedzi na ten wpływ"
+                            >
+                              <ArrowUpRight size={13} className="text-emerald-200" />
+                              <span>Utwórz odpowiedź</span>
+                            </button>
+                          </>
                         ) : (
-                          <button
-                            type="button"
-                            disabled={isGeneratingDoc}
-                            onClick={() => handleGenerateDoc(activeDrawerItem)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
-                            title="Wypal oficjalne pismo z szablonu w Google Docs"
-                          >
-                            <Sparkles size={13} className="text-amber-300" />
-                            <span>{isGeneratingDoc ? 'Wypalanie...' : 'Wypal w Google Docs'}</span>
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold shadow-2xs transition cursor-pointer"
+                              title="Otwórz wbudowany podgląd oficjalnego druku A4 Samorządu (Drukuj / PDF)"
+                            >
+                              <Printer size={13} className="text-indigo-700" />
+                              <span>Druk pisma A4</span>
+                            </button>
+                            {activeDrawerItem.lokalizacjaDrive ? (
+                              <a
+                                href={activeDrawerItem.lokalizacjaDrive}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                                title="Otwórz oficjalne pismo w Google Docs"
+                              >
+                                <ExternalLink size={13} />
+                                <span>Google Docs</span>
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isGeneratingDoc}
+                                onClick={() => handleGenerateDoc(activeDrawerItem)}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-950 hover:to-indigo-950 text-white rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer"
+                                title="Wypal oficjalne pismo z szablonu w Google Docs"
+                              >
+                                <Sparkles size={13} className="text-amber-300" />
+                                <span>{isGeneratingDoc ? 'Wypalanie...' : 'Wypal w Google Docs'}</span>
+                              </button>
+                            )}
+                          </>
                         )}
                         <button
                           type="button"
@@ -1356,7 +1424,11 @@ export default function CorrespondenceTab({
                       </p>
                     </div>
                     <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                      <span className="text-slate-500 font-medium">Sporządził(a) / Autor:</span>
+                      <span className="text-slate-500 font-medium">
+                        {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące'
+                          ? 'Przyjął(a) do rejestru:'
+                          : 'Podpisujący / Autor pisma:'}
+                      </span>
                       <span className="font-semibold text-slate-800 flex items-center gap-1.5">
                         <User size={13} className="text-[#1e3a8a]" />
                         {activeDrawerItem.autor || currentUserName}
@@ -1367,7 +1439,10 @@ export default function CorrespondenceTab({
                   {/* Streszczenie / Treść sprawy */}
                   <div className="space-y-1.5">
                     <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <FileText size={14} className="text-[#1e3a8a]" /> Streszczenie sprawy / Pełna treść
+                      <FileText size={14} className="text-[#1e3a8a]" />
+                      {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące'
+                        ? 'Treść otrzymanej wiadomości / Streszczenie wpływu'
+                        : 'Treść pisma wychodzącego / Streszczenie'}
                     </h4>
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed whitespace-pre-wrap">
                       {activeDrawerItem.summary || activeDrawerItem.tresc || 'Brak dodatkowego streszczenia sprawy.'}
@@ -1398,22 +1473,53 @@ export default function CorrespondenceTab({
                     </div>
                   )}
 
-                  {/* Załączniki / Dysk Google & Generator Szablonu */}
+                  {/* Załączniki / Dysk Google & Obsługa pisma zależnie od kierunku (IN vs OUT) */}
                   <div className="space-y-3">
-                    {/* Wypalanie pisma na oficjalnym szablonie Samorządu */}
-                    {activeDrawerItem.lokalizacjaDrive ? (
+                    {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące' ? (
+                      <div className="border border-slate-300 bg-slate-50/90 rounded-xl p-4 space-y-3">
+                        <div className="flex items-start gap-2.5">
+                          <ArrowDownLeft className="text-blue-700 shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-900">
+                              Obsługa pisma przychodzącego (Wpływ zewnętrzny do Kancelarii)
+                            </h5>
+                            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                              To wiadomość otrzymana od nadawcy zewnętrznego (<strong className="text-slate-800">{activeDrawerItem.sender || activeDrawerItem.nadawca}</strong>). Możesz wydrukować <strong>Kartę Ewidencyjną Wpływu (Prezentatę)</strong> do akt lub jednym kliknięciem przygotować <strong>oficjalną odpowiedź Samorządu</strong> na papierze firmowym WSKZ.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pt-1 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPrintPreview(activeDrawerItem)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs transition cursor-pointer"
+                          >
+                            <Printer size={14} className="text-slate-700" />
+                            <span>Karta wpływu / Prezentata A4 (PDF)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReplyToIncoming(activeDrawerItem)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white shadow-xs transition cursor-pointer"
+                          >
+                            <ArrowUpRight size={14} className="text-emerald-200" />
+                            <span>Utwórz odpowiedź (Pismo wychodzące na papierze firmowym)</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : activeDrawerItem.lokalizacjaDrive ? (
                       <div className="border border-emerald-300 bg-emerald-50/70 rounded-xl p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="block text-xs font-bold uppercase text-emerald-900 flex items-center gap-1.5">
                             <FileText size={15} className="text-emerald-700" />
-                            Oficjalne Pismo w Google Docs (Drive)
+                            Oficjalne Pismo Wychodzące w Google Docs (Drive)
                           </label>
                           <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
                             Wypalony z szablonu
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-600">
-                          Dokument w folderze Kancelarii. Sporządził(a): <strong className="text-slate-900">{activeDrawerItem.autor || currentUserName}</strong>
+                          Dokument w folderze Kancelarii. Podpisujący: <strong className="text-slate-900">{activeDrawerItem.autor || currentUserName}</strong>
                         </p>
                         <div className="flex items-center gap-3 pt-1">
                           <a
@@ -1442,10 +1548,10 @@ export default function CorrespondenceTab({
                           <Sparkles className="text-blue-700 shrink-0 mt-0.5" size={18} />
                           <div>
                             <h5 className="text-xs font-bold text-slate-900">
-                              Wypal oficjalne pismo w Google Docs (szablon Samorządu)
+                              Oficjalne pismo wychodzące Samorządu (Papier Firmowy WSKZ)
                             </h5>
                             <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                              Tworzy sformatowany dokument w folderze Dysku Samorządu z Twoim nazwiskiem jako autora (<strong className="text-slate-800">{activeDrawerItem.autor || currentUserName}</strong>) oraz sygnaturą sprawy.
+                              Otwórz pismo na oficjalnym papierze firmowym WSKZ (do wydruku A4 / PDF z wyborem podpisu Prezydium) lub wypal edytowalny plik w Google Docs.
                             </p>
                           </div>
                         </div>
@@ -1456,7 +1562,7 @@ export default function CorrespondenceTab({
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
                           >
                             <Printer size={14} />
-                            <span>Podgląd druku A4 / PDF (w aplikacji)</span>
+                            <span>Podgląd druku A4 / PDF (Papier firmowy)</span>
                           </button>
                           <button
                             type="button"
@@ -1732,7 +1838,9 @@ export default function CorrespondenceTab({
                   {/* Sporządził(a) / Autor */}
                   <div>
                     <label htmlFor="edit-autor" className="block text-slate-800 font-semibold text-xs tracking-wide uppercase mb-1.5">
-                      Sporządził(a) / Autor wpisu
+                      {editForm.direction === 'IN' || editForm.typ === 'Wchodzące'
+                        ? 'Przyjął(a) do rejestru / Osoba rejestrująca'
+                        : 'Sporządził(a) / Autor pisma'}
                     </label>
                     <div className="space-y-2">
                       <select
@@ -1819,9 +1927,22 @@ export default function CorrespondenceTab({
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 transition cursor-pointer"
                       >
                         <Printer size={14} className="text-indigo-700" />
-                        <span>Druk A4 / PDF</span>
+                        <span>
+                          {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące'
+                            ? 'Karta wpływu A4'
+                            : 'Druk pisma A4'}
+                        </span>
                       </button>
-                      {activeDrawerItem.lokalizacjaDrive ? (
+                      {activeDrawerItem.direction === 'IN' || activeDrawerItem.typ === 'Wchodzące' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleReplyToIncoming(activeDrawerItem)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white shadow-xs transition cursor-pointer"
+                        >
+                          <ArrowUpRight size={14} className="text-amber-300" />
+                          <span>Utwórz odpowiedź</span>
+                        </button>
+                      ) : activeDrawerItem.lokalizacjaDrive ? (
                         <a
                           href={activeDrawerItem.lokalizacjaDrive}
                           target="_blank"
@@ -2383,15 +2504,23 @@ export default function CorrespondenceTab({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#3164d4] text-white flex items-center justify-center shrink-0">
-                    <FileText size={16} />
+                  <div
+                    className={`w-8 h-8 rounded-lg text-white flex items-center justify-center shrink-0 ${
+                      previewFields.isIncoming ? 'bg-blue-700' : 'bg-[#3164d4]'
+                    }`}
+                  >
+                    {previewFields.isIncoming ? <ArrowDownLeft size={16} /> : <FileText size={16} />}
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">
-                      Szablon dokumentu WSKZ (.DOCX / Format A4)
+                      {previewFields.isIncoming
+                        ? 'Karta Ewidencyjna Wpływu Kancelaryjnego (Prezentata A4)'
+                        : 'Szablon dokumentu WSKZ (.DOCX / Format A4 — Pismo wychodzące)'}
                     </h4>
                     <p className="text-[11px] text-slate-500 font-mono">
-                      Sygnatura: <strong>{previewFields.sygnatura}</strong> • Sporządził(a): <strong>{previewFields.autor}</strong>
+                      Sygnatura: <strong>{previewFields.sygnatura}</strong> •{' '}
+                      {previewFields.isIncoming ? 'Przyjął(a) do rejestru:' : 'Sporządził(a):'}{' '}
+                      <strong>{previewFields.autor}</strong>
                     </p>
                   </div>
                 </div>
@@ -2404,7 +2533,7 @@ export default function CorrespondenceTab({
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
                     >
                       <Edit3 size={14} />
-                      <span>Edytuj treść na druku</span>
+                      <span>{previewFields.isIncoming ? 'Edytuj dane na karcie' : 'Edytuj treść na druku'}</span>
                     </button>
                   ) : (
                     <button
@@ -2413,45 +2542,57 @@ export default function CorrespondenceTab({
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition cursor-pointer"
                     >
                       <Save size={14} />
-                      <span>Zapisz treść pisma</span>
+                      <span>{previewFields.isIncoming ? 'Zapisz kartę wpływu' : 'Zapisz treść pisma'}</span>
                     </button>
                   )}
 
-                  {/* Przycisk zapisu do Google Docs / Drive z poziomu podglądu druku */}
-                  <button
-                    type="button"
-                    disabled={isGeneratingDoc}
-                    onClick={() =>
-                      handleGenerateDoc({
-                        ...previewLetterItem,
-                        sygnatura: previewFields.sygnatura || previewLetterItem.sygnatura || previewLetterItem.id,
-                        nadawca: previewFields.nadawca || previewLetterItem.nadawca,
-                        odbiorca: previewFields.odbiorca || previewLetterItem.odbiorca,
-                        przedmiot: previewFields.temat || previewLetterItem.przedmiot,
-                        temat: previewFields.temat || previewLetterItem.temat,
-                        subject: previewFields.temat || previewLetterItem.subject,
-                        tresc: previewFields.tresc || previewLetterItem.tresc,
-                        summary: previewFields.tresc || previewLetterItem.summary,
-                        autor: previewFields.stanowisko
-                          ? `${previewFields.autor}\n${previewFields.stanowisko}`
-                          : previewFields.autor,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
-                    title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
-                  >
-                    {isGeneratingDoc ? (
-                      <>
-                        <Clock size={14} className="animate-spin text-emerald-600" />
-                        <span>Wypalanie w Docs...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink size={14} className="text-emerald-700" />
-                        <span>Zapisz w Google Docs</span>
-                      </>
-                    )}
-                  </button>
+                  {previewFields.isIncoming ? (
+                    <button
+                      type="button"
+                      onClick={() => handleReplyToIncoming(previewLetterItem)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer"
+                      title="Otwórz kreator oficjalnego pisma wychodzącego Samorządu w odpowiedzi na ten wpływ"
+                    >
+                      <ArrowUpRight size={14} className="text-emerald-700" />
+                      <span>Utwórz odpowiedź (Pismo wychodzące)</span>
+                    </button>
+                  ) : (
+                    /* Przycisk zapisu do Google Docs / Drive z poziomu podglądu druku (tylko dla pism wychodzących) */
+                    <button
+                      type="button"
+                      disabled={isGeneratingDoc}
+                      onClick={() =>
+                        handleGenerateDoc({
+                          ...previewLetterItem,
+                          sygnatura: previewFields.sygnatura || previewLetterItem.sygnatura || previewLetterItem.id,
+                          nadawca: previewFields.nadawca || previewLetterItem.nadawca,
+                          odbiorca: previewFields.odbiorca || previewLetterItem.odbiorca,
+                          przedmiot: previewFields.temat || previewLetterItem.przedmiot,
+                          temat: previewFields.temat || previewLetterItem.temat,
+                          subject: previewFields.temat || previewLetterItem.subject,
+                          tresc: previewFields.tresc || previewLetterItem.tresc,
+                          summary: previewFields.tresc || previewLetterItem.summary,
+                          autor: previewFields.stanowisko
+                            ? `${previewFields.autor}\n${previewFields.stanowisko}`
+                            : previewFields.autor,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition cursor-pointer disabled:opacity-50"
+                      title="Wypal sformatowane pismo na oficjalnym szablonie w Google Docs na Twoim Dysku Google"
+                    >
+                      {isGeneratingDoc ? (
+                        <>
+                          <Clock size={14} className="animate-spin text-emerald-600" />
+                          <span>Wypalanie w Docs...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink size={14} className="text-emerald-700" />
+                          <span>Zapisz w Google Docs</span>
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -2473,29 +2614,45 @@ export default function CorrespondenceTab({
                 </div>
               </div>
 
-              {/* Pasek konfiguracji podpisu i autora (na pasku narzędzi, poza arkuszem A4) */}
-              <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 p-2.5 rounded-xl">
-                <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide shrink-0">
-                    Podpisujący pismo:
-                  </span>
-                  <select
-                    value={previewFields.selectedSignatureId || 'custom'}
-                    onChange={(e) => handleSelectSignatureProfile(e.target.value)}
-                    className="w-full text-xs font-medium p-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                  >
-                    {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
-                      <option key={prof.id} value={prof.id}>
-                        {prof.name} — {prof.title}
-                      </option>
-                    ))}
-                    <option value="custom">✏️ Inna osoba / Wpisz ręcznie poniżej na druku...</option>
-                  </select>
+              {/* Pasek konfiguracji (dla wychodzących: wybór podpisującego; dla wchodzących: informacja kancelaryjna) */}
+              {previewFields.isIncoming ? (
+                <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-blue-50/60 p-2.5 rounded-xl text-xs text-blue-950">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 font-bold text-[11px] uppercase tracking-wide border border-blue-200">
+                      Wpływ zewnętrzny (Wchodzące)
+                    </span>
+                    <span className="text-slate-700">
+                      To jest urzędowy odpis wiadomości przychodzącej do Samorządu (bez przypisywania autorstwa Samorządowi).
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 italic">
+                    Aby wysłać pismo zwrotne na papierze firmowym, kliknij „Utwórz odpowiedź”.
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 italic">
-                  Arkusz poniżej to czysty, oficjalny wydruk bez kontrolek formularza.
+              ) : (
+                <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70 p-2.5 rounded-xl">
+                  <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide shrink-0">
+                      Podpisujący pismo:
+                    </span>
+                    <select
+                      value={previewFields.selectedSignatureId || 'custom'}
+                      onChange={(e) => handleSelectSignatureProfile(e.target.value)}
+                      className="w-full text-xs font-medium p-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      {OFFICIAL_SIGNATURE_PROFILES.map((prof) => (
+                        <option key={prof.id} value={prof.id}>
+                          {prof.name} — {prof.title}
+                        </option>
+                      ))}
+                      <option value="custom">✏️ Inna osoba / Wpisz ręcznie poniżej na druku...</option>
+                    </select>
+                  </div>
+                  <div className="text-[11px] text-slate-500 italic">
+                    Arkusz poniżej to czysty, oficjalny wydruk bez kontrolek formularza.
+                  </div>
                 </div>
-              </div>
+              )}
 
               {generateDocNotice && (
                 <div
@@ -2523,185 +2680,391 @@ export default function CorrespondenceTab({
               )}
             </div>
 
-            {/* A4 Sheet Area — 1:1 Szablon dokumentu WSKZ .DOCX */}
+            {/* A4 Sheet Area */}
             <div
               id="official-letter-a4-print-area"
               style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
               className="w-full max-w-[794px] min-h-[1123px] bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-10 pb-8 flex flex-col justify-between relative select-text"
             >
-              {/* TOP & BODY SECTION */}
-              <div>
-                {/* 1:1 WSKZ Header Image */}
-                <div className="pb-2 select-none">
-                  <img
-                    src="/wskz-header.png"
-                    alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
-                    className="w-full h-auto block object-contain"
-                  />
-                </div>
-
-                {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
-                <div className="pt-5 space-y-5 text-[11pt] leading-[1.5] text-[#111827]">
-                  {/* Place, Date & Reference Number */}
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    {/* Sender info on left */}
-                    <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
-                      {isPreviewEditable ? (
-                        <input
-                          type="text"
-                          value={previewFields.nadawca}
-                          onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
-                          className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
-                        />
-                      ) : (
-                        <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
-                      )}
-                      <div>Wyższa Szkoła Kształcenia Zawodowego</div>
-                      <div className="text-[9.5pt] text-[#4b5563]">
-                        Sygn. akt: <strong className="text-[#111827]">{previewFields.sygnatura}</strong>
-                      </div>
+              {previewFields.isIncoming ? (
+                /* ════════════════════════════════════════════════════════════════════════
+                   WARIANT A: KARTA EWIDENCYJNA KORESPONDENCJI PRZYCHODZĄCEJ (PREZENTATA)
+                   (Dla pism wchodzących — nie udaje pisma wysłanego przez Samorząd!)
+                   ════════════════════════════════════════════════════════════════════════ */
+                <>
+                  <div>
+                    {/* 1:1 WSKZ Header Image */}
+                    <div className="pb-2 select-none">
+                      <img
+                        src="/wskz-header.png"
+                        alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
+                        className="w-full h-auto block object-contain"
+                      />
                     </div>
 
-                    {/* Place & Date on right */}
-                    <div className="text-right text-[10.5pt]">
-                      {isPreviewEditable ? (
-                        <input
-                          type="text"
-                          value={previewFields.miejsceData}
-                          onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
-                          className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
-                        />
-                      ) : (
-                        <div>{previewFields.miejsceData}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Recipient Block (Right-aligned in classic Polish official style) */}
-                  <div className="flex justify-end pt-1">
-                    <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
-                      <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
-                        Adresat:
-                      </div>
-                      {isPreviewEditable ? (
-                        <input
-                          type="text"
-                          value={previewFields.odbiorca}
-                          onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
-                          className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
-                        />
-                      ) : (
-                        <div className="font-bold text-[#111827]">
-                          Sz. P. {previewFields.odbiorca}
+                    {/* Top Row: Kancelaria Info + Prezentata Stamp Box */}
+                    <div className="pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-[#1e3a8a] pb-4">
+                      <div className="space-y-1">
+                        <div className="text-[9pt] font-bold uppercase tracking-widest text-[#1e3a8a]">
+                          Ewidencja Korespondencji Przychodzącej • Rok akad. 2026/2027
                         </div>
-                      )}
-                      <div className="text-[#374151]">
-                        Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu
+                        <h2 className="text-[13.5pt] font-bold text-[#111827] leading-snug uppercase tracking-tight">
+                          Karta Ewidencyjna Wpływu Kancelaryjnego
+                        </h2>
+                        <p className="text-[9.5pt] text-[#4b5563]">
+                          Urzędowy odpis wiadomości / dokumentu zewnętrznego zarejestrowanego w Dzienniku Korespondencji Samorządu Studenckiego WSKZ
+                        </p>
+                      </div>
+
+                      {/* Pieczęć Wpływu (Prezentata Kancelaryjna) */}
+                      <div className="shrink-0 border-2 border-[#1e3a8a] rounded-md px-3.5 py-2 bg-[#f8fafc] text-left min-w-[235px]">
+                        <div className="text-[8pt] font-bold uppercase tracking-wider text-[#1e3a8a] border-b border-[#cbd5e1] pb-1 mb-1">
+                          WPŁYNĘŁO — KANCELARIA SAMORZĄDU WSKZ
+                        </div>
+                        <div className="text-[9.5pt] text-[#111827] leading-snug">
+                          Sygn. akt: <strong className="font-mono text-[10pt]">{previewFields.sygnatura}</strong>
+                        </div>
+                        <div className="text-[9pt] text-[#334155] leading-snug">
+                          Data wpływu: <strong>{previewFields.dataWplywuFull}</strong>
+                        </div>
+                        <div className="text-[9pt] text-[#334155] leading-snug">
+                          Status w EZD: <strong className="uppercase">{previewFields.status}</strong>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Subject (Dotyczy) */}
-                  <div className="pt-1">
-                    {isPreviewEditable ? (
-                      <div>
-                        <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
-                          Dotyczy sprawy:
-                        </span>
+                    {/* Metryczka Wpływu (2x2 Grid) */}
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#f8fafc] border border-[#cbd5e1] rounded-md p-3.5 text-[10pt]">
+                      <div className="space-y-0.5">
+                        <div className="text-[8pt] font-bold uppercase tracking-wider text-[#475569]">
+                          Nadawca zewnętrzny (Od kogo wpłynęło):
+                        </div>
+                        {isPreviewEditable ? (
+                          <input
+                            type="text"
+                            value={previewFields.nadawca}
+                            onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                            className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
+                          />
+                        ) : (
+                          <div className="font-bold text-[#0f172a] text-[10.5pt]">{previewFields.nadawca}</div>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <div className="text-[8pt] font-bold uppercase tracking-wider text-[#475569]">
+                          Adresat w Samorządzie (Do kogo skierowano):
+                        </div>
+                        {isPreviewEditable ? (
+                          <input
+                            type="text"
+                            value={previewFields.odbiorca}
+                            onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                            className="w-full border border-blue-400 rounded px-2 py-1 text-[10pt] font-bold bg-white"
+                          />
+                        ) : (
+                          <div className="font-bold text-[#0f172a] text-[10.5pt]">{previewFields.odbiorca}</div>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5 pt-1 border-t border-[#e2e8f0]">
+                        <div className="text-[8pt] font-bold uppercase tracking-wider text-[#475569]">
+                          Data i godzina doręczenia do Kancelarii:
+                        </div>
+                        <div className="font-semibold text-[#1e293b]">{previewFields.dataWplywuFull}</div>
+                      </div>
+
+                      <div className="space-y-0.5 pt-1 border-t border-[#e2e8f0]">
+                        <div className="text-[8pt] font-bold uppercase tracking-wider text-[#475569]">
+                          Oznaczenie źródłowe / Kanał wpływu:
+                        </div>
+                        <div className="font-medium text-[#1e293b]">
+                          {previewFields.sourceCitation || 'Korespondencja elektroniczna / Wpływ bezpośredni do Kancelarii'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Przedmiot Wpływu */}
+                    <div className="mt-4">
+                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1">
+                        Przedmiot sprawy / Tytuł wpływu:
+                      </div>
+                      {isPreviewEditable ? (
                         <input
                           type="text"
                           value={previewFields.temat}
                           onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
-                          className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                          className="w-full border border-blue-400 rounded px-2.5 py-1.5 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
                         />
-                      </div>
-                    ) : (
-                      <div className="font-bold text-[11pt] text-[#111827]">
-                        <span className="underline">Dotyczy:</span> {previewFields.temat}
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="font-bold text-[11pt] text-[#111827] bg-[#f1f5f9] border-l-4 border-[#1e3a8a] px-3 py-2 rounded-r">
+                          {previewFields.temat}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Main Letter Body */}
-                  <div className="pt-1 text-[11pt] leading-[1.6] text-[#111827]">
-                    {isPreviewEditable ? (
-                      <div className="space-y-1.5">
-                        <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
-                          Treść pisma (edytowalna):
-                        </label>
+                    {/* Treść Otrzymanej Wiadomości / Streszczenie Merytoryczne Wpływu */}
+                    <div className="mt-4">
+                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#475569] mb-1.5">
+                        Treść otrzymanej wiadomości / Streszczenie merytoryczne wpływu:
+                      </div>
+                      {isPreviewEditable ? (
                         <textarea
-                          rows={10}
+                          rows={8}
                           value={previewFields.tresc}
                           onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
-                          className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full border border-blue-400 rounded-md p-3 text-[10.5pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                      ) : (
+                        <div className="border border-[#cbd5e1] rounded-md p-4 bg-white text-[10.5pt] leading-[1.6] text-[#111827] whitespace-pre-wrap text-justify min-h-[190px]">
+                          {previewFields.tresc}
+                        </div>
+                      )}
+                      <div className="mt-1 text-[8.5pt] text-[#64748b] italic">
+                        Powyższy zapis stanowi odpis / streszczenie treści korespondencji nadesłanej przez nadawcę zewnętrznego ({previewFields.nadawca}).
                       </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap text-justify min-h-[220px] print:min-h-0">
-                        {previewFields.tresc}
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Signature Block */}
-                  <div className="pt-6 flex justify-end break-inside-avoid">
-                    <div className="w-80 text-right space-y-1">
-                      <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
-                      
-                      {/* Dane osoby podpisującej — CZYSTY, OFICJALNY DOKUMENT A4 */}
-                      <div className="space-y-0.5 text-right font-sans">
-                        {isPreviewEditable || previewFields.isCustomAuthor ? (
-                          <div className="space-y-1 pt-1">
+                    {/* Adnotacje Kancelaryjne / Dekretacja i Sposób Załatwienia */}
+                    <div className="mt-5 pt-3 border-t border-[#cbd5e1] break-inside-avoid">
+                      <div className="text-[8.5pt] font-bold uppercase tracking-wider text-[#1e3a8a] mb-1.5">
+                        Adnotacje Kancelaryjne / Dekretacja i Sposób Załatwienia Sprawy:
+                      </div>
+                      {isPreviewEditable ? (
+                        <textarea
+                          rows={3}
+                          value={previewFields.notes || ''}
+                          onChange={(e) => setPreviewFields({ ...previewFields, notes: e.target.value })}
+                          placeholder="Wpisz dyspozycje, dekretację lub adnotacje kancelaryjne..."
+                          className="w-full border border-blue-400 rounded-md p-2.5 text-[10pt] text-[#111827] bg-blue-50/20"
+                        />
+                      ) : (
+                        <div className="border border-dashed border-[#94a3b8] rounded-md p-3 bg-[#f8fafc] text-[9.5pt] text-[#334155] min-h-[64px] whitespace-pre-wrap">
+                          {previewFields.notes
+                            ? previewFields.notes
+                            : `Przyjęto do ewidencji Dziennika Korespondencji Kancelarii Samorządu Studenckiego WSKZ pod sygnaturą ${previewFields.sygnatura}. Skierowano do właściwego odbiorcy (${previewFields.odbiorca}) celem rozpatrzenia zgodnie z właściwością.`}
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between text-[9pt] text-[#475569]">
+                        <div>
+                          Wpis przyjął(a) do rejestru:{' '}
+                          {isPreviewEditable ? (
                             <input
                               type="text"
                               value={previewFields.autor}
                               onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
-                              placeholder="Imię i nazwisko"
-                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[11pt] font-bold text-right bg-blue-50/30"
+                              className="border border-blue-400 rounded px-2 py-0.5 text-[9pt] font-bold bg-white ml-1"
                             />
-                            <input
-                              type="text"
-                              value={previewFields.stanowisko}
-                              onChange={(e) => setPreviewFields({ ...previewFields, stanowisko: e.target.value })}
-                              placeholder="Stanowisko / funkcja"
-                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10pt] text-right bg-blue-50/30"
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <div className="text-[11.5pt] font-bold text-[#111827] leading-tight">
-                              {previewFields.autor}
-                            </div>
-                            <div className="text-[10pt] font-medium text-[#1e3a8a] leading-tight">
-                              {previewFields.stanowisko}
-                            </div>
-                          </>
-                        )}
+                          ) : (
+                            <strong className="text-[#0f172a]">{previewFields.autor}</strong>
+                          )}
+                        </div>
+                        <div>
+                          Data wydruku karty: <strong>{previewFields.miejsceData}</strong>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* 1:1 WSKZ FOOTER SECTION */}
-              <div className="pt-4 mt-4 break-inside-avoid select-none">
-                {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
-                <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
-                  <span>
-                    Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
-                  </span>
-                  <span>
-                    Sygn.: {previewFields.sygnatura}
-                  </span>
-                </div>
+                  {/* 1:1 WSKZ FOOTER SECTION */}
+                  <div className="pt-4 mt-4 break-inside-avoid select-none">
+                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
+                      <span>
+                        Karta Ewidencyjna Wpływu • Przyjął(a) do rejestru:{' '}
+                        <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
+                      </span>
+                      <span>Sygn. wpływu: {previewFields.sygnatura}</span>
+                    </div>
 
-                {/* Official WSKZ Footer Image */}
-                <img
-                  src="/wskz-footer.png"
-                  alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
-                  className="w-full h-auto block object-contain"
-                />
-              </div>
+                    <img
+                      src="/wskz-footer.png"
+                      alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
+                      className="w-full h-auto block object-contain"
+                    />
+                  </div>
+                </>
+              ) : (
+                /* ════════════════════════════════════════════════════════════════════════
+                   WARIANT B: OFICJALNE PISMO WYCHODZĄCE SAMORZĄDU STUDENCKIEGO WSKZ (1:1 DOCX)
+                   (Dla pism wychodzących — papier firmowy WSKZ z podpisem Zarządu/Kancelarii)
+                   ════════════════════════════════════════════════════════════════════════ */
+                <>
+                  {/* TOP & BODY SECTION */}
+                  <div>
+                    {/* 1:1 WSKZ Header Image */}
+                    <div className="pb-2 select-none">
+                      <img
+                        src="/wskz-header.png"
+                        alt="Wyższa Szkoła Kształcenia Zawodowego — Nagłówek oficjalny"
+                        className="w-full h-auto block object-contain"
+                      />
+                    </div>
+
+                    {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
+                    <div className="pt-5 space-y-5 text-[11pt] leading-[1.5] text-[#111827]">
+                      {/* Place, Date & Reference Number */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        {/* Sender info on left */}
+                        <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
+                          {isPreviewEditable ? (
+                            <input
+                              type="text"
+                              value={previewFields.nadawca}
+                              onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
+                            />
+                          ) : (
+                            <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
+                          )}
+                          <div>Wyższa Szkoła Kształcenia Zawodowego</div>
+                          <div className="text-[9.5pt] text-[#4b5563]">
+                            Sygn. akt: <strong className="text-[#111827]">{previewFields.sygnatura}</strong>
+                          </div>
+                        </div>
+
+                        {/* Place & Date on right */}
+                        <div className="text-right text-[10.5pt]">
+                          {isPreviewEditable ? (
+                            <input
+                              type="text"
+                              value={previewFields.miejsceData}
+                              onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
+                              className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
+                            />
+                          ) : (
+                            <div>{previewFields.miejsceData}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Recipient Block (Right-aligned in classic Polish official style) */}
+                      <div className="flex justify-end pt-1">
+                        <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
+                          <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
+                            Adresat:
+                          </div>
+                          {isPreviewEditable ? (
+                            <input
+                              type="text"
+                              value={previewFields.odbiorca}
+                              onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                              className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
+                            />
+                          ) : (
+                            <div className="font-bold text-[#111827]">
+                              Sz. P. {previewFields.odbiorca}
+                            </div>
+                          )}
+                          <div className="text-[#374151]">
+                            Wyższa Szkoła Kształcenia Zawodowego we Wrocławiu
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Subject (Dotyczy) */}
+                      <div className="pt-1">
+                        {isPreviewEditable ? (
+                          <div>
+                            <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
+                              Dotyczy sprawy:
+                            </span>
+                            <input
+                              type="text"
+                              value={previewFields.temat}
+                              onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
+                              className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30"
+                            />
+                          </div>
+                        ) : (
+                          <div className="font-bold text-[11pt] text-[#111827]">
+                            <span className="underline">Dotyczy:</span> {previewFields.temat}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Main Letter Body */}
+                      <div className="pt-1 text-[11pt] leading-[1.6] text-[#111827]">
+                        {isPreviewEditable ? (
+                          <div className="space-y-1.5">
+                            <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
+                              Treść pisma (edytowalna):
+                            </label>
+                            <textarea
+                              rows={10}
+                              value={previewFields.tresc}
+                              onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
+                              className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-justify min-h-[220px] print:min-h-0">
+                            {previewFields.tresc}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Signature Block */}
+                      <div className="pt-6 flex justify-end break-inside-avoid">
+                        <div className="w-80 text-right space-y-1">
+                          <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
+                          
+                          {/* Dane osoby podpisującej — CZYSTY, OFICJALNY DOKUMENT A4 */}
+                          <div className="space-y-0.5 text-right font-sans">
+                            {isPreviewEditable || previewFields.isCustomAuthor ? (
+                              <div className="space-y-1 pt-1">
+                                <input
+                                  type="text"
+                                  value={previewFields.autor}
+                                  onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
+                                  placeholder="Imię i nazwisko"
+                                  className="w-full border border-blue-400 rounded px-2 py-0.5 text-[11pt] font-bold text-right bg-blue-50/30"
+                                />
+                                <input
+                                  type="text"
+                                  value={previewFields.stanowisko}
+                                  onChange={(e) => setPreviewFields({ ...previewFields, stanowisko: e.target.value })}
+                                  placeholder="Stanowisko / funkcja"
+                                  className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10pt] text-right bg-blue-50/30"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <div className="text-[11.5pt] font-bold text-[#111827] leading-tight">
+                                  {previewFields.autor}
+                                </div>
+                                <div className="text-[10pt] font-medium text-[#1e3a8a] leading-tight">
+                                  {previewFields.stanowisko}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1:1 WSKZ FOOTER SECTION */}
+                  <div className="pt-4 mt-4 break-inside-avoid select-none">
+                    {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
+                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
+                      <span>
+                        Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
+                      </span>
+                      <span>
+                        Sygn.: {previewFields.sygnatura}
+                      </span>
+                    </div>
+
+                    {/* Official WSKZ Footer Image */}
+                    <img
+                      src="/wskz-footer.png"
+                      alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
+                      className="w-full h-auto block object-contain"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>,
           document.body
