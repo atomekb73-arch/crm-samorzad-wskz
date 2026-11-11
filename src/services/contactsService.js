@@ -2,7 +2,10 @@ import { sendToBackend } from './googleSheets';
 
 export const CONTACTS_SPREADSHEET_ID = "1g4z2pTCLoQy2I5Jfwanv7yCJsFrBX36D-qxwLBbd1yo";
 
-// ─── Oficjalna Baza Starostów Samorządu WSKZ (SSOT Seed) ────────────────────
+// ─── Oficjalna Baza Starostów Samorządu WSKZ (SSOT Seed - zanonimizowana wg RODO) ───
+// Uwaga: Plik szablonu publicznego nie zawiera prywatnych numerów telefonów ani prywatnych
+// adresów e-mail studentów (zgodnie z Art. 5 ust. 1 lit. f oraz Art. 25 RODO).
+// Pełne dane teleadresowe pobierane są dynamicznie z bazy Google Sheets lub pamięci lokalnej.
 export const SEED_STAROSTOWIE = [
   {
     id: "ST-001",
@@ -14,14 +17,14 @@ export const SEED_STAROSTOWIE = [
     year: "III rok",
     semester: "Semestr 5",
     group: "5-1",
-    phone: "+48 690 919 059",
-    emailUczelniany: "",
-    emailPrywatny: "martas1313@wp.pl",
-    email: "martas1313@wp.pl",
+    phone: "+48 690 ••• •••",
+    emailUczelniany: "starosta.adm51@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.adm51@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-25",
     endDate: "",
-    notes: "Zgłoszenie z dokumentu Starosta grupy 5.1.pdf; alt. e-mail: adm_wskk2025@wp.pl"
+    notes: "Zgłoszenie z dokumentu Starosta grupy 5.1"
   },
   {
     id: "ST-002",
@@ -33,14 +36,14 @@ export const SEED_STAROSTOWIE = [
     year: "II rok",
     semester: "Semestr 5",
     group: "5-2",
-    phone: "+48 723 375 339",
-    emailUczelniany: "",
-    emailPrywatny: "andzwek@o2.pl",
-    email: "andzwek@o2.pl",
+    phone: "+48 723 ••• •••",
+    emailUczelniany: "starosta.adm52@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.adm52@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-24",
     endDate: "",
-    notes: "Zgłoszenie z dokumentu Starosta grupy 5.2.pdf"
+    notes: "Zgłoszenie z dokumentu Starosta grupy 5.2"
   },
   {
     id: "ST-003",
@@ -52,14 +55,14 @@ export const SEED_STAROSTOWIE = [
     year: "II rok",
     semester: "Semestr 3",
     group: "Grupa administracyjna",
-    phone: "+48 486 861 468",
-    emailUczelniany: "",
-    emailPrywatny: "karolina.mruzik34@gmail.com",
-    email: "karolina.mruzik34@gmail.com",
+    phone: "+48 486 ••• •••",
+    emailUczelniany: "starosta.adm3@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.adm3@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-24",
     endDate: "",
-    notes: "Zgłoszenie ze zdjęcia oświadczenia"
+    notes: "Zgłoszenie oświadczenia starosty"
   },
   {
     id: "ST-004",
@@ -71,14 +74,14 @@ export const SEED_STAROSTOWIE = [
     year: "III rok",
     semester: "Semestr 6",
     group: "PS_PS 6-1 26_27Z",
-    phone: "+48 792 264 509",
-    emailUczelniany: "",
+    phone: "+48 792 ••• •••",
+    emailUczelniany: "starosta.ps61@samorzad.wskz.pl",
     emailPrywatny: "",
-    email: "",
+    email: "starosta.ps61@samorzad.wskz.pl",
     rodoStatus: "Oczekuje na podpis",
     startDate: "",
     endDate: "",
-    notes: "Zgłoszenie e-mail; Psychologia sądowa (licencjackie, ostatni semestr, sygn. DK/2026/10/27)"
+    notes: "Psychologia sądowa (licencjackie, ostatni semestr, sygn. DK/2026/10/27)"
   },
   {
     id: "ST-005",
@@ -90,14 +93,14 @@ export const SEED_STAROSTOWIE = [
     year: "III rok",
     semester: "Semestr 5",
     group: "ADM_TiR 5-1 26_27Z",
-    phone: "+48 502 268 072",
-    emailUczelniany: "",
-    emailPrywatny: "beata.bytof.szpera@gmail.com",
-    email: "beata.bytof.szpera@gmail.com",
+    phone: "+48 502 ••• •••",
+    emailUczelniany: "starosta.tir51@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.tir51@samorzad.wskz.pl",
     rodoStatus: "Oczekuje na podpis",
     startDate: "",
     endDate: "",
-    notes: "Zgłoszenie przekazane przez dr Katarzynę Majchrzak (sygn. DK/2026/10/21)"
+    notes: "Zgłoszenie przekazane przez Prodziekan (sygn. DK/2026/10/21)"
   },
   {
     id: "ST-006",
@@ -110,13 +113,13 @@ export const SEED_STAROSTOWIE = [
     semester: "Semestr 6",
     group: "ADM_TiR 6-1 26_27Z",
     phone: "",
-    emailUczelniany: "",
-    emailPrywatny: "natalia.wisniewska@o2.pl",
-    email: "natalia.wisniewska@o2.pl",
+    emailUczelniany: "starosta.tir61@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.tir61@samorzad.wskz.pl",
     rodoStatus: "Oczekuje na podpis",
     startDate: "",
     endDate: "",
-    notes: "Zgłoszenie przekazane przez dr Katarzynę Majchrzak (sygn. DK/2026/10/20)"
+    notes: "Zgłoszenie przekazane przez Prodziekan (sygn. DK/2026/10/20)"
   },
   {
     id: "ST-007",
@@ -128,14 +131,14 @@ export const SEED_STAROSTOWIE = [
     year: "I rok",
     semester: "Semestr 1",
     group: "ZR1-6",
-    phone: "+48 574 260 102",
-    emailUczelniany: "",
-    emailPrywatny: "beres.paula91@gmail.com",
-    email: "beres.paula91@gmail.com",
+    phone: "+48 574 ••• •••",
+    emailUczelniany: "starosta.zr16@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.zr16@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-17",
     endDate: "",
-    notes: "Zgłoszenie z dokumentu Oświadczenie starosty gr ZR1-6 P. Paula.pdf"
+    notes: "Zgłoszenie z oświadczenia starosty gr ZR1-6"
   },
   {
     id: "ST-008",
@@ -147,14 +150,14 @@ export const SEED_STAROSTOWIE = [
     year: "I rok",
     semester: "Semestr 1",
     group: "ZR1-5",
-    phone: "+48 798 681 297",
-    emailUczelniany: "",
-    emailPrywatny: "tempname1322.24@anet.pl",
-    email: "tempname1322.24@anet.pl",
+    phone: "+48 798 ••• •••",
+    emailUczelniany: "starosta.zr15@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.zr15@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-17",
     endDate: "",
-    notes: "Zgłoszenie z dokumentu Oświadczenie starosty gr ZR1-5 P. Michał.pdf"
+    notes: "Zgłoszenie z oświadczenia starosty gr ZR1-5"
   },
   {
     id: "ST-009",
@@ -166,14 +169,14 @@ export const SEED_STAROSTOWIE = [
     year: "I rok",
     semester: "Semestr 1",
     group: "TiR 1",
-    phone: "+48 431 807 856",
-    emailUczelniany: "",
-    emailPrywatny: "maja.piecka2@gmail.com",
-    email: "maja.piecka2@gmail.com",
+    phone: "+48 431 ••• •••",
+    emailUczelniany: "starosta.tir1@samorzad.wskz.pl",
+    emailPrywatny: "",
+    email: "starosta.tir1@samorzad.wskz.pl",
     rodoStatus: "Zgoda aktywna",
     startDate: "2026-10-18",
     endDate: "",
-    notes: "Zgłoszenie z dokumentu M_Piecka AMD.pdf"
+    notes: "Zgłoszenie z dokumentu wyboru starosty"
   }
 ];
 

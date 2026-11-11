@@ -59,7 +59,7 @@ export default function ContactsTab({
 
   // Mailing view configuration
   const [mailingAudience, setMailingAudience] = useState('starostowie'); // 'starostowie' | 'faculty' | 'clubs' | 'all'
-  const [mailingRodoOnly, setMailingRodoOnly] = useState(false); // only with RODO consent
+  const [mailingRodoOnly, setMailingRodoOnly] = useState(true); // Domyślnie włączona ochrona RODO (Privacy by Default - Art. 25 RODO)
   const [mailingFormat, setMailingFormat] = useState('comma'); // 'comma' | 'semicolon' | 'lines'
   const [selectedRecipientIds, setSelectedRecipientIds] = useState(new Set());
   const [mailingFieldFilter, setMailingFieldFilter] = useState('ALL');
@@ -1403,8 +1403,17 @@ export default function ContactsTab({
                       onChange={(e) => setMailingRodoOnly(e.target.checked)}
                       className="rounded text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span>Tylko ze zgodą RODO</span>
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                      Tylko ze zgodą RODO (zalecane)
+                    </span>
                   </label>
+                  {!mailingRodoOnly && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl font-medium">
+                      <AlertTriangle size={13} className="text-amber-600 shrink-0" />
+                      Uwaga: dołączasz kontakty bez zweryfikowanej zgody RODO
+                    </span>
+                  )}
                 </div>
               </div>
 

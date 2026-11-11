@@ -17,7 +17,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen() {
-  const { checkEmailStatus, activateAccount, loginWithPassword } = useAuth();
+  const { checkEmailStatus, activateAccount, loginWithPassword, sessionTimeoutNotice, clearSessionTimeoutNotice } = useAuth();
 
   // Step state: 'email' | 'password' | 'activate'
   const [step, setStep] = useState('email');
@@ -84,13 +84,13 @@ export default function LoginScreen() {
   };
 
   // STEP 2A: Submit Existing Password
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const res = loginWithPassword(email.trim(), password);
+      const res = await loginWithPassword(email.trim(), password);
       if (!res.success) {
         if (res.requiresActivation) {
           setStep('activate');
@@ -107,7 +107,7 @@ export default function LoginScreen() {
   };
 
   // STEP 2B: First-Time Account Activation & Set Password
-  const handleActivationSubmit = (e) => {
+  const handleActivationSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
@@ -122,7 +122,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const res = activateAccount(email.trim(), newPassword, confirmPassword, verifiedUser);
+      const res = await activateAccount(email.trim(), newPassword, confirmPassword, verifiedUser);
       if (!res.success) {
         setError(res.error || 'Nie udało się zapisać hasła.');
       }
@@ -193,6 +193,26 @@ export default function LoginScreen() {
               {step === 'activate' ? 'Aktywacja' : '2026/2027'}
             </span>
           </div>
+
+          {/* Session Timeout Notice (Auto-logout Security) */}
+          {sessionTimeoutNotice && (
+            <div className="p-3.5 rounded-2xl bg-amber-950/70 border border-amber-800/70 text-amber-200 text-xs flex items-start justify-between gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck size={17} className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="leading-snug">
+                  <p className="font-bold">Ochrona stacji roboczej</p>
+                  <p className="text-[11px] text-amber-300 mt-0.5">{sessionTimeoutNotice}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearSessionTimeoutNotice}
+                className="text-amber-400 hover:text-amber-200 font-bold text-xs shrink-0 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* Error Notice */}
           {error && (

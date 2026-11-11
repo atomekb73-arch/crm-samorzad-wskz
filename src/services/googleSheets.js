@@ -435,7 +435,7 @@ export const OFFICIAL_2026_2027_CORRESPONDENCE = [
     sygnatura: "DK/2026/10/03",
     dataWplywu: "2026-10-06 14:05",
     typ: "Wchodzące",
-    nadawca: "Szymon Szumigała (Psychologia, alb. 15716)",
+    nadawca: "Szymon Szumigała (Psychologia)",
     odbiorca: "Prorektor ds. Studenckich, Samorząd",
     przedmiot: "Wniosek o interwencję: status studenta na urlopie dziekańskim, zaświadczenie ZUS oraz mLegitymacja",
     status: "W toku"

@@ -27,10 +27,28 @@ export const MASTER_ADMIN_EMAILS = [
   'kancelaria@samorzad.wskz.pl',
 ];
 
-export const MASTER_ADMIN_PASSWORDS = {
-  'atomekb73@gmail.com': 'Ntx2t44V',
-  'atonex73@gmail.com': 'Ntx2t44V',
-  'kancelaria@samorzad.wskz.pl': 'Ntx2t44V',
+// ─── Bezpieczne skróty kryptograficzne haseł (SHA-256 z unikalną solą) ──────
+// W kodzie źródłowym NIE przechowujemy haseł otwartym tekstem!
+export const PASSWORD_SALT = 'wskz_samorzad_2026_salt:';
+
+export async function computePasswordHash(password) {
+  if (!password) return '';
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(PASSWORD_SALT + String(password).trim());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    console.error('Błąd haszowania hasła:', e);
+    return '';
+  }
+}
+
+export const MASTER_ADMIN_HASHES = {
+  'atomekb73@gmail.com': '032a608d14718f2c5756643fae6f3309b759ac935369777c19e3d03c2c541d24',
+  'atonex73@gmail.com': '032a608d14718f2c5756643fae6f3309b759ac935369777c19e3d03c2c541d24',
+  'kancelaria@samorzad.wskz.pl': '032a608d14718f2c5756643fae6f3309b759ac935369777c19e3d03c2c541d24',
 };
 
 export const DEFAULT_AUTHORIZED_ACCOUNTS = [
@@ -41,7 +59,6 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Dostęp pełny',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    tempPassword: 'Liliana123',
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
@@ -52,7 +69,6 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Dostęp pełny',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    tempPassword: 'Kasia123',
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
@@ -63,7 +79,6 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Dostęp pełny',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    tempPassword: 'Piotr123',
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
@@ -74,32 +89,19 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Prezydium / Sekretariat',
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    tempPassword: 'Samorzad2026!',
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
 ];
 
-export const STARTER_PASSWORDS = {
-  'lajlasienkiewicz@gmail.com': 'Liliana123',
-  'kasia.j.kubacka@gmail.com': 'Kasia123',
-  'piotrniklas7@gmail.com': 'Piotr123',
-  'kancelaria@samorzad.wskz.pl': 'Samorzad2026!',
-  'koordynator@samorzad.wskz.pl': 'Samorzad2026!',
-  'audytor@samorzad.wskz.pl': 'Samorzad2026!',
+export const STARTER_HASHES = {
+  'lajlasienkiewicz@gmail.com': 'f9844c0c1e853b1d3c01a21bc073fc6ae3c19e77105ffb06c45997eb239c23f3',
+  'kasia.j.kubacka@gmail.com': 'b3467f2476a0cd648a79f3c576fb1e3e0614717e0f8698a18e20dee0d796e9f2',
+  'piotrniklas7@gmail.com': '7d84b5af56db9e76f1c5cfb684bea5b1f43846f866c96669b62b1a9cfd90d677',
+  'kancelaria@samorzad.wskz.pl': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
+  'koordynator@samorzad.wskz.pl': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
+  'audytor@samorzad.wskz.pl': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
 };
-
-export const ACCESS_PASSWORDS = [
-  'Samorzad2026!',
-  'Wskz2026!',
-  'wskz2026',
-  'samorzad2026',
-  'Ntx2t44V',
-  'Liliana123',
-  'Kasia123',
-  'Piotr123',
-  import.meta.env?.VITE_ACCESS_PASSWORD,
-].filter(Boolean);
 
 export const DEFAULT_USER = {
   email: 'kancelaria@samorzad.wskz.pl',
@@ -135,7 +137,7 @@ export const DEMO_ACCOUNTS = [
 
 const AuthContext = createContext(null);
 
-/** Pobierz zapisane hasło użytkownika */
+/** Pobierz zapisany skrót hasła użytkownika */
 export function getUserStoredPassword(email) {
   if (!email) return null;
   const clean = email.toLowerCase().trim();
@@ -148,8 +150,11 @@ export function getUserStoredPassword(email) {
       }
     }
   } catch {}
-  if (MASTER_ADMIN_PASSWORDS[clean]) {
-    return MASTER_ADMIN_PASSWORDS[clean];
+  if (MASTER_ADMIN_HASHES[clean]) {
+    return MASTER_ADMIN_HASHES[clean];
+  }
+  if (STARTER_HASHES[clean]) {
+    return STARTER_HASHES[clean];
   }
   return null;
 }
@@ -248,6 +253,47 @@ export function AuthProvider({ children }) {
       return false;
     }
   });
+
+  const [sessionTimeoutNotice, setSessionTimeoutNotice] = useState(null);
+
+  /** Wylogowanie */
+  const logout = useCallback(() => {
+    setUser(null);
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('crm_samorzad_auth_session');
+      localStorage.removeItem('crm_samorzad_auth_user');
+      localStorage.removeItem('crm_psychoonkologia_auth_session');
+      localStorage.removeItem('crm_psychoonkologia_auth_user');
+      localStorage.removeItem('crm_auth_user');
+    } catch {}
+  }, []);
+
+  // Automatyczne wylogowanie po 20 minutach bezczynności (ochrona danych studentów na współdzielonych stacjach)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let lastActivity = Date.now();
+    const handleUserActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const trackedEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    trackedEvents.forEach(evt => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    const INACTIVITY_LIMIT_MS = 20 * 60 * 1000; // 20 minut
+    const timerInterval = setInterval(() => {
+      if (Date.now() - lastActivity >= INACTIVITY_LIMIT_MS) {
+        logout();
+        setSessionTimeoutNotice('Sesja została automatycznie zakończona ze względów bezpieczeństwa (20 minut bezczynności na stanowisku). Zaloguj się ponownie.');
+      }
+    }, 30000);
+
+    return () => {
+      trackedEvents.forEach(evt => window.removeEventListener(evt, handleUserActivity));
+      clearInterval(timerInterval);
+    };
+  }, [isAuthenticated, logout]);
 
   useEffect(() => {
     try {
@@ -363,8 +409,8 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  /** Aktywacja nowego konta na pierwszym logowaniu i nadanie własnego hasła */
-  const activateAccount = useCallback((email, newPassword, confirmPassword, userData = null) => {
+  /** Aktywacja nowego konta na pierwszym logowaniu i nadanie własnego hasła (SHA-256) */
+  const activateAccount = useCallback(async (email, newPassword, confirmPassword, userData = null) => {
     if (!email || !newPassword || !confirmPassword) {
       return { success: false, error: 'Wypełnij wszystkie pola formularza.' };
     }
@@ -382,13 +428,16 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // 1. Zapisz nowe hasło w rejestrze haseł użytkowników
+      // Bezpieczny skrót SHA-256 z solą
+      const passwordHash = await computePasswordHash(p1);
+
+      // 1. Zapisz skrót hasła w rejestrze (nigdy w otwartym tekście!)
       let passwords = {};
       try {
         const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
         if (rawPass) passwords = JSON.parse(rawPass);
       } catch {}
-      passwords[cleanEmail] = p1;
+      passwords[cleanEmail] = passwordHash;
       localStorage.setItem('samorzad_user_passwords', JSON.stringify(passwords));
 
       // 2. Oznacz isFirstLogin jako false
@@ -428,6 +477,7 @@ export function AuthProvider({ children }) {
 
       setUser(authUser);
       setIsAuthenticated(true);
+      setSessionTimeoutNotice(null);
 
       localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
         email: cleanEmail,
@@ -444,8 +494,8 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /** Logowanie z hasłem */
-  const loginWithPassword = useCallback((inputEmail, inputPassword) => {
+  /** Logowanie z hasłem (weryfikacja kryptograficzna SHA-256) */
+  const loginWithPassword = useCallback(async (inputEmail, inputPassword) => {
     if (!inputEmail || !inputPassword) {
       return { success: false, error: 'Wypełnij wszystkie pola formularza.' };
     }
@@ -467,13 +517,27 @@ export function AuthProvider({ children }) {
       };
     }
 
-    const storedPassword = getUserStoredPassword(cleanEmail);
-    if (!storedPassword || storedPassword !== cleanPassword) {
+    const storedPassOrHash = getUserStoredPassword(cleanEmail);
+    const inputHash = await computePasswordHash(cleanPassword);
+
+    const isMatch = (storedPassOrHash === inputHash) || (storedPassOrHash === cleanPassword);
+    if (!storedPassOrHash || !isMatch) {
       return { success: false, error: 'Nieprawidłowe hasło dostępowe.' };
+    }
+
+    // Automatyczna migracja: jeśli w localStorage zalegał stary jawny tekst, zastąp go bezpiecznym skrótem
+    if (storedPassOrHash === cleanPassword && storedPassOrHash !== inputHash) {
+      try {
+        const rawPass = localStorage.getItem('samorzad_user_passwords');
+        let passwords = rawPass ? JSON.parse(rawPass) : {};
+        passwords[cleanEmail] = inputHash;
+        localStorage.setItem('samorzad_user_passwords', JSON.stringify(passwords));
+      } catch {}
     }
 
     setUser(status.user);
     setIsAuthenticated(true);
+    setSessionTimeoutNotice(null);
 
     try {
       localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
@@ -495,8 +559,8 @@ export function AuthProvider({ children }) {
     return loginWithPassword(inputEmail, inputPassword);
   }, [loginWithPassword]);
 
-  /** Zmiana hasła przy pierwszym logowaniu lub na żądanie */
-  const changePassword = useCallback((email, newPassword, confirmPassword, userData = null) => {
+  /** Zmiana hasła przy pierwszym logowaniu lub na żądanie (zapis bezpiecznego skrótu SHA-256) */
+  const changePassword = useCallback(async (email, newPassword, confirmPassword, userData = null) => {
     if (!email || !newPassword || !confirmPassword) {
       return { success: false, error: 'Wypełnij wszystkie pola formularza.' };
     }
@@ -513,29 +577,19 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Wprowadzone hasła nie są identyczne.' };
     }
 
-    const isStarter = [
-      'Samorzad2026!',
-      'Wskz2026!',
-      'wskz2026',
-      'samorzad2026',
-      'Liliana123',
-      'Kasia123',
-      'Piotr123',
-      STARTER_PASSWORDS[cleanEmail],
-    ].filter(Boolean).includes(p1);
-
-    if (isStarter) {
+    const inputHash = await computePasswordHash(p1);
+    if (STARTER_HASHES[cleanEmail] === inputHash) {
       return { success: false, error: 'Nowe hasło nie może być hasłem startowym. Wybierz inne, bezpieczne hasło.' };
     }
 
     try {
-      // 1. Zapisz nowe hasło w rejestrze haseł użytkowników
+      // 1. Zapisz skrót hasła w rejestrze haseł użytkowników
       let passwords = {};
       try {
         const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
         if (rawPass) passwords = JSON.parse(rawPass);
       } catch {}
-      passwords[cleanEmail] = p1;
+      passwords[cleanEmail] = inputHash;
       localStorage.setItem('samorzad_user_passwords', JSON.stringify(passwords));
 
       // 2. Oznacz isFirstLogin jako false
@@ -575,6 +629,7 @@ export function AuthProvider({ children }) {
 
       setUser(authUser);
       setIsAuthenticated(true);
+      setSessionTimeoutNotice(null);
 
       localStorage.setItem('crm_samorzad_auth_session', JSON.stringify({
         email: cleanEmail,
@@ -634,8 +689,8 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(true);
   }, []);
 
-  /** Zmiana hasła przez zalogowanego użytkownika (z weryfikacją aktualnego hasła) */
-  const changeUserPassword = useCallback((currentPassword, newPassword, confirmPassword) => {
+  /** Zmiana hasła przez zalogowanego użytkownika (z weryfikacją kryptograficzną) */
+  const changeUserPassword = useCallback(async (currentPassword, newPassword, confirmPassword) => {
     if (!user || !user.email) {
       return { success: false, error: 'Brak aktywnej sesji użytkownika.' };
     }
@@ -650,27 +705,9 @@ export function AuthProvider({ children }) {
     }
 
     // 1. Weryfikacja aktualnego hasła
-    const customPass = getUserStoredPassword(cleanEmail);
-    let isCurrentValid = false;
-
-    if (customPass) {
-      isCurrentValid = customPass === curPass;
-    } else {
-      let accessUsers = [];
-      try {
-        const savedUsers = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
-        if (savedUsers) accessUsers = JSON.parse(savedUsers);
-      } catch {}
-      const accessMatch = (Array.isArray(accessUsers) ? accessUsers : DEFAULT_AUTHORIZED_ACCOUNTS)
-        .find(u => (u?.email || '').toLowerCase() === cleanEmail);
-
-      const allowedTempPasswords = [
-        STARTER_PASSWORDS[cleanEmail],
-        accessMatch?.tempPassword,
-        ...ACCESS_PASSWORDS,
-      ].filter(Boolean);
-      isCurrentValid = allowedTempPasswords.some(p => p && p.trim() === curPass);
-    }
+    const customPassOrHash = getUserStoredPassword(cleanEmail);
+    const curHash = await computePasswordHash(curPass);
+    let isCurrentValid = (customPassOrHash === curHash) || (customPassOrHash === curPass);
 
     if (!isCurrentValid) {
       return { success: false, error: 'Wprowadzone dotychczasowe hasło jest nieprawidłowe.' };
@@ -680,22 +717,11 @@ export function AuthProvider({ children }) {
     return changePassword(cleanEmail, p1, p2, user);
   }, [user, changePassword]);
 
-  /** Wylogowanie */
-  const logout = useCallback(() => {
-    setUser(null);
-    setIsAuthenticated(false);
-    try {
-      localStorage.removeItem('crm_samorzad_auth_session');
-      localStorage.removeItem('crm_samorzad_auth_user');
-      localStorage.removeItem('crm_psychoonkologia_auth_session');
-      localStorage.removeItem('crm_psychoonkologia_auth_user');
-      localStorage.removeItem('crm_auth_user');
-    } catch {}
-  }, []);
-
   const value = useMemo(() => ({
     user,
     isAuthenticated,
+    sessionTimeoutNotice,
+    clearSessionTimeoutNotice: () => setSessionTimeoutNotice(null),
     isSuperAdmin,
     isCoordinator,
     isViewer,
@@ -713,6 +739,7 @@ export function AuthProvider({ children }) {
   }), [
     user,
     isAuthenticated,
+    sessionTimeoutNotice,
     isSuperAdmin,
     isCoordinator,
     isViewer,
