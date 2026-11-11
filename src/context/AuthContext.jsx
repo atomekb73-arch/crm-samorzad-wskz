@@ -220,10 +220,18 @@ function parseJwtPayload(token) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const session = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
-      const saved = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
-      if (session && saved) {
-        const parsed = JSON.parse(saved);
+      const sessionRaw = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
+      const savedRaw = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
+      if (sessionRaw && savedRaw) {
+        const session = JSON.parse(sessionRaw);
+        // Maksymalny czas ważności sesji (24h)
+        if (session && session.timestamp && (Date.now() - session.timestamp > 24 * 60 * 60 * 1000)) {
+          localStorage.removeItem('crm_samorzad_auth_session');
+          localStorage.removeItem('crm_samorzad_auth_user');
+          return null;
+        }
+
+        const parsed = JSON.parse(savedRaw);
         if (parsed && parsed.email) {
           const email = (parsed.email || '').toLowerCase();
           const name = (parsed.name || '').toLowerCase();
@@ -246,9 +254,16 @@ export function AuthProvider({ children }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      const session = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
-      const saved = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
-      return !!(session && saved);
+      const sessionRaw = localStorage.getItem('crm_samorzad_auth_session') || localStorage.getItem('crm_psychoonkologia_auth_session');
+      const savedRaw = localStorage.getItem('crm_samorzad_auth_user') || localStorage.getItem('crm_psychoonkologia_auth_user');
+      if (sessionRaw && savedRaw) {
+        const session = JSON.parse(sessionRaw);
+        if (session && session.timestamp && (Date.now() - session.timestamp > 24 * 60 * 60 * 1000)) {
+          return false;
+        }
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }

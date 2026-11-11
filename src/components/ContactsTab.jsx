@@ -31,6 +31,8 @@ import {
   Square,
   AtSign,
   FileSpreadsheet,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   CONTACTS_SPREADSHEET_ID,
@@ -45,10 +47,30 @@ export default function ContactsTab({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('starostowie'); // 'starostowie' | 'faculty' | 'clubs' | 'mailing'
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
+  const [maskSensitiveContacts, setMaskSensitiveContacts] = useState(false); // Ochrona RODO przed podglądaniem ekranu (Shoulder Surfing Protection)
   const [searchTerm, setSearchTerm] = useState('');
   const [fieldFilter, setFieldFilter] = useState('ALL');
   const [rodoFilter, setRodoFilter] = useState('ALL');
   const [facultyFilter, setFacultyFilter] = useState('ALL');
+
+  // Pomocniki maskowania danych wrażliwych na ekranie (RODO)
+  const maskPhone = useCallback((phone) => {
+    if (!phone) return '';
+    if (!maskSensitiveContacts) return phone;
+    const clean = phone.trim();
+    if (clean.length < 6) return '••••••';
+    return clean.slice(0, 5) + ' ••• •••';
+  }, [maskSensitiveContacts]);
+
+  const maskEmail = useCallback((email) => {
+    if (!email) return '';
+    if (!maskSensitiveContacts) return email;
+    const parts = email.split('@');
+    if (parts.length !== 2) return '••••••';
+    const namePart = parts[0];
+    const maskedName = namePart.length > 2 ? namePart[0] + '•••' + namePart.slice(-1) : '••';
+    return `${maskedName}@${parts[1]}`;
+  }, [maskSensitiveContacts]);
 
   // Contact list state loaded from SSOT / localStorage
   const [contactsData, setContactsData] = useState(() => getLocalContacts());
@@ -454,6 +476,23 @@ export default function ContactsTab({
               </div>
             )}
 
+            {/* Ochrona RODO przed podglądaniem ekranu */}
+            {activeSubTab !== 'mailing' && (
+              <button
+                type="button"
+                onClick={() => setMaskSensitiveContacts(!maskSensitiveContacts)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs ${
+                  maskSensitiveContacts
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+                title={maskSensitiveContacts ? "Wyłącz maskowanie danych osobowych" : "Włącz maskowanie danych osobowych (ochrona RODO przed podglądaniem ekranu w biurze)"}
+              >
+                {maskSensitiveContacts ? <EyeOff size={14} className="text-amber-600" /> : <Eye size={14} className="text-slate-500" />}
+                <span className="hidden md:inline">{maskSensitiveContacts ? 'Ochrona aktywna' : 'Maskuj RODO'}</span>
+              </button>
+            )}
+
             <a
               href={SPREADSHEET_URL}
               target="_blank"
@@ -753,7 +792,7 @@ export default function ContactsTab({
                                   href={`tel:${starosta.phone.replace(/\s+/g, '')}`}
                                   className="text-slate-800 hover:text-blue-700 font-mono text-[11px]"
                                 >
-                                  {starosta.phone}
+                                  {maskPhone(starosta.phone)}
                                 </a>
                                 <button
                                   onClick={() => handleCopyText(starosta.id + '_phone', starosta.phone)}
@@ -779,9 +818,9 @@ export default function ContactsTab({
                                 <a
                                   href={`mailto:${primaryEmail}`}
                                   className="text-slate-800 hover:text-blue-700 truncate max-w-[190px] text-[11px]"
-                                  title={primaryEmail}
+                                  title={maskEmail(primaryEmail)}
                                 >
-                                  {primaryEmail}
+                                  {maskEmail(primaryEmail)}
                                 </a>
                                 <button
                                   onClick={() => handleCopyText(starosta.id + '_mail', primaryEmail)}
@@ -918,7 +957,7 @@ export default function ContactsTab({
                               className="inline-flex items-center gap-1.5 hover:text-blue-700 font-medium font-mono text-[11.5px]"
                             >
                               <Phone size={13} className="text-slate-400" />
-                              <span>{starosta.phone}</span>
+                              <span>{maskPhone(starosta.phone)}</span>
                             </a>
                             <button
                               onClick={() => handleCopyText(starosta.id, starosta.phone)}
@@ -940,10 +979,10 @@ export default function ContactsTab({
                             <a
                               href={`mailto:${primaryEmail}`}
                               className="inline-flex items-center gap-1.5 hover:text-blue-700 truncate max-w-[210px] text-[11.5px]"
-                              title={primaryEmail}
+                              title={maskEmail(primaryEmail)}
                             >
                               <Mail size={13} className="text-slate-400 shrink-0" />
-                              <span className="truncate">{primaryEmail}</span>
+                              <span className="truncate">{maskEmail(primaryEmail)}</span>
                             </a>
                             <button
                               onClick={() => handleCopyText(starosta.id, primaryEmail)}
