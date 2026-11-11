@@ -47,30 +47,49 @@ export default function ContactsTab({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('starostowie'); // 'starostowie' | 'faculty' | 'clubs' | 'mailing'
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
-  const [maskSensitiveContacts, setMaskSensitiveContacts] = useState(false); // Ochrona RODO przed podglądaniem ekranu (Shoulder Surfing Protection)
+  const [rodoProtected, setRodoProtected] = useState(true); // Domyślny stan ochrony RODO (Privacy by Default: włączony)
+  const [unmaskedContactIds, setUnmaskedContactIds] = useState(() => new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [fieldFilter, setFieldFilter] = useState('ALL');
   const [rodoFilter, setRodoFilter] = useState('ALL');
   const [facultyFilter, setFacultyFilter] = useState('ALL');
 
-  // Pomocniki maskowania danych wrażliwych na ekranie (RODO)
-  const maskPhone = useCallback((phone) => {
-    if (!phone) return '';
-    if (!maskSensitiveContacts) return phone;
-    const clean = phone.trim();
-    if (clean.length < 6) return '••••••';
-    return clean.slice(0, 5) + ' ••• •••';
-  }, [maskSensitiveContacts]);
+  const toggleUnmaskContact = useCallback((id) => {
+    setUnmaskedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
-  const maskEmail = useCallback((email) => {
-    if (!email) return '';
-    if (!maskSensitiveContacts) return email;
-    const parts = email.split('@');
-    if (parts.length !== 2) return '••••••';
-    const namePart = parts[0];
-    const maskedName = namePart.length > 2 ? namePart[0] + '•••' + namePart.slice(-1) : '••';
-    return `${maskedName}@${parts[1]}`;
-  }, [maskSensitiveContacts]);
+  const isContactProtected = useCallback((contactId) => {
+    if (!rodoProtected) return false;
+    return !unmaskedContactIds.has(contactId);
+  }, [rodoProtected, unmaskedContactIds]);
+
+  // Pomocnicze funkcje maskujące (wykonywane WYŁĄCZNIE w locie podczas renderowania widoku)
+  const formatPhone = useCallback((phone, isProtected) => {
+    if (!phone || phone === '—' || phone.trim() === '') return '—';
+    if (!isProtected) return phone;
+    const clean = phone.trim();
+    // Pokazuje np. pierwsze 6-7 znaków, resztę kropkuje:
+    const replaced = clean.replace(/(\+?\d{2,3}\s?\d{3})\s?\d{3}\s?\d{3}/, '$1 ••• •••');
+    if (replaced !== clean) return replaced;
+    return clean.length > 7 ? `${clean.slice(0, 7)} ••• •••` : '••••••';
+  }, []);
+
+  const formatEmail = useCallback((email, isProtected) => {
+    if (!email || email === '—' || email.trim() === '') return '—';
+    if (!isProtected) return email;
+    const [user, domain] = email.trim().split('@');
+    if (!domain) return '••••@••••';
+    const prefix = user.length > 2 ? user.slice(0, 2) : user.slice(0, 1);
+    return `${prefix}•••••@${domain}`;
+  }, []);
 
   // Contact list state loaded from SSOT / localStorage
   const [contactsData, setContactsData] = useState(() => getLocalContacts());
@@ -476,20 +495,33 @@ export default function ContactsTab({
               </div>
             )}
 
-            {/* Ochrona RODO przed podglądaniem ekranu */}
+            {/* Ochrona RODO przed podglądaniem ekranu (Default: ON) */}
             {activeSubTab !== 'mailing' && (
               <button
                 type="button"
-                onClick={() => setMaskSensitiveContacts(!maskSensitiveContacts)}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs ${
-                  maskSensitiveContacts
-                    ? 'bg-amber-50 text-amber-800 border-amber-300'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                onClick={() => setRodoProtected(!rodoProtected)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs border transition cursor-pointer shadow-2xs ${
+                  rodoProtected
+                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-semibold'
                 }`}
-                title={maskSensitiveContacts ? "Wyłącz maskowanie danych osobowych" : "Włącz maskowanie danych osobowych (ochrona RODO przed podglądaniem ekranu w biurze)"}
+                title={
+                  rodoProtected
+                    ? "Ochrona RODO aktywna: kliknij, aby odkryć pełne dane (wyłącza maskowanie)"
+                    : "RODO wyłączone: kliknij, aby włączyć maskowanie danych osobowych"
+                }
               >
-                {maskSensitiveContacts ? <EyeOff size={14} className="text-amber-600" /> : <Eye size={14} className="text-slate-500" />}
-                <span className="hidden md:inline">{maskSensitiveContacts ? 'Ochrona aktywna' : 'Maskuj RODO'}</span>
+                {rodoProtected ? (
+                  <>
+                    <ShieldCheck size={14} className="text-emerald-700 shrink-0" />
+                    <span>🔒 Ochrona RODO: Aktywna</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye size={14} className="text-amber-700 shrink-0" />
+                    <span>👁 Odkryj dane (RODO wyłączone)</span>
+                  </>
+                )}
               </button>
             )}
 
@@ -747,8 +779,10 @@ export default function ContactsTab({
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {filteredStarostowie.map((starosta, idx) => {
                       const isCopied = copiedId === starosta.id;
-                      const hasPhone = Boolean(starosta.phone);
-                      const primaryEmail = starosta.email || starosta.emailPrywatny || starosta.emailUczelniany || '';
+                      const hasPhone = Boolean(starosta.phone && starosta.phone.trim() !== '' && starosta.phone !== '—');
+                      const primaryEmail = (starosta.email || starosta.emailPrywatny || starosta.emailUczelniany || '').trim();
+                      const hasEmail = Boolean(primaryEmail && primaryEmail !== '—');
+                      const isRowProtected = isContactProtected(starosta.id);
 
                       return (
                         <tr
@@ -791,13 +825,25 @@ export default function ContactsTab({
                                 <a
                                   href={`tel:${starosta.phone.replace(/\s+/g, '')}`}
                                   className="text-slate-800 hover:text-blue-700 font-mono text-[11px]"
+                                  title={isRowProtected ? "Dane zamaskowane (RODO). Kliknij oko, aby podejrzeć." : starosta.phone}
                                 >
-                                  {maskPhone(starosta.phone)}
+                                  {formatPhone(starosta.phone, isRowProtected)}
                                 </a>
+                                {rodoProtected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleUnmaskContact(starosta.id)}
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded transition cursor-pointer"
+                                    title={isRowProtected ? "Odkryj dane dla tego kontaktu" : "Zamaskuj dane dla tego kontaktu"}
+                                  >
+                                    {isRowProtected ? <Eye size={12} /> : <EyeOff size={12} className="text-amber-600" />}
+                                  </button>
+                                )}
                                 <button
+                                  type="button"
                                   onClick={() => handleCopyText(starosta.id + '_phone', starosta.phone)}
                                   className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
-                                  title="Kopiuj telefon"
+                                  title="Kopiuj pełny numer telefonu"
                                 >
                                   {copiedId === starosta.id + '_phone' ? (
                                     <Check size={12} className="text-emerald-600" />
@@ -807,25 +853,36 @@ export default function ContactsTab({
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-[11px] italic">—</span>
+                              <span className="text-slate-400 text-[11px] font-mono">—</span>
                             )}
                           </td>
 
                           {/* E-mail */}
                           <td className="py-2.5 px-4">
-                            {primaryEmail ? (
+                            {hasEmail ? (
                               <div className="flex items-center gap-1.5">
                                 <a
                                   href={`mailto:${primaryEmail}`}
                                   className="text-slate-800 hover:text-blue-700 truncate max-w-[190px] text-[11px]"
-                                  title={maskEmail(primaryEmail)}
+                                  title={isRowProtected ? "Dane zamaskowane (RODO). Kliknij oko, aby podejrzeć." : primaryEmail}
                                 >
-                                  {maskEmail(primaryEmail)}
+                                  {formatEmail(primaryEmail, isRowProtected)}
                                 </a>
+                                {rodoProtected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleUnmaskContact(starosta.id)}
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded transition cursor-pointer shrink-0"
+                                    title={isRowProtected ? "Odkryj dane dla tego kontaktu" : "Zamaskuj dane dla tego kontaktu"}
+                                  >
+                                    {isRowProtected ? <Eye size={12} /> : <EyeOff size={12} className="text-amber-600" />}
+                                  </button>
+                                )}
                                 <button
+                                  type="button"
                                   onClick={() => handleCopyText(starosta.id + '_mail', primaryEmail)}
                                   className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer shrink-0"
-                                  title="Kopiuj e-mail"
+                                  title="Kopiuj pełny adres e-mail"
                                 >
                                   {copiedId === starosta.id + '_mail' ? (
                                     <Check size={12} className="text-emerald-600" />
@@ -835,7 +892,7 @@ export default function ContactsTab({
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-slate-400 text-[11px] italic">—</span>
+                              <span className="text-slate-400 text-[11px] font-mono">—</span>
                             )}
                           </td>
 
@@ -895,10 +952,12 @@ export default function ContactsTab({
             /* GRID VIEW (Duże karty) */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredStarostowie.map((starosta) => {
-                const isCopied = copiedId === starosta.id;
-                const hasPhone = Boolean(starosta.phone);
-                const hasEmail = Boolean(starosta.email || starosta.emailPrywatny || starosta.emailUczelniany);
-                const primaryEmail = starosta.email || starosta.emailPrywatny || starosta.emailUczelniany || '';
+                const isPhoneCopied = copiedId === `${starosta.id}_phone`;
+                const isMailCopied = copiedId === `${starosta.id}_mail`;
+                const isRowProtected = isContactProtected(starosta.id);
+                const hasPhone = Boolean(starosta.phone && starosta.phone.trim() !== '' && starosta.phone !== '—');
+                const primaryEmail = (starosta.email || starosta.emailPrywatny || starosta.emailUczelniany || '').trim();
+                const hasEmail = Boolean(primaryEmail && primaryEmail !== '—');
 
                 return (
                   <div
@@ -957,20 +1016,34 @@ export default function ContactsTab({
                               className="inline-flex items-center gap-1.5 hover:text-blue-700 font-medium font-mono text-[11.5px]"
                             >
                               <Phone size={13} className="text-slate-400" />
-                              <span>{maskPhone(starosta.phone)}</span>
+                              <span>{formatPhone(starosta.phone, isRowProtected)}</span>
                             </a>
-                            <button
-                              onClick={() => handleCopyText(starosta.id, starosta.phone)}
-                              className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
-                              title="Kopiuj telefon"
-                            >
-                              {isCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                            </button>
+                            <div className="flex items-center gap-1">
+                              {rodoProtected && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUnmaskContact(starosta.id)}
+                                  className="p-1 text-slate-400 hover:text-blue-700 rounded transition cursor-pointer"
+                                  title={isRowProtected ? "Odkryj dane tego kontaktu" : "Zamaskuj dane tego kontaktu"}
+                                >
+                                  {isRowProtected ? <Eye size={12} /> : <EyeOff size={12} className="text-amber-600" />}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleCopyText(`${starosta.id}_phone`, starosta.phone)}
+                                className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+                                title="Kopiuj pełny numer telefonu"
+                              >
+                                {isPhoneCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                              </button>
+                            </div>
                           </div>
                         ) : (
-                          <div className="text-[11px] text-slate-400 italic flex items-center gap-1.5">
-                            <Phone size={13} className="text-slate-300" />
-                            <span>Brak numeru telefonu</span>
+                          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <Phone size={13} className="text-slate-300" />
+                              <span className="font-mono text-slate-400">—</span>
+                            </div>
                           </div>
                         )}
 
@@ -979,23 +1052,37 @@ export default function ContactsTab({
                             <a
                               href={`mailto:${primaryEmail}`}
                               className="inline-flex items-center gap-1.5 hover:text-blue-700 truncate max-w-[210px] text-[11.5px]"
-                              title={maskEmail(primaryEmail)}
+                              title={formatEmail(primaryEmail, isRowProtected)}
                             >
                               <Mail size={13} className="text-slate-400 shrink-0" />
-                              <span className="truncate">{maskEmail(primaryEmail)}</span>
+                              <span className="truncate">{formatEmail(primaryEmail, isRowProtected)}</span>
                             </a>
-                            <button
-                              onClick={() => handleCopyText(starosta.id, primaryEmail)}
-                              className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
-                              title="Kopiuj e-mail"
-                            >
-                              {isCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                            </button>
+                            <div className="flex items-center gap-1">
+                              {rodoProtected && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleUnmaskContact(starosta.id)}
+                                  className="p-1 text-slate-400 hover:text-blue-700 rounded transition cursor-pointer"
+                                  title={isRowProtected ? "Odkryj dane tego kontaktu" : "Zamaskuj dane tego kontaktu"}
+                                >
+                                  {isRowProtected ? <Eye size={12} /> : <EyeOff size={12} className="text-amber-600" />}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleCopyText(`${starosta.id}_mail`, primaryEmail)}
+                                className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+                                title="Kopiuj pełny adres e-mail"
+                              >
+                                {isMailCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                              </button>
+                            </div>
                           </div>
                         ) : (
-                          <div className="text-[11px] text-slate-400 italic flex items-center gap-1.5">
-                            <Mail size={13} className="text-slate-300" />
-                            <span>Brak adresu e-mail</span>
+                          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <Mail size={13} className="text-slate-300" />
+                              <span className="font-mono text-slate-400">—</span>
+                            </div>
                           </div>
                         )}
                       </div>
