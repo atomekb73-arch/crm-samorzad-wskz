@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   KeyRound,
@@ -11,14 +11,44 @@ import {
   FileCode,
   HardDrive,
   Trash2,
+  Users,
+  ShieldAlert,
+  UserPlus,
+  Mail,
+  Award,
 } from 'lucide-react';
 import { PUBLIC_SHEET_GID, SAMORZAD_GIDS, SHEET_ID, APPS_SCRIPT_URL, testSheetConnection } from '../services/googleSheets';
+import { DEFAULT_AUTHORIZED_ACCOUNTS, MASTER_ADMIN_EMAILS } from '../context/AuthContext';
 
 export default function AccessControlTab({
   onRefreshData = () => {},
 }) {
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
+
+  // Lista autoryzowanych kont z pamięci lokalnej z fallbackiem do zdefiniowanych kont domyślnych
+  const [authorizedAccounts, setAuthorizedAccounts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('samorzad_access_users') || localStorage.getItem('skn_access_users');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Upewnij się, że nowi członkowie Zarządu są w liście nawet przy istniejącym localStorage
+          const emailsInStorage = new Set(parsed.map(u => (u.email || '').toLowerCase().trim()));
+          const missingDefaults = DEFAULT_AUTHORIZED_ACCOUNTS.filter(
+            d => !emailsInStorage.has((d.email || '').toLowerCase().trim())
+          );
+          if (missingDefaults.length > 0) {
+            const merged = [...missingDefaults, ...parsed];
+            localStorage.setItem('samorzad_access_users', JSON.stringify(merged));
+            return merged;
+          }
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_AUTHORIZED_ACCOUNTS;
+  });
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -163,6 +193,45 @@ export default function AccessControlTab({
                 )}
               </div>
             )}
+            {/* Lista zarejestrowanych administratorów */}
+            <div className="pt-2 border-t border-slate-100">
+              <h4 className="font-bold text-xs text-slate-800 mb-2.5 flex items-center gap-1.5">
+                <Users size={14} className="text-[#1e3a8a]" />
+                Autoryzowani Administratorzy i Zarząd Kancelarii (Whitelist):
+              </h4>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {authorizedAccounts.map((acc) => {
+                  const isMaster = MASTER_ADMIN_EMAILS.some(e => e.toLowerCase() === (acc.email || '').toLowerCase().trim());
+                  return (
+                    <div
+                      key={acc.id || acc.email}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-50 transition flex items-start justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 text-xs truncate">{acc.name}</span>
+                          {isMaster && (
+                            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded border border-amber-300">
+                              Zarząd / Master
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-500 truncate flex items-center gap-1">
+                          <Mail size={11} className="text-slate-400 shrink-0" />
+                          <span>{acc.email}</span>
+                        </div>
+                        <div className="text-[10px] text-indigo-700 font-medium mt-0.5">
+                          {acc.roleLabel || 'Pełny dostęp administracyjny'}
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                        Pełny dostęp
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

@@ -25,6 +25,9 @@ export const MASTER_ADMIN_EMAILS = [
   'atomekb73@gmail.com',
   'atonex73@gmail.com',
   'kancelaria@samorzad.wskz.pl',
+  'agnieszka.rusnarczyk@gmail.com',
+  'szymon.manikowski@icloud.com',
+  'aleksandra.anna.zerdzinska@gmail.com',
 ];
 
 // ─── Bezpieczne skróty kryptograficzne haseł (SHA-256 z unikalną solą) ──────
@@ -52,6 +55,46 @@ export const MASTER_ADMIN_HASHES = {
 };
 
 export const DEFAULT_AUTHORIZED_ACCOUNTS = [
+  {
+    id: 'usr_agnieszka_zarzad',
+    name: 'Agnieszka Rusnarczyk',
+    email: 'agnieszka.rusnarczyk@gmail.com',
+    role: 'ADMIN',
+    roleLabel: 'Przewodnicząca RSS (Pełny dostęp)',
+    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    isFirstLogin: false,
+    addedAt: '2026-09-05',
+  },
+  {
+    id: 'usr_szymon_zarzad',
+    name: 'Szymon Manikowski',
+    email: 'szymon.manikowski@icloud.com',
+    role: 'ADMIN',
+    roleLabel: 'Skarbnik RSS / WPBik (Pełny dostęp)',
+    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    isFirstLogin: false,
+    addedAt: '2026-09-05',
+  },
+  {
+    id: 'usr_aleksandra_zarzad',
+    name: 'Aleksandra Żerdzińska',
+    email: 'aleksandra.anna.zerdzinska@gmail.com',
+    role: 'ADMIN',
+    roleLabel: 'Zastępczyni Przewodniczącej (Pełny dostęp)',
+    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    isFirstLogin: false,
+    addedAt: '2026-09-05',
+  },
+  {
+    id: 'usr_kancelaria_01',
+    name: 'Kancelaria Samorządu Studenckiego WSKZ',
+    email: 'kancelaria@samorzad.wskz.pl',
+    role: 'ADMIN',
+    roleLabel: 'Prezydium / Sekretariat',
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+    isFirstLogin: true,
+    addedAt: '2026-09-05',
+  },
   {
     id: 'usr_liliana_01',
     name: 'Liliana Sienkiewicz',
@@ -82,19 +125,12 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     isFirstLogin: true,
     addedAt: '2026-09-05',
   },
-  {
-    id: 'usr_kancelaria_01',
-    name: 'Kancelaria Samorządu Studenckiego WSKZ',
-    email: 'kancelaria@samorzad.wskz.pl',
-    role: 'ADMIN',
-    roleLabel: 'Prezydium / Sekretariat',
-    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-    isFirstLogin: true,
-    addedAt: '2026-09-05',
-  },
 ];
 
 export const STARTER_HASHES = {
+  'agnieszka.rusnarczyk@gmail.com': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
+  'szymon.manikowski@icloud.com': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
+  'aleksandra.anna.zerdzinska@gmail.com': 'd18e8112f2d609f3136a91f60bcf6f2a5e201935c1aa3b77e069f7ca1f33668a',
   'lajlasienkiewicz@gmail.com': 'f9844c0c1e853b1d3c01a21bc073fc6ae3c19e77105ffb06c45997eb239c23f3',
   'kasia.j.kubacka@gmail.com': 'b3467f2476a0cd648a79f3c576fb1e3e0614717e0f8698a18e20dee0d796e9f2',
   'piotrniklas7@gmail.com': '7d84b5af56db9e76f1c5cfb684bea5b1f43846f866c96669b62b1a9cfd90d677',
@@ -240,7 +276,13 @@ export function AuthProvider({ children }) {
           }
           return {
             ...parsed,
-            name: (email.includes('atomek') || email.includes('atonex') || name.includes('bratkowski') || name.includes('tomasz'))
+            name: email === 'agnieszka.rusnarczyk@gmail.com'
+              ? 'Agnieszka Rusnarczyk'
+              : email === 'szymon.manikowski@icloud.com'
+              ? 'Szymon Manikowski'
+              : email === 'aleksandra.anna.zerdzinska@gmail.com'
+              ? 'Aleksandra Żerdzińska'
+              : (email.includes('atomek') || email.includes('atonex') || name.includes('bratkowski') || name.includes('tomasz'))
               ? 'Tomasz Bratkowski'
               : MASTER_ADMIN_EMAILS.some(m => m.toLowerCase() === email)
               ? 'Kancelaria Samorządu Studenckiego WSKZ'
@@ -389,9 +431,17 @@ export function AuthProvider({ children }) {
 
     if (isMaster) {
       role = 'SUPER_ADMIN';
-      name = (cleanEmail.includes('atomek') || cleanEmail.includes('atonex'))
-        ? 'Tomasz Bratkowski'
-        : 'Kancelaria Samorządu Studenckiego WSKZ';
+      if (cleanEmail === 'agnieszka.rusnarczyk@gmail.com') {
+        name = 'Agnieszka Rusnarczyk';
+      } else if (cleanEmail === 'szymon.manikowski@icloud.com') {
+        name = 'Szymon Manikowski';
+      } else if (cleanEmail === 'aleksandra.anna.zerdzinska@gmail.com') {
+        name = 'Aleksandra Żerdzińska';
+      } else if (cleanEmail.includes('atomek') || cleanEmail.includes('atonex')) {
+        name = 'Tomasz Bratkowski';
+      } else {
+        name = 'Kancelaria Samorządu Studenckiego WSKZ';
+      }
     } else if (isDefaultBoard) {
       role = 'SUPER_ADMIN';
       name = 'Kancelaria Samorządu Studenckiego WSKZ';
@@ -679,7 +729,13 @@ export function AuthProvider({ children }) {
 
     const newUser = {
       email,
-      name: (email.includes('atomek') || email.includes('atonex') || email.includes('bratkowski'))
+      name: email === 'agnieszka.rusnarczyk@gmail.com'
+        ? 'Agnieszka Rusnarczyk'
+        : email === 'szymon.manikowski@icloud.com'
+        ? 'Szymon Manikowski'
+        : email === 'aleksandra.anna.zerdzinska@gmail.com'
+        ? 'Aleksandra Żerdzińska'
+        : (email.includes('atomek') || email.includes('atonex') || email.includes('bratkowski'))
         ? 'Tomasz Bratkowski'
         : isMaster
         ? 'Kancelaria Samorządu Studenckiego WSKZ'
