@@ -2554,7 +2554,7 @@ function CorrespondenceTab({
               @media print {
                 @page {
                   size: A4 portrait;
-                  margin: 8mm 12mm;
+                  margin: 12mm 15mm 12mm 15mm;
                 }
                 * {
                   -webkit-print-color-adjust: exact !important;
@@ -2588,11 +2588,10 @@ function CorrespondenceTab({
                   position: static !important;
                   width: 100% !important;
                   max-width: 100% !important;
-                  height: 98vh !important;
-                  min-height: 98vh !important;
-                  max-height: 98vh !important;
+                  min-height: auto !important;
+                  height: auto !important;
                   margin: 0 !important;
-                  padding: 2mm 4mm !important;
+                  padding: 0 !important;
                   box-sizing: border-box !important;
                   box-shadow: none !important;
                   border: none !important;
@@ -2601,6 +2600,17 @@ function CorrespondenceTab({
                   justify-content: space-between !important;
                   page-break-inside: avoid !important;
                   break-inside: avoid !important;
+                }
+                /* Ukryj robocze obramowania i tła pól edycyjnych na wydruku */
+                #official-letter-a4-print-area input,
+                #official-letter-a4-print-area textarea {
+                  border: none !important;
+                  background: transparent !important;
+                  box-shadow: none !important;
+                  outline: none !important;
+                  padding-left: 0 !important;
+                  padding-right: 0 !important;
+                  resize: none !important;
                 }
               }
             `}</style>
@@ -3024,19 +3034,22 @@ function CorrespondenceTab({
                     </div>
 
                     {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
-                    <div className="pt-5 space-y-5 text-[11pt] leading-[1.5] text-[#111827]">
+                    <div className="pt-3 space-y-3.5 text-[11pt] leading-[1.5] text-[#111827]">
                       {/* Place, Date & Reference Number */}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         {/* Sender info on left */}
                         <div className="text-[10.5pt] leading-[1.45] text-[#1f2937]">
                           {isPreviewEditable ? (
-                            <input
-                              type="text"
-                              list="addressBookOptions"
-                              value={previewFields.nadawca}
-                              onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
-                              className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 mb-1"
-                            />
+                            <div className="mb-1">
+                              <input
+                                type="text"
+                                list="addressBookOptions"
+                                value={previewFields.nadawca}
+                                onChange={(e) => setPreviewFields({ ...previewFields, nadawca: e.target.value })}
+                                className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] font-bold bg-blue-50/30 print:hidden"
+                              />
+                              <div className="hidden print:block font-bold text-[#111827]">{previewFields.nadawca}</div>
+                            </div>
                           ) : (
                             <div className="font-bold text-[#111827]">{previewFields.nadawca}</div>
                           )}
@@ -3049,12 +3062,15 @@ function CorrespondenceTab({
                         {/* Place & Date on right */}
                         <div className="text-right text-[10.5pt]">
                           {isPreviewEditable ? (
-                            <input
-                              type="text"
-                              value={previewFields.miejsceData}
-                              onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
-                              className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30"
-                            />
+                            <div>
+                              <input
+                                type="text"
+                                value={previewFields.miejsceData}
+                                onChange={(e) => setPreviewFields({ ...previewFields, miejsceData: e.target.value })}
+                                className="border border-blue-400 rounded px-2 py-0.5 text-[10.5pt] text-right bg-blue-50/30 print:hidden"
+                              />
+                              <div className="hidden print:block">{previewFields.miejsceData}</div>
+                            </div>
                           ) : (
                             <div>{previewFields.miejsceData}</div>
                           )}
@@ -3062,22 +3078,27 @@ function CorrespondenceTab({
                       </div>
 
                       {/* Recipient Block (Right-aligned in classic Polish official style) */}
-                      <div className="flex justify-end pt-1">
+                      <div className="flex justify-end pt-0.5">
                         <div className="w-full sm:w-[52%] text-[10.5pt] leading-[1.45]">
-                          <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5">
+                          <div className="text-[9.5pt] text-[#6b7280] uppercase tracking-wider mb-0.5 print:hidden">
                             Adresat:
                           </div>
                           {isPreviewEditable ? (
-                            <input
-                              type="text"
-                              list="addressBookOptions"
-                              value={previewFields.odbiorca}
-                              onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
-                              className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30"
-                            />
+                            <div>
+                              <input
+                                type="text"
+                                list="addressBookOptions"
+                                value={previewFields.odbiorca}
+                                onChange={(e) => setPreviewFields({ ...previewFields, odbiorca: e.target.value })}
+                                className="w-full border border-blue-400 rounded px-2 py-1 text-[10.5pt] font-bold bg-blue-50/30 print:hidden"
+                              />
+                              <div className="hidden print:block font-bold text-[#111827]">
+                                {previewFields.odbiorca?.startsWith('Sz. P.') ? previewFields.odbiorca : `Sz. P. ${previewFields.odbiorca}`}
+                              </div>
+                            </div>
                           ) : (
                             <div className="font-bold text-[#111827]">
-                              Sz. P. {previewFields.odbiorca}
+                              {previewFields.odbiorca?.startsWith('Sz. P.') ? previewFields.odbiorca : `Sz. P. ${previewFields.odbiorca}`}
                             </div>
                           )}
                           <div className="text-[#374151]">
@@ -3087,10 +3108,10 @@ function CorrespondenceTab({
                       </div>
 
                       {/* Subject (Dotyczy) */}
-                      <div className="pt-1">
+                      <div className="pt-0.5">
                         {isPreviewEditable ? (
                           <div>
-                            <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1">
+                            <span className="text-[9.5pt] font-bold uppercase text-[#3164d4] block mb-1 print:hidden">
                               Dotyczy sprawy:
                             </span>
                             <input
@@ -3098,8 +3119,11 @@ function CorrespondenceTab({
                               value={previewFields.temat}
                               onChange={(e) => setPreviewFields({ ...previewFields, temat: e.target.value })}
                               placeholder="Wpisz temat / sprawę (np. Wystąpienie w sprawie organizacji roku)..."
-                              className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full border border-blue-400 rounded px-2.5 py-1 text-[11pt] font-bold text-[#111827] bg-blue-50/30 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-500 print:hidden"
                             />
+                            <div className="hidden print:block font-bold text-[11pt] text-[#111827]">
+                              <span className="underline">Dotyczy:</span> {previewFields.temat || 'Wystąpienie Kancelarii Samorządu Studenckiego'}
+                            </div>
                           </div>
                         ) : (
                           <div className="font-bold text-[11pt] text-[#111827]">
@@ -3109,50 +3133,64 @@ function CorrespondenceTab({
                       </div>
 
                       {/* Main Letter Body */}
-                      <div className="pt-1 text-[11pt] leading-[1.6] text-[#111827]">
+                      <div className="pt-0.5 text-[11pt] leading-[1.55] text-[#111827]">
                         {isPreviewEditable ? (
                           <div className="space-y-1.5">
-                            <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block">
+                            <label className="text-[9.5pt] font-bold uppercase text-[#3164d4] block print:hidden">
                               Treść pisma (edytowalna):
                             </label>
                             <textarea
-                              rows={10}
+                              rows={8}
                               value={previewFields.tresc}
                               onChange={(e) => setPreviewFields({ ...previewFields, tresc: e.target.value })}
                               placeholder="Wpisz treść oficjalnego pisma (np. Szanowni Państwo, ...)..."
-                              className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.6] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
+                              className="w-full border border-blue-400 rounded-lg p-3 text-[11pt] leading-[1.55] text-[#111827] bg-blue-50/20 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 print:hidden"
                             />
+                            {/* Czysty render wydruku: bez ramek, pasków przewijania i ucięć tekstu */}
+                            <div className="hidden print:block whitespace-pre-wrap text-justify min-h-[140px] print:min-h-0">
+                              {previewFields.tresc || ''}
+                            </div>
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap text-justify min-h-[220px] print:min-h-0">
+                          <div className="whitespace-pre-wrap text-justify min-h-[180px] print:min-h-0">
                             {previewFields.tresc || <span className="text-slate-400 italic">Brak treści pisma.</span>}
                           </div>
                         )}
                       </div>
 
                       {/* Signature Block */}
-                      <div className="pt-6 flex justify-end break-inside-avoid">
+                      <div className="pt-4 flex justify-end break-inside-avoid">
                         <div className="w-80 text-right space-y-1">
-                          <p className="text-[10.5pt] italic text-[#374151] mb-2">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
+                          <p className="text-[10.5pt] italic text-[#374151] mb-1.5">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
                           
                           {/* Dane osoby podpisującej — CZYSTY, OFICJALNY DOKUMENT A4 */}
                           <div className="space-y-0.5 text-right font-sans">
                             {isPreviewEditable || previewFields.isCustomAuthor ? (
-                              <div className="space-y-1 pt-1">
-                                <input
-                                  type="text"
-                                  value={previewFields.autor}
-                                  onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
-                                  placeholder="Imię i nazwisko"
-                                  className="w-full border border-blue-400 rounded px-2 py-0.5 text-[11pt] font-bold text-right bg-blue-50/30"
-                                />
-                                <input
-                                  type="text"
-                                  value={previewFields.stanowisko}
-                                  onChange={(e) => setPreviewFields({ ...previewFields, stanowisko: e.target.value })}
-                                  placeholder="Stanowisko / funkcja"
-                                  className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10pt] text-right bg-blue-50/30"
-                                />
+                              <div className="pt-1">
+                                <div className="space-y-1 print:hidden">
+                                  <input
+                                    type="text"
+                                    value={previewFields.autor}
+                                    onChange={(e) => setPreviewFields({ ...previewFields, autor: e.target.value })}
+                                    placeholder="Imię i nazwisko"
+                                    className="w-full border border-blue-400 rounded px-2 py-0.5 text-[11pt] font-bold text-right bg-blue-50/30"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={previewFields.stanowisko}
+                                    onChange={(e) => setPreviewFields({ ...previewFields, stanowisko: e.target.value })}
+                                    placeholder="Stanowisko / funkcja"
+                                    className="w-full border border-blue-400 rounded px-2 py-0.5 text-[10pt] text-right bg-blue-50/30"
+                                  />
+                                </div>
+                                <div className="hidden print:block text-right">
+                                  <div className="text-[11.5pt] font-bold text-[#111827] leading-tight">
+                                    {previewFields.autor}
+                                  </div>
+                                  <div className="text-[10pt] font-medium text-[#1e3a8a] leading-tight">
+                                    {previewFields.stanowisko}
+                                  </div>
+                                </div>
                               </div>
                             ) : (
                               <>
@@ -3171,9 +3209,9 @@ function CorrespondenceTab({
                   </div>
 
                   {/* 1:1 WSKZ FOOTER SECTION */}
-                  <div className="pt-4 mt-4 break-inside-avoid select-none">
+                  <div className="pt-2 mt-2 break-inside-avoid select-none">
                     {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
-                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
+                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1 px-1">
                       <span>
                         Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
                       </span>
