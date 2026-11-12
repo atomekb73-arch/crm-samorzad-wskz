@@ -62,7 +62,7 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Przewodnicząca RSS (Pełny dostęp)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    isFirstLogin: false,
+    isFirstLogin: true,
     addedAt: '2026-09-05',
   },
   {
@@ -72,7 +72,7 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Skarbnik RSS / WPBik (Pełny dostęp)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    isFirstLogin: false,
+    isFirstLogin: true,
     addedAt: '2026-09-05',
   },
   {
@@ -82,7 +82,7 @@ export const DEFAULT_AUTHORIZED_ACCOUNTS = [
     role: 'ADMIN',
     roleLabel: 'Zastępczyni Przewodniczącej (Pełny dostęp)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    isFirstLogin: false,
+    isFirstLogin: true,
     addedAt: '2026-09-05',
   },
   {
@@ -200,22 +200,12 @@ export function getUserFirstLoginStatus(email, userRecord = null) {
   if (!email) return true;
   const cleanEmail = email.toLowerCase().trim();
 
-  // Konto nadrzędne atomekb73@gmail.com / Master Admin ma stały bezpośredni dostęp bez wymuszenia zmiany hasła
-  if (MASTER_ADMIN_EMAILS.some(e => e.toLowerCase() === cleanEmail)) {
+  // Konto głównego administratora (Tomasz Bratkowski) ma stały dostęp bezpośredni
+  if (cleanEmail === 'atomekb73@gmail.com' || cleanEmail === 'atonex73@gmail.com') {
     return false;
   }
 
-  try {
-    const raw = localStorage.getItem('samorzad_user_first_login_status') || localStorage.getItem('skn_user_first_login_status');
-    if (raw) {
-      const statusMap = JSON.parse(raw);
-      if (statusMap && cleanEmail in statusMap) {
-        return !!statusMap[cleanEmail];
-      }
-    }
-  } catch {}
-
-  // Jeśli użytkownik ma już zapisane własne hasło w samorzad_user_passwords, to nie jest pierwsze logowanie
+  // 1. Sprawdź czy użytkownik ma już zdefiniowane i zapisane własne hasło
   try {
     const rawPass = localStorage.getItem('samorzad_user_passwords') || localStorage.getItem('skn_user_passwords');
     if (rawPass) {
@@ -226,12 +216,23 @@ export function getUserFirstLoginStatus(email, userRecord = null) {
     }
   } catch {}
 
-  // Jeśli rekord użytkownika ma jawnie isFirstLogin: false
+  // 2. Sprawdź status pierwszego logowania zapisany po udanej aktywacji
+  try {
+    const raw = localStorage.getItem('samorzad_user_first_login_status') || localStorage.getItem('skn_user_first_login_status');
+    if (raw) {
+      const statusMap = JSON.parse(raw);
+      if (statusMap && cleanEmail in statusMap) {
+        return !!statusMap[cleanEmail];
+      }
+    }
+  } catch {}
+
+  // 3. Jeśli rekord użytkownika ma jawnie isFirstLogin: false
   if (userRecord && userRecord.isFirstLogin === false) {
     return false;
   }
 
-  // Domyślnie nowe konta wymagają zmiany hasła przy pierwszym wejściu
+  // Domyślnie nowe konta wymagają pierwszego logowania z hasłem startowym i wymuszeniem zmiany hasła
   return true;
 }
 
@@ -461,10 +462,10 @@ export function AuthProvider({ children }) {
       loggedAt: new Date().toISOString(),
     };
 
-    // 3. Sprawdź czy użytkownik ma już zdefiniowane hasło
+    // 3. Sprawdź czy użytkownik loguje się po raz pierwszy (wymuszenie zmiany hasła startowego)
     const storedPass = getUserStoredPassword(cleanEmail);
-    const hasPassword = Boolean(storedPass);
-    const isFirstLogin = !hasPassword;
+    const isFirstLogin = getUserFirstLoginStatus(cleanEmail, accessMatch);
+    const hasPassword = Boolean(storedPass) && !isFirstLogin;
 
     return {
       authorized: true,
@@ -475,7 +476,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   /** Aktywacja nowego konta na pierwszym logowaniu i nadanie własnego hasła (SHA-256) */
-  const activateAccount = useCallback(async (email, newPassword, confirmPassword, userData = null) => {
+  const activateAccount = useCallback(async (email, newPassword, confirmPassword, userData = null, starterPassword = '') => {
     if (!email || !newPassword || !confirmPassword) {
       return { success: false, error: 'Wypełnij wszystkie pola formularza.' };
     }
@@ -483,13 +484,31 @@ export function AuthProvider({ children }) {
     const cleanEmail = email.trim().toLowerCase();
     const p1 = newPassword.trim();
     const p2 = confirmPassword.trim();
+    const starterProvided = (starterPassword || '').trim();
+
+    // Weryfikacja hasła startowego jeśli konto posiada zdefiniowane hasło startowe
+    const expectedStarter = STARTER_HASHES[cleanEmail] || MASTER_ADMIN_HASHES[cleanEmail];
+    if (expectedStarter) {
+      if (!starterProvided) {
+        return { success: false, error: 'Wprowadź hasło startowe przekazane przez Kancelarię.' };
+      }
+      const starterHash = await computePasswordHash(starterProvided);
+      if (starterHash !== expectedStarter && starterProvided !== expectedStarter) {
+        return { success: false, error: 'Wprowadzone hasło startowe jest nieprawidłowe.' };
+      }
+    }
 
     if (p1.length < 8) {
-      return { success: false, error: 'Hasło musi zawierać co najmniej 8 znaków.' };
+      return { success: false, error: 'Nowe hasło musi zawierać co najmniej 8 znaków.' };
     }
 
     if (p1 !== p2) {
       return { success: false, error: 'Wprowadzone hasła nie są identyczne.' };
+    }
+
+    const inputHash = await computePasswordHash(p1);
+    if (expectedStarter && inputHash === expectedStarter) {
+      return { success: false, error: 'Nowe hasło nie może być takie samo jak hasło startowe. Utwórz własne, bezpieczne hasło.' };
     }
 
     try {

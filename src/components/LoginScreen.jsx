@@ -25,11 +25,13 @@ export default function LoginScreen() {
   // Input fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
+  const [showTempPassword, setShowTempPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -41,7 +43,8 @@ export default function LoginScreen() {
   // Validation rules for new password during first-time activation
   const hasMinLength = newPassword.length >= 8;
   const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
-  const isActivationValid = hasMinLength && passwordsMatch;
+  const hasTempPassword = tempPassword.trim().length > 0;
+  const isActivationValid = hasMinLength && passwordsMatch && hasTempPassword;
 
   // STEP 1: Verify Email
   const handleEmailSubmit = (e) => {
@@ -67,8 +70,9 @@ export default function LoginScreen() {
       setVerifiedUser(res.user);
 
       if (res.isFirstLogin || !res.hasPassword) {
-        // First login: No password set yet -> Activation form
+        // First login: Requires entering temporary starter password & creating private password
         setStep('activate');
+        setTempPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
@@ -111,8 +115,12 @@ export default function LoginScreen() {
     e.preventDefault();
     setError(null);
 
+    if (!tempPassword.trim()) {
+      setError('Wprowadź hasło startowe przekazane przez Kancelarię.');
+      return;
+    }
     if (!hasMinLength) {
-      setError('Hasło musi zawierać co najmniej 8 znaków.');
+      setError('Nowe hasło musi zawierać co najmniej 8 znaków.');
       return;
     }
     if (!passwordsMatch) {
@@ -122,7 +130,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const res = await activateAccount(email.trim(), newPassword, confirmPassword, verifiedUser);
+      const res = await activateAccount(email.trim(), newPassword, confirmPassword, verifiedUser, tempPassword.trim());
       if (!res.success) {
         setError(res.error || 'Nie udało się zapisać hasła.');
       }
@@ -138,6 +146,7 @@ export default function LoginScreen() {
   const handleResetToEmail = () => {
     setStep('email');
     setPassword('');
+    setTempPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setError(null);
@@ -372,14 +381,44 @@ export default function LoginScreen() {
                   Witaj, {verifiedUser?.name || 'Użytkowniku'}!
                 </p>
                 <p className="text-[11px] text-sky-200/80 leading-relaxed">
-                  Twoje konto zostało dodane przez Kancelarię Samorządu. Ustaw swoje własne, unikalne hasło dostępowe.
+                  Wprowadź hasło startowe przekazane przez Kancelarię, a następnie zdefiniuj swoje własne, stałe hasło prywatne.
                 </p>
+              </div>
+
+              {/* Temporary Starter Password field */}
+              <div className="space-y-1.5">
+                <label htmlFor="temp-starter-password" className="block text-xs font-bold text-amber-300/90 flex items-center justify-between">
+                  <span>Hasło startowe (tymczasowe)</span>
+                  <span className="text-[10px] text-amber-400/80 font-normal">z Kancelarii</span>
+                </label>
+                <div className="relative">
+                  <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400" />
+                  <input
+                    id="temp-starter-password"
+                    type={showTempPassword ? 'text' : 'password'}
+                    required
+                    autoFocus
+                    spellCheck="false"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    placeholder="Wpisz hasło startowe..."
+                    className="w-full pl-10 pr-10 py-2.5 text-xs bg-slate-950/60 border border-amber-500/40 rounded-xl focus:bg-slate-950 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 outline-none transition font-medium text-slate-100 font-mono placeholder:text-slate-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowTempPassword(!showTempPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showTempPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
 
               {/* New Password field */}
               <div className="space-y-1.5">
                 <label htmlFor="activate-password" className="block text-xs font-bold text-sky-200/80">
-                  Wpisz hasło
+                  Twoje nowe hasło prywatne
                 </label>
                 <div className="relative">
                   <KeyRound size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -387,7 +426,6 @@ export default function LoginScreen() {
                     id="activate-password"
                     type={showNewPassword ? 'text' : 'password'}
                     required
-                    autoFocus
                     autoComplete="new-password"
                     spellCheck="false"
                     value={newPassword}
@@ -409,7 +447,7 @@ export default function LoginScreen() {
               {/* Confirm Password field */}
               <div className="space-y-1.5">
                 <label htmlFor="activate-confirm-password" className="block text-xs font-bold text-sky-200/80">
-                  Powtórz hasło
+                  Powtórz nowe hasło prywatne
                 </label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
