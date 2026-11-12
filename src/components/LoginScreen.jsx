@@ -154,6 +154,14 @@ export default function LoginScreen() {
         
         {/* Header Branding */}
         <div className="text-center space-y-3">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-white p-1 shadow-xl border border-sky-800/40 overflow-hidden flex items-center justify-center">
+            <img
+              src="/app-icon.png"
+              alt="Logo Kancelarii Samorządu WSKZ"
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          </div>
+
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-950/70 text-sky-300 border border-sky-800/50 text-xs font-semibold backdrop-blur-md shadow-inner">
             <span className="text-base leading-none">🏛️</span>
             <span>Samorząd Studentów WSKZ</span>

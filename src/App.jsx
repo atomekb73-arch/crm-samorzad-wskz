@@ -1204,8 +1204,12 @@ export default function App() {
 
           {/* Logo & Multi-Tenant Organization Switcher */}
           <div className="flex items-center gap-3 shrink-0 relative min-w-fit whitespace-nowrap">
-            <div className="w-10 h-10 rounded-2xl bg-[#1e3a8a] flex items-center justify-center shadow-sm text-white font-extrabold text-sm tracking-tight shrink-0 border border-blue-900/20">
-              KSS
+            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shadow-xs overflow-hidden shrink-0 border border-slate-200">
+              <img
+                src="/app-icon.png"
+                alt="Logo Kancelarii Samorządu WSKZ"
+                className="w-full h-full object-cover"
+              />
             </div>
             
             <div className="relative">
