@@ -366,13 +366,13 @@ function CorrespondenceTab({
     return formatTableDate(item.dataWplywu || item.data || item.date || item.Data_Wplywu);
   };
 
-  // ── Stan i obsługa sortowania wielokolumnowego ────────────────────────────
-  const [sortConfig, setSortConfig] = useState({ key: 'dataWplywu', direction: 'asc' });
+  // ── Stan i obsługa sortowania wielokolumnowego (domyślnie: najnowsze na samej górze) ──
+  const [sortConfig, setSortConfig] = useState({ key: 'dataWplywu', direction: 'desc' });
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
   };
 
