@@ -525,6 +525,29 @@ export default function ContactsTab({
               </button>
             )}
 
+            <button
+              type="button"
+              onClick={() => onNavigateToLetter({
+                recipient: 'Władze Uczelni WSKZ',
+                institution: 'Wyższa Szkoła Kształcenia Zawodowego',
+              })}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer"
+              title="Wystaw nowe oficjalne pismo A4 na papierze firmowym WSKZ"
+            >
+              <FileText size={14} className="text-[#1e3a8a]" />
+              <span>Nowe pismo A4</span>
+            </button>
+
+            <a
+              href="/szablon-pisma-wskz.docx"
+              download="Szablon_Pisma_WSKZ.docx"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition shadow-2xs"
+              title="Pobierz oficjalny szablon dokumentu programu Word (.DOCX) z nagłówkiem i stopką WSKZ"
+            >
+              <Download size={14} className="text-slate-500" />
+              <span className="hidden sm:inline">Szablon DOCX</span>
+            </a>
+
             <a
               href={SPREADSHEET_URL}
               target="_blank"

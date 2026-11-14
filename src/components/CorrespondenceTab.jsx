@@ -1003,6 +1003,32 @@ function CorrespondenceTab({
           <button
             type="button"
             onClick={() => {
+              const sourceList = Array.isArray(allCorrespondence) && allCorrespondence.length > 0 ? allCorrespondence : correspondence;
+              const nextSig = getNextSignature(getCurrentLocalDateTimeString(), sourceList);
+              handleOpenPrintPreview({
+                sygnatura: nextSig,
+                id: nextSig,
+                typ: 'Wychodzące',
+                direction: 'OUT',
+                przedmiot: '',
+                nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
+                odbiorca: 'Dziekanat WNS / Władze Uczelni WSKZ',
+                dataWplywu: getCurrentLocalDateTimeString(),
+                status: 'W toku',
+                tresc: '',
+                isNewLetter: true,
+              }, true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1e3a8a] hover:bg-[#1d4ed8] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
+            title="Utwórz nowe oficjalne pismo A4 na papierze firmowym WSKZ z możliwością edycji i druku"
+          >
+            <FileText size={15} />
+            <span>Nowe pismo A4 (WSKZ)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
               setNewEntry(prev => ({
                 ...prev,
                 direction: 'OUT',
@@ -1024,6 +1050,16 @@ function CorrespondenceTab({
             <Sparkles size={15} className="text-amber-300" />
             <span>Utwórz pismo (Google Docs)</span>
           </button>
+
+          <a
+            href="/szablon-pisma-wskz.docx"
+            download="Szablon_Pisma_WSKZ.docx"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+            title="Pobierz oficjalny szablon programu Microsoft Word (.DOCX)"
+          >
+            <Download size={14} className="text-slate-500" />
+            <span className="hidden sm:inline">Szablon DOCX</span>
+          </a>
 
           <button
             type="button"
@@ -2720,6 +2756,16 @@ function CorrespondenceTab({
                     <Printer size={14} />
                     <span>Drukuj / Zapisz PDF</span>
                   </button>
+
+                  <a
+                    href="/szablon-pisma-wskz.docx"
+                    download="Szablon_Pisma_WSKZ.docx"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
+                    title="Pobierz czysty oficjalny szablon dokumentu programu Word (.DOCX)"
+                  >
+                    <Download size={14} className="text-slate-600" />
+                    <span>Szablon DOCX</span>
+                  </a>
 
                   {(previewFields.originTab === 'contacts' || previewLetterItem?.originTab === 'contacts') && (
                     <button
