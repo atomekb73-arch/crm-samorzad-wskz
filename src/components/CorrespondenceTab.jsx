@@ -2590,7 +2590,7 @@ function CorrespondenceTab({
               @media print {
                 @page {
                   size: A4 portrait;
-                  margin: 12mm 15mm 12mm 15mm;
+                  margin: 0;
                 }
                 * {
                   -webkit-print-color-adjust: exact !important;
@@ -2599,8 +2599,8 @@ function CorrespondenceTab({
                 html, body {
                   margin: 0 !important;
                   padding: 0 !important;
-                  width: 100% !important;
-                  height: auto !important;
+                  width: 210mm !important;
+                  height: 297mm !important;
                   overflow: visible !important;
                   background: #ffffff !important;
                 }
@@ -2612,8 +2612,8 @@ function CorrespondenceTab({
                   position: static !important;
                   display: block !important;
                   overflow: visible !important;
-                  width: 100% !important;
-                  height: auto !important;
+                  width: 210mm !important;
+                  height: 297mm !important;
                   background: transparent !important;
                   backdrop-filter: none !important;
                   -webkit-backdrop-filter: none !important;
@@ -2621,12 +2621,12 @@ function CorrespondenceTab({
                   margin: 0 !important;
                 }
                 #official-letter-a4-print-area {
-                  position: static !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  min-height: auto !important;
-                  height: auto !important;
-                  margin: 0 !important;
+                  position: relative !important;
+                  width: 210mm !important;
+                  max-width: 210mm !important;
+                  min-height: 297mm !important;
+                  height: 297mm !important;
+                  margin: 0 auto !important;
                   padding: 0 !important;
                   box-sizing: border-box !important;
                   box-shadow: none !important;
@@ -2636,6 +2636,12 @@ function CorrespondenceTab({
                   justify-content: space-between !important;
                   page-break-inside: avoid !important;
                   break-inside: avoid !important;
+                  overflow: hidden !important;
+                }
+                #official-letter-a4-print-area img {
+                  max-width: 100% !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
                 }
                 /* Ukryj robocze obramowania i tła pól edycyjnych na wydruku */
                 #official-letter-a4-print-area input,
@@ -2859,8 +2865,19 @@ function CorrespondenceTab({
             {/* A4 Sheet Area */}
             <div
               id="official-letter-a4-print-area"
-              style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-              className="w-full max-w-[794px] min-h-[1123px] shrink-0 bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 px-12 sm:px-16 pt-8 pb-7 flex flex-col justify-between relative select-text mb-8"
+              style={{
+                fontFamily: 'Arial, Helvetica, sans-serif',
+                width: '210mm',
+                minHeight: '297mm',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: 0,
+                margin: '0 auto',
+                background: '#ffffff',
+                boxSizing: 'border-box',
+              }}
+              className="w-full max-w-[210mm] min-h-[297mm] shrink-0 bg-white text-slate-900 rounded-xs shadow-2xl border border-slate-300 relative select-text mb-8 print:mb-0 print:border-none print:shadow-none"
             >
               {previewFields.isIncoming ? (
                 /* ════════════════════════════════════════════════════════════════════════
@@ -2868,7 +2885,15 @@ function CorrespondenceTab({
                    (Dla pism wchodzących — nie udaje pisma wysłanego przez Samorząd!)
                    ════════════════════════════════════════════════════════════════════════ */
                 <>
-                  <div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '15mm 20mm 0 20mm',
+                    }}
+                    className="w-full select-text"
+                  >
                     {/* 1:1 WSKZ Header Image */}
                     <div className="pb-1.5 select-none">
                       <img
@@ -3045,9 +3070,15 @@ function CorrespondenceTab({
                     </div>
                   </div>
 
-                  {/* 1:1 WSKZ FOOTER SECTION */}
-                  <div className="pt-3 mt-3 break-inside-avoid select-none">
-                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1.5 px-1">
+                  {/* 1:1 WSKZ FOOTER SECTION — EDGE TO EDGE */}
+                  <div
+                    style={{ width: '100%', margin: 0, padding: 0 }}
+                    className="break-inside-avoid select-none"
+                  >
+                    <div
+                      style={{ padding: '0 20mm 6px 20mm' }}
+                      className="flex items-center justify-between text-[8.5pt] text-[#9ca3af]"
+                    >
                       <span>
                         Karta Ewidencyjna Wpływu • Przyjął(a) do rejestru:{' '}
                         <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
@@ -3058,7 +3089,8 @@ function CorrespondenceTab({
                     <img
                       src="/wskz-footer.png"
                       alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
-                      className="w-full h-auto block object-contain"
+                      style={{ width: '100%', height: 'auto', display: 'block', margin: 0, padding: 0, verticalAlign: 'bottom' }}
+                      className="w-full h-auto block object-cover print:object-cover"
                     />
                   </div>
                 </>
@@ -3068,8 +3100,16 @@ function CorrespondenceTab({
                    (Dla pism wychodzących — papier firmowy WSKZ z podpisem Zarządu/Kancelarii)
                    ════════════════════════════════════════════════════════════════════════ */
                 <>
-                  {/* TOP & BODY SECTION */}
-                  <div>
+                  {/* Wewnętrzny kontener treści pisma: flex: 1; display: flex; flex-direction: column; padding: 15mm 20mm 0 20mm; */}
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '15mm 20mm 0 20mm',
+                    }}
+                    className="w-full select-text"
+                  >
                     {/* 1:1 WSKZ Header Image */}
                     <div className="pb-2 select-none">
                       <img
@@ -3080,7 +3120,7 @@ function CorrespondenceTab({
                     </div>
 
                     {/* Document Content Area (Clean Arial 11pt layout matching Google Docs) */}
-                    <div className="pt-3 space-y-3.5 text-[11pt] leading-[1.5] text-[#111827]">
+                    <div className="pt-3 space-y-3.5 text-[11pt] leading-[1.5] text-[#111827] flex-1 flex flex-col">
                       {/* Place, Date & Reference Number */}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         {/* Sender info on left */}
@@ -3204,8 +3244,11 @@ function CorrespondenceTab({
                         )}
                       </div>
 
-                      {/* Signature Block */}
-                      <div className="pt-4 flex justify-end break-inside-avoid">
+                      {/* Signature Block — zakotwiczony na dole treści za pomocą margin-top: auto */}
+                      <div
+                        style={{ marginTop: 'auto', paddingTop: '24px', paddingBottom: '14px' }}
+                        className="flex justify-end break-inside-avoid"
+                      >
                         <div className="w-80 text-right space-y-1">
                           <p className="text-[10.5pt] italic text-[#374151] mb-1.5">{previewFields.closing || 'Z wyrazami szacunku,'}</p>
                           
@@ -3254,10 +3297,16 @@ function CorrespondenceTab({
                     </div>
                   </div>
 
-                  {/* 1:1 WSKZ FOOTER SECTION */}
-                  <div className="pt-2 mt-2 break-inside-avoid select-none">
+                  {/* 1:1 WSKZ FOOTER SECTION — EDGE TO EDGE (100% szerokości, na samym dole) */}
+                  <div
+                    style={{ width: '100%', margin: 0, padding: 0 }}
+                    className="break-inside-avoid select-none"
+                  >
                     {/* Subtle Author & Registry Attribution above the WSKZ footer image */}
-                    <div className="flex items-center justify-between text-[8.5pt] text-[#9ca3af] mb-1 px-1">
+                    <div
+                      style={{ padding: '0 20mm 6px 20mm' }}
+                      className="flex items-center justify-between text-[8.5pt] text-[#9ca3af]"
+                    >
                       <span>
                         Sporządził(a): <strong className="text-[#6b7280] font-normal">{previewFields.autor}</strong>
                       </span>
@@ -3266,11 +3315,12 @@ function CorrespondenceTab({
                       </span>
                     </div>
 
-                    {/* Official WSKZ Footer Image */}
+                    {/* Official WSKZ Footer Image — 100% Edge-to-Edge */}
                     <img
                       src="/wskz-footer.png"
                       alt="Wyższa Szkoła Kształcenia Zawodowego — Stopka oficjalna"
-                      className="w-full h-auto block object-contain"
+                      style={{ width: '100%', height: 'auto', display: 'block', margin: 0, padding: 0, verticalAlign: 'bottom' }}
+                      className="w-full h-auto block object-cover print:object-cover"
                     />
                   </div>
                 </>
