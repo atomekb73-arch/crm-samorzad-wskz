@@ -149,3 +149,67 @@ export async function fetchTeamupEvents({
     return [];
   }
 }
+
+/**
+ * Pobiera wydarzenia z kalendarza Teamup dla wielu podkalendarzy
+ * z możliwością filtrowania po liście ID (lub wszystkich z wyłączeniem dydaktycznych).
+ */
+export async function fetchTeamupEventsMulti({
+  startDate = '2026-10-01',
+  endDate = '2027-09-30',
+  subcalendarIds = [],
+} = {}) {
+  if (!TEAMUP_TOKEN) {
+    return [];
+  }
+  try {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+
+    if (Array.isArray(subcalendarIds) && subcalendarIds.length > 0) {
+      for (const sId of subcalendarIds) {
+        if (sId) params.append('subcalendarId[]', String(sId));
+      }
+    }
+
+    const urlsToTry = [
+      `${BASE_URL}/events?${params.toString()}`,
+      `${DIRECT_URL}/events?${params.toString()}`,
+    ];
+
+    let eventsData = null;
+
+    for (const url of urlsToTry) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'Teamup-Token': TEAMUP_TOKEN,
+          },
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.trim().startsWith('{')) {
+            const data = JSON.parse(text);
+            if (data && data.events) {
+              eventsData = data;
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Błąd podczas próby pobrania wydarzeń multi z', url, e);
+      }
+    }
+
+    if (!eventsData || !eventsData.events) {
+      return [];
+    }
+
+    return eventsData.events;
+  } catch (err) {
+    console.error('Błąd fetchTeamupEventsMulti:', err);
+    return [];
+  }
+}

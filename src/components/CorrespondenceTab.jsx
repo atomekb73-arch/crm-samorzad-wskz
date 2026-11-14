@@ -670,7 +670,7 @@ function CorrespondenceTab({
           odbiorca: selectedItem.odbiorca || '',
           dataWplywu: getCurrentLocalDateTimeString(),
           status: 'W toku',
-          tresc: '',
+          tresc: selectedItem.tresc || selectedItem.body || selectedItem.summary || '',
           isNewLetter: true,
         }, true);
       } else {
@@ -2773,15 +2773,19 @@ function CorrespondenceTab({
                     <span>Szablon DOCX</span>
                   </a>
 
-                  {(previewFields.originTab === 'contacts' || previewLetterItem?.originTab === 'contacts') && (
+                  {(previewFields.originTab || previewLetterItem?.originTab) && (
                     <button
                       type="button"
                       onClick={handleClosePreviewModal}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
-                      title="Zamknij pismo i wróć do Książki Adresowej"
+                      title="Zamknij pismo i wróć do poprzedniego widoku"
                     >
                       <ArrowLeft size={14} />
-                      <span>Powrót do kontaktów</span>
+                      <span>
+                        {(previewFields.originTab === 'reports_generator' || previewLetterItem?.originTab === 'reports_generator' || previewFields.originTab === 'reports')
+                          ? 'Powrót do zestawień'
+                          : 'Powrót do kontaktów'}
+                      </span>
                     </button>
                   )}
 

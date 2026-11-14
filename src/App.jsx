@@ -36,6 +36,7 @@ import OperationalDecisionsTab from './components/OperationalDecisionsTab';
 import OrganizationsTab from './components/OrganizationsTab';
 import AccessControlTab from './components/AccessControlTab';
 import ContactsTab from './components/ContactsTab';
+import ReportsGeneratorTab from './components/ReportsGeneratorTab';
 import { getLocalContacts, saveLocalContact } from './services/contactsService';
 import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
@@ -191,12 +192,13 @@ export default function App() {
     const draftItem = {
       id: `DRAFT-${Date.now().toString().slice(-4)}`,
       _mode: 'new_outgoing_letter',
-      originTab: 'contacts',
+      originTab: contactInfo?.originTab || 'contacts',
       direction: 'OUT',
       typ: 'Wychodzące',
       nadawca: 'Kancelaria Samorządu Studenckiego WSKZ',
       odbiorca: recipientStr,
-      przedmiot: '',
+      przedmiot: contactInfo?.subject || contactInfo?.przedmiot || '',
+      tresc: contactInfo?.body || contactInfo?.tresc || '',
       status: 'W toku',
       dataWplywu: nowIso.slice(0, 16).replace('T', ' '),
     };
@@ -1516,6 +1518,19 @@ export default function App() {
                     <OrganizationsTab
                       organizations={orgsList}
                       onAddOrganization={handleAddOrganization}
+                      onNavigateToLetter={handleNavigateToLetterFromContact}
+                    />
+                  );
+
+                case 'reports_generator':
+                case 'reports':
+                case 'zestawienia':
+                case 'raporty':
+                  return (
+                    <ReportsGeneratorTab
+                      correspondence={correspondence}
+                      operationalDecisions={decisions}
+                      starostowie={getLocalContacts().starostowie || []}
                       onNavigateToLetter={handleNavigateToLetterFromContact}
                     />
                   );
