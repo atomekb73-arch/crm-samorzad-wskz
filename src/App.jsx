@@ -1479,6 +1479,18 @@ export default function App() {
                     />
                   );
 
+                case 'documents':
+                case 'docs':
+                case 'uchwaly':
+                case 'repozytorium':
+                case 'akty_prawne':
+                  return (
+                    <DocumentsRepositoryTab
+                      academicYear={academicYear}
+                      onNavigateToLetter={handleNavigateToLetterFromContact}
+                    />
+                  );
+
                 case 'contacts':
                 case 'kontakty':
                 case 'ksiazka_adresowa':

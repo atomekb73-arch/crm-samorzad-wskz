@@ -2,6 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard,
   Mail,
+  FolderKanban,
   BookUser,
   AlertTriangle,
   FileText,
@@ -13,6 +14,7 @@ import {
 export const MAIN_TABS = [
   { id: 'dashboard',       label: 'Pulpit Kancelarii',      icon: LayoutDashboard, aliases: [] },
   { id: 'correspondence',  label: 'Dziennik Korespondencji', icon: Mail,            aliases: ['mail', 'poczta'] },
+  { id: 'documents',       label: 'Akty i Uchwały',         icon: FolderKanban,    aliases: ['docs', 'uchwaly', 'repozytorium', 'akty_prawne'] },
   { id: 'contacts',        label: 'Książka Adresowa',       icon: BookUser,        aliases: ['kontakty', 'ksiazka_adresowa', 'address_book'] },
   { id: 'it_issues',       label: 'Zgłoszenia Techniczne',   icon: AlertTriangle,   aliases: ['wady', 'it'] },
   { id: 'decisions',       label: 'Ustalenia Operacyjne',    icon: FileText,        aliases: ['protokoly', 'ustalenia'] },
