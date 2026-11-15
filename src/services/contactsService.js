@@ -176,6 +176,63 @@ export const SEED_STAROSTOWIE = [
     startDate: "2026-10-18",
     endDate: "",
     notes: "Zgłoszenie z dokumentu M_Piecka AMD.pdf"
+  },
+  {
+    id: "ST-010",
+    category: "starostowie",
+    name: "Marcin Chodara",
+    role: "Starosta Grupy",
+    field: "Zarządzanie",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "",
+    group: "",
+    phone: "+48 516 458 960",
+    emailUczelniany: "",
+    emailPrywatny: "marcinchodara10@gmail.com",
+    email: "marcinchodara10@gmail.com",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-11-08",
+    endDate: "",
+    notes: "img20261109_14295563.pdf"
+  },
+  {
+    id: "ST-011",
+    category: "starostowie",
+    name: "Martyna Bajer",
+    role: "Starosta Grupy",
+    field: "Administracja",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "III rok",
+    semester: "",
+    group: "",
+    phone: "+48 514 338 878",
+    emailUczelniany: "",
+    emailPrywatny: "martynabajer@gmail.com",
+    email: "martynabajer@gmail.com",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-11-07",
+    endDate: "",
+    notes: "8_11.tiff"
+  },
+  {
+    id: "ST-012",
+    category: "starostowie",
+    name: "Monika Brzezicha",
+    role: "Starosta Grupy",
+    field: "Administracja",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "",
+    group: "",
+    phone: "+48 607 367 311",
+    emailUczelniany: "",
+    emailPrywatny: "mika13586@interia.pl",
+    email: "mika13586@interia.pl",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-11-08",
+    endDate: "",
+    notes: "8_11_B.tiff"
   }
 ];
 
@@ -518,7 +575,7 @@ export const SEED_CLUBS_CONTACTS = [
 ];
 
 // ─── Pamięć lokalna (LocalStorage) ──────────────────────────────────────────
-const STORAGE_KEY_STAROSTOWIE = 'kanc_contacts_starostowie_v1';
+const STORAGE_KEY_STAROSTOWIE = 'kanc_contacts_starostowie_v2';
 const STORAGE_KEY_FACULTY = 'kanc_contacts_faculty_v1';
 const STORAGE_KEY_CLUBS = 'kanc_contacts_clubs_v1';
 
