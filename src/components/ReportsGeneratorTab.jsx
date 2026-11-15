@@ -190,16 +190,17 @@ export default function ReportsGeneratorTab({
       ``,
       `I. DZIAŁALNOŚĆ 14 STUDENCKICH KÓŁ NAUKOWYCH WSKZ:`,
       `• Liczba monitorowanych Kół Naukowych: ${reportData.clubsReport.activeClubsCount}`,
-      `• Łączna liczba unikalnych wydarzeń w okresie: ${reportData.clubsReport.totalUniqueMeetings} (wydarzenia międzykołowe deduplikowane — liczone jako 1 unikalne)`,
       `• Spotkania merytoryczne i warsztaty otwarte: ${reportData.clubsReport.substantiveMeetingsCount}`,
-      `• Łączna frekwencja zarejestrowana na spotkaniach merytorycznych: ${reportData.clubsReport.totalParticipants} uczestników`,
-      `• Średnia liczba uczestników na spotkanie merytoryczne: ${reportData.clubsReport.substantiveMeetingsCount > 0 ? Math.round(reportData.clubsReport.totalParticipants / reportData.clubsReport.substantiveMeetingsCount) : 0} osób`,
-      `• Spotkania robocze i techniczne zespołów projektowych (Wrench): ${reportData.clubsReport.projectMeetingsCount}`,
+      `• Spotkania robocze i zespoły projektowe (Wrench): ${reportData.clubsReport.projectMeetingsCount}`,
+      `• Razem spotkań (merytoryczne + projektowe): ${reportData.clubsReport.substantiveMeetingsCount + reportData.clubsReport.projectMeetingsCount}`,
+      `• Łączna frekwencja zarejestrowana z gośćmi: ${reportData.clubsReport.totalParticipants} uczestników`,
+      `• Średnia liczba uczestników na spotkanie merytoryczne: ${reportData.clubsReport.substantiveMeetingsCount > 0 ? Math.round((reportData.clubsReport.substantiveParticipants / reportData.clubsReport.substantiveMeetingsCount) * 10) / 10 : 0} osób`,
+      `• Łączna liczba wszystkich unikalnych wydarzeń w okresie: ${reportData.clubsReport.totalUniqueMeetings} (wydarzenia międzykołowe deduplikowane — liczone jako 1 unikalne)`,
       `• Posiedzenia wewnętrzne zarządów kół: ${reportData.clubsReport.internalMeetingsCount}`,
       ``,
       `Wykaz aktywności poszczególnych Kół Naukowych:`,
       ...reportData.clubsReport.clubsStats.map(cs => 
-        `• ${cs.club.name}: ${cs.substantiveCount} spotkań merytorycznych (${cs.totalParticipants} os.), ${cs.projectCount} spotkań projektowych`
+        `• ${cs.club.name}: ${cs.substantiveCount} merytorycznych, ${cs.projectCount} projektowych (Razem: ${cs.substantiveCount + cs.projectCount}, łączna frekwencja: ${cs.totalParticipants} os., średnia: ${cs.avgAttendance} os.)`
       ),
       ``,
       ...(reportData.samorzadStats ? [
@@ -491,9 +492,10 @@ export default function ReportsGeneratorTab({
           </div>
         </div>
 
-        {/* Karty KPI */}
+        {/* Karty KPI - Kolejność 1: Merytoryczne, 2: Projektowe, 3: Frekwencja, 4: Samorząd */}
         {reportData && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Spotkania merytoryczne i warsztaty */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
               <div className="p-3 bg-blue-50 text-blue-900 rounded-xl border border-blue-100 shrink-0">
                 <Calendar size={22} className="text-[#1e3a8a]" />
@@ -508,20 +510,7 @@ export default function ReportsGeneratorTab({
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-              <div className="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-100 shrink-0">
-                <Users size={22} className="text-emerald-700" />
-              </div>
-              <div>
-                <div className="text-xl md:text-2xl font-bold text-emerald-700">
-                  {reportData.clubsReport.totalParticipants}
-                </div>
-                <div className="text-xs font-semibold text-slate-500">
-                  Łączna frekwencja z gośćmi
-                </div>
-              </div>
-            </div>
-
+            {/* 2. Spotkania zespołów projektowych */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
               <div className="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-100 shrink-0">
                 <Wrench size={22} className="text-amber-700" />
@@ -536,6 +525,22 @@ export default function ReportsGeneratorTab({
               </div>
             </div>
 
+            {/* 3. Łączna frekwencja z gośćmi */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
+              <div className="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-100 shrink-0">
+                <Users size={22} className="text-emerald-700" />
+              </div>
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-emerald-700">
+                  {reportData.clubsReport.totalParticipants}
+                </div>
+                <div className="text-xs font-semibold text-slate-500">
+                  Łączna frekwencja z gośćmi
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Sprawy DKO + Ustalenia Samorządu */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
               <div className="p-3 bg-purple-50 text-purple-900 rounded-xl border border-purple-100 shrink-0">
                 <Layers size={22} className="text-purple-700" />
@@ -552,7 +557,7 @@ export default function ReportsGeneratorTab({
           </div>
         )}
 
-        {/* ── Tabela Zbiorcza 14 Kół Naukowych ──────────────────────────────── */}
+        {/* ── Tabela Zbiorcza 14 Kół Naukowych (Nowy układ 7 kolumn) ────────── */}
         {reportData && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
@@ -561,7 +566,7 @@ export default function ReportsGeneratorTab({
                   Tabela Zbiorcza Aktywności Kół Naukowych WSKZ ({reportData.clubsReport.activeClubsCount} kół)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Wydarzenia międzykołowe deduplikowane w podsumowaniu łącznym. Spotkania projektowe liczone osobno.
+                  Wydarzenia międzykołowe deduplikowane w podsumowaniu łącznym. Rzeczywiste dane frekwencji z Supabase.
                 </p>
               </div>
             </div>
@@ -573,21 +578,21 @@ export default function ReportsGeneratorTab({
                     <th className="py-3 px-3.5 font-bold">Koło Naukowe</th>
                     <th className="py-3 px-3.5 font-bold">Wydział</th>
                     <th className="py-3 px-3.5 font-bold text-center">Spotkania merytoryczne</th>
-                    <th className="py-3 px-3.5 font-bold text-center">Łączna frekwencja</th>
-                    <th className="py-3 px-3.5 font-bold text-center">Średnia / spotkanie</th>
                     <th className="py-3 px-3.5 font-bold text-center">
                       <span className="inline-flex items-center gap-1 text-amber-800">
                         <Wrench size={12} />
-                        Projektowe
+                        Spotkania projektowe
                       </span>
                     </th>
-                    <th className="py-3 px-3.5 font-bold text-center">Zarząd</th>
-                    <th className="py-3 px-3.5 font-bold text-right">Razem</th>
+                    <th className="py-3 px-3.5 font-bold text-center">Razem spotkań</th>
+                    <th className="py-3 px-3.5 font-bold text-center">Średnia frekwencja</th>
+                    <th className="py-3 px-3.5 font-bold text-right">Łączna frekwencja</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {reportData.clubsReport.clubsStats.map((cs) => {
                     const IconComp = CLUB_ICONS[cs.club.icon] || Users;
+                    const totalClubMeetings = cs.substantiveCount + cs.projectCount;
                     return (
                       <tr key={cs.club.orgId} className="hover:bg-slate-50/80 transition">
                         <td className="py-3 px-3.5 font-medium text-slate-900">
@@ -608,12 +613,6 @@ export default function ReportsGeneratorTab({
                         <td className="py-3 px-3.5 text-center font-bold text-blue-900">
                           {cs.substantiveCount}
                         </td>
-                        <td className="py-3 px-3.5 text-center font-bold text-emerald-700">
-                          {cs.totalParticipants} os.
-                        </td>
-                        <td className="py-3 px-3.5 text-center text-slate-600">
-                          {cs.avgAttendance} os.
-                        </td>
                         <td className="py-3 px-3.5 text-center font-bold text-amber-800">
                           {cs.projectCount > 0 ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
@@ -624,11 +623,14 @@ export default function ReportsGeneratorTab({
                             '0'
                           )}
                         </td>
-                        <td className="py-3 px-3.5 text-center text-slate-500">
-                          {cs.internalCount}
+                        <td className="py-3 px-3.5 text-center font-bold text-slate-900">
+                          {totalClubMeetings}
                         </td>
-                        <td className="py-3 px-3.5 text-right font-bold text-slate-900">
-                          {cs.meetingsCount}
+                        <td className="py-3 px-3.5 text-center text-slate-600">
+                          {cs.avgAttendance > 0 ? `${cs.avgAttendance} os.` : '—'}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-bold text-emerald-700">
+                          {cs.totalParticipants > 0 ? `${cs.totalParticipants} os.` : '0 os.'}
                         </td>
                       </tr>
                     );
@@ -643,23 +645,20 @@ export default function ReportsGeneratorTab({
                     <td className="py-3.5 px-3.5 text-center text-blue-900 text-sm">
                       {reportData.clubsReport.substantiveMeetingsCount}
                     </td>
-                    <td className="py-3.5 px-3.5 text-center text-emerald-800 text-sm">
-                      {reportData.clubsReport.totalParticipants} os.
-                    </td>
-                    <td className="py-3.5 px-3.5 text-center text-slate-700">
-                      {reportData.clubsReport.substantiveMeetingsCount > 0
-                        ? Math.round(reportData.clubsReport.totalParticipants / reportData.clubsReport.substantiveMeetingsCount)
-                        : 0}{' '}
-                      os.
-                    </td>
                     <td className="py-3.5 px-3.5 text-center text-amber-800 text-sm">
                       {reportData.clubsReport.projectMeetingsCount}
                     </td>
-                    <td className="py-3.5 px-3.5 text-center text-slate-700">
-                      {reportData.clubsReport.internalMeetingsCount}
+                    <td className="py-3.5 px-3.5 text-center text-slate-900 text-sm">
+                      {reportData.clubsReport.substantiveMeetingsCount + reportData.clubsReport.projectMeetingsCount}
                     </td>
-                    <td className="py-3.5 px-3.5 text-right text-slate-900 text-sm">
-                      {reportData.clubsReport.totalUniqueMeetings}
+                    <td className="py-3.5 px-3.5 text-center text-slate-700">
+                      {reportData.clubsReport.substantiveMeetingsCount > 0
+                        ? Math.round((reportData.clubsReport.substantiveParticipants / reportData.clubsReport.substantiveMeetingsCount) * 10) / 10
+                        : 0}{' '}
+                      os.
+                    </td>
+                    <td className="py-3.5 px-3.5 text-right text-emerald-800 text-sm">
+                      {reportData.clubsReport.totalParticipants} os.
                     </td>
                   </tr>
                 </tfoot>
@@ -860,7 +859,11 @@ export default function ReportsGeneratorTab({
                           </div>
                         </td>
                         <td className="py-2.5 px-3 text-center font-bold text-slate-900 whitespace-nowrap">
-                          {m.participants} os.
+                          {m.participants > 0 ? (
+                            <span className="text-emerald-700">{m.participants} os.</span>
+                          ) : (
+                            <span className="text-slate-400 font-normal italic text-[11px]">brak danych</span>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 text-slate-500 text-[11px]">
                           {m.location}
