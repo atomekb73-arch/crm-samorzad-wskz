@@ -44,6 +44,7 @@ import {
   generateUniversityReport,
   exportReportToExcel,
 } from '../services/reportsAggregatorService';
+import { isValidAcademicDate } from '../services/teamupService';
 import { SEED_STAROSTOWIE } from '../services/contactsService';
 
 const CLUB_ICONS = {
@@ -136,8 +137,11 @@ export default function ReportsGeneratorTab({
     setSelectedClubs(new Set());
   };
 
-  // Pobieranie i przeliczanie raportu
+  // Pobieranie i przeliczanie raportu (wyłącznie dla ukończonych, realistycznych dat 2020–2035)
   const loadReport = useCallback(async () => {
+    if (!isValidAcademicDate(startDate) || !isValidAcademicDate(endDate) || startDate > endDate) {
+      return;
+    }
     setIsLoading(true);
     try {
       const selectedOrgIdsArray = Array.from(selectedClubs);
@@ -404,7 +408,7 @@ export default function ReportsGeneratorTab({
 
             <button
               type="button"
-              onClick={loadReport}
+              onClick={() => loadReport()}
               disabled={isLoading}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-900 hover:bg-blue-100 transition cursor-pointer shrink-0"
             >

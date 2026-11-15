@@ -42,7 +42,7 @@ import { useAuth } from './context/AuthContext';
 import { useOrg } from './context/OrgContext';
 import { useAcademicYear } from './context/AcademicYearContext';
 import { fetchAllData, fetchAllKancelariaData, sendToBackend, AUTHORIZED_INDEXES } from './services/googleSheets';
-import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID } from './services/teamupService';
+import { fetchTeamupEvents, fetchTeamupSubcalendars, DEFAULT_SUBCALENDAR_ID, isValidAcademicDate } from './services/teamupService';
 import { getRecordKey } from './utils/helpers';
 import { getAcademicYearKey, getAcademicYearFromDate } from './utils/academicYear';
 import { prepareDateTimeForPayload } from './utils/dateUtils';
@@ -805,7 +805,9 @@ export default function App() {
   const handleCustomDateChange = (newStart, newEnd) => {
     setCustomStartDate(newStart);
     setCustomEndDate(newEnd);
-    loadMeetings(selectedSubcalendar, 'custom', newStart, newEnd);
+    if (isValidAcademicDate(newStart) && isValidAcademicDate(newEnd) && newStart <= newEnd) {
+      loadMeetings(selectedSubcalendar, 'custom', newStart, newEnd);
+    }
   };
 
   // ── Member Status Toggle / Setter (Aktywni vs Goście vs Rezygnacja) ────────

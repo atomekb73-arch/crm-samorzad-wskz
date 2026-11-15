@@ -5,13 +5,45 @@ const DIRECT_URL = `https://api.teamup.com/${TEAMUP_CALENDAR_ID}`;
 
 export const DEFAULT_SUBCALENDAR_ID = import.meta.env?.VITE_SUBCALENDAR_ID || '15520558';
 
+/**
+ * Waliduje datę w formacie YYYY-MM-DD w realistycznym zakresie akademickim (2020–2035).
+ * Chroni przed przedwczesnymi zapytaniami przy wpisywaniu z klawiatury (np. 0001-01-15, 0202-10-31)
+ * oraz przed przekazaniem obiektu zdarzenia ([object Object]).
+ */
+export function isValidAcademicDate(dateStr) {
+  if (typeof dateStr !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 2020 || year > 2035) return false;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const d = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+  return (
+    !Number.isNaN(d.getTime()) &&
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() + 1 === month &&
+    d.getUTCDate() === day
+  );
+}
+
+/**
+ * W przeglądarce kieruje ruch wyłącznie przez proxy Vercel/Vite (/api-teamup/),
+ * aby całkowicie wyeliminować błędy CORS przy zapytaniach do api.teamup.com.
+ */
+function getTeamupUrls(path) {
+  const isBrowser = typeof window !== 'undefined';
+  return isBrowser ? [`${BASE_URL}${path}`] : [`${BASE_URL}${path}`, `${DIRECT_URL}${path}`];
+}
+
 export async function fetchTeamupSubcalendars() {
   const defaultSub = { id: DEFAULT_SUBCALENDAR_ID, name: 'Koła Naukowe > 07 🎗️ SKN Psychoonkologii' };
   if (!TEAMUP_TOKEN) {
     return [defaultSub];
   }
 
-  const urlsToTry = [`${BASE_URL}/subcalendars`, `${DIRECT_URL}/subcalendars`];
+  const urlsToTry = getTeamupUrls('/subcalendars');
 
   for (const url of urlsToTry) {
     try {
@@ -49,10 +81,13 @@ export async function fetchTeamupEvents({
   if (!TEAMUP_TOKEN) {
     return [];
   }
+  if (!isValidAcademicDate(startDate) || !isValidAcademicDate(endDate) || startDate > endDate) {
+    return [];
+  }
   try {
     const params = new URLSearchParams({
-      startDate,
-      endDate,
+      startDate: startDate.trim(),
+      endDate: endDate.trim(),
     });
 
     // Ustal docelowy subkalendarz - zablokowany wyłącznie na 15520558 dla SKN Psychoonkologii
@@ -60,10 +95,7 @@ export async function fetchTeamupEvents({
 
     params.append('subcalendarId[]', targetSubId);
 
-    const urlsToTry = [
-      `${BASE_URL}/events?${params.toString()}`,
-      `${DIRECT_URL}/events?${params.toString()}`,
-    ];
+    const urlsToTry = getTeamupUrls(`/events?${params.toString()}`);
 
     let eventsData = null;
 
@@ -162,10 +194,13 @@ export async function fetchTeamupEventsMulti({
   if (!TEAMUP_TOKEN) {
     return [];
   }
+  if (!isValidAcademicDate(startDate) || !isValidAcademicDate(endDate) || startDate > endDate) {
+    return [];
+  }
   try {
     const params = new URLSearchParams({
-      startDate,
-      endDate,
+      startDate: startDate.trim(),
+      endDate: endDate.trim(),
     });
 
     if (Array.isArray(subcalendarIds) && subcalendarIds.length > 0) {
@@ -174,10 +209,7 @@ export async function fetchTeamupEventsMulti({
       }
     }
 
-    const urlsToTry = [
-      `${BASE_URL}/events?${params.toString()}`,
-      `${DIRECT_URL}/events?${params.toString()}`,
-    ];
+    const urlsToTry = getTeamupUrls(`/events?${params.toString()}`);
 
     let eventsData = null;
 
