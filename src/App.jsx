@@ -60,7 +60,7 @@ import {
 } from './utils/storage';
 
 // ── Hard Reset pamięci podręcznej do czystego startu Kancelarii Samorządu ──
-const APP_CLEAN_VERSION = 'samorzad_clean_slate_v1';
+const APP_CLEAN_VERSION = 'samorzad_clean_slate_v2';
 if (typeof window !== 'undefined') {
   try {
     if (localStorage.getItem('kanc_crm_clean_version') !== APP_CLEAN_VERSION) {
