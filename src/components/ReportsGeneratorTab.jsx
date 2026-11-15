@@ -4,19 +4,9 @@ import {
   FileSpreadsheet,
   FileText,
   Printer,
-  Calendar,
   Users,
-  CheckCircle2,
-  Clock,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Download,
   RefreshCw,
-  Layers,
   ShieldCheck,
-  Check,
-  Wrench,
-  Sparkles,
   Search,
   Filter,
   Brain,
@@ -28,18 +18,13 @@ import {
   Zap,
   Leaf,
   Heart,
+  Sparkles,
   HelpCircle,
   Target,
   Rocket,
-  Building2,
-  Mail,
-  ChevronDown,
 } from 'lucide-react';
 
-import {
-  WSKZ_CLUBS,
-  SAMORZAD_SUBCALENDAR_ID,
-} from '../config/wskzRegistry';
+import { WSKZ_CLUBS } from '../config/wskzRegistry';
 import {
   generateUniversityReport,
   exportReportToExcel,
@@ -65,6 +50,27 @@ const CLUB_ICONS = {
   Rocket,
 };
 
+/**
+ * Usuwa początkowy numer porządkowy z nazwy koła (np. "10 SKN Seksuologii" -> "SKN Seksuologii")
+ */
+function cleanOrgName(name) {
+  return String(name || '').replace(/^\d+\s+/, '').trim();
+}
+
+/**
+ * Poprawna polska odmiana rzeczownika "osoba"
+ */
+function getOsobaSuffix(count) {
+  const n = Math.abs(Number(count) || 0);
+  if (n === 1) return 'osoba';
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return 'osoby';
+  }
+  return 'osób';
+}
+
 export default function ReportsGeneratorTab({
   correspondence = [],
   operationalDecisions = [],
@@ -75,13 +81,11 @@ export default function ReportsGeneratorTab({
   const datePresets = useMemo(() => {
     const now = new Date();
     const curYear = now.getFullYear();
-    const curMonth = now.getMonth(); // 0-indexed
+    const curMonth = now.getMonth();
 
-    // Bieżący miesiąc
     const firstDayCurMonth = new Date(curYear, curMonth, 1).toISOString().slice(0, 10);
     const lastDayCurMonth = new Date(curYear, curMonth + 1, 0).toISOString().slice(0, 10);
 
-    // Poprzedni miesiąc
     const firstDayPrevMonth = new Date(curYear, curMonth - 1, 1).toISOString().slice(0, 10);
     const lastDayPrevMonth = new Date(curYear, curMonth, 0).toISOString().slice(0, 10);
 
@@ -98,16 +102,12 @@ export default function ReportsGeneratorTab({
   const [endDate, setEndDate] = useState('2027-09-30');
 
   // Selektor Kół (Domyślnie wszystkie 14 kół)
-  const [selectedClubs, setSelectedClubs] = useState(() => new Set(WSKZ_CLUBS.map(c => c.orgId)));
+  const [selectedClubs, setSelectedClubs] = useState(() => new Set(WSKZ_CLUBS.map((c) => c.orgId)));
   const [includeSamorzad, setIncludeSamorzad] = useState(true);
 
-  // Stan ładowania i wynik raportu
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const [eventsSearchTerm, setEventsSearchTerm] = useState('');
-  const [eventsTypeFilter, setEventsTypeFilter] = useState('ALL'); // 'ALL' | 'substantive' | 'project' | 'internal'
 
-  // Obsługa wyboru presetu dat
   const handleSelectPreset = (key) => {
     setActivePreset(key);
     if (datePresets[key]) {
@@ -116,9 +116,8 @@ export default function ReportsGeneratorTab({
     }
   };
 
-  // Przełączanie pojedynczego koła
   const handleToggleClub = (orgId) => {
-    setSelectedClubs(prev => {
+    setSelectedClubs((prev) => {
       const next = new Set(prev);
       if (next.has(orgId)) {
         next.delete(orgId);
@@ -130,7 +129,7 @@ export default function ReportsGeneratorTab({
   };
 
   const handleSelectAllClubs = () => {
-    setSelectedClubs(new Set(WSKZ_CLUBS.map(c => c.orgId)));
+    setSelectedClubs(new Set(WSKZ_CLUBS.map((c) => c.orgId)));
   };
 
   const handleDeselectAllClubs = () => {
@@ -166,22 +165,40 @@ export default function ReportsGeneratorTab({
     loadReport();
   }, [loadReport]);
 
-  // Filtrowane wydarzenia w tabeli
-  const filteredEventsList = useMemo(() => {
-    if (!reportData?.clubsReport?.allUniqueMeetings) return [];
-    return reportData.clubsReport.allUniqueMeetings.filter(m => {
-      if (eventsTypeFilter === 'substantive' && (m.meetingType === 'project' || m.meetingType === 'internal')) return false;
-      if (eventsTypeFilter === 'project' && m.meetingType !== 'project') return false;
-      if (eventsTypeFilter === 'internal' && m.meetingType !== 'internal') return false;
+  // Wyliczenia zgodne 1:1 z MultiHub InterClubSummaryTemplate
+  const clubsReport = reportData?.clubsReport || {};
+  const selectedOrgs = clubsReport.selectedOrgs || [];
+  const substantiveMeetings = clubsReport.substantiveMeetings || [];
+  const projectMeetings = clubsReport.projectMeetings || [];
+  const byOrgStats = clubsReport.byOrgStats || [];
+  const summaryStats = clubsReport.summaryStats || {};
 
-      if (eventsSearchTerm.trim()) {
-        const term = eventsSearchTerm.toLowerCase();
-        const searchable = `${m.title} ${m.who} ${m.location} ${m.participatingClubs.map(c => c.name).join(' ')}`.toLowerCase();
-        if (!searchable.includes(term)) return false;
-      }
-      return true;
-    });
-  }, [reportData, eventsTypeFilter, eventsSearchTerm]);
+  const substantiveTotalAttendees = substantiveMeetings.reduce(
+    (acc, m) => acc + (Number(m.totalParticipants) || 0),
+    0
+  );
+  const projectTotalAttendees = projectMeetings.reduce(
+    (acc, m) => acc + (Number(m.totalParticipants) || 0),
+    0
+  );
+  const projectAvgAttendees = projectMeetings.length > 0
+    ? (Math.round((projectTotalAttendees / projectMeetings.length) * 10) / 10).toFixed(1)
+    : '0.0';
+
+  const totalAllAttendees = substantiveTotalAttendees + projectTotalAttendees;
+  const substantiveAvgRounded = substantiveMeetings.length > 0
+    ? Math.round(substantiveTotalAttendees / substantiveMeetings.length)
+    : 0;
+
+  const isSingleClubReport = selectedOrgs.length === 1;
+  const headerSubjectTitle = isSingleClubReport
+    ? cleanOrgName(selectedOrgs[0]?.name || selectedOrgs[0]?.shortName)
+    : `Wszystkie Koła Naukowe WSKZ (${selectedOrgs.length || selectedClubs.size} Kół)`;
+
+  const formattedDocDate = useMemo(() => {
+    const d = reportData?.generatedAt ? new Date(reportData.generatedAt) : new Date();
+    return d.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+  }, [reportData?.generatedAt]);
 
   // ── Akcja 1: Wystaw jako Pismo A4 (PDF) do Prorektor ds. studenckich ───────
   const handleCreateA4Letter = () => {
@@ -192,30 +209,29 @@ export default function ReportsGeneratorTab({
       ``,
       `Kancelaria Samorządu Studenckiego Wyższej Szkoły Kształcenia Zawodowego przedkłada oficjalne, zbiorcze zestawienie statystyczne podsumowujące aktywność naukową, warsztatową i organizacyjną Studenckich Kół Naukowych WSKZ oraz organów Samorządu Studenckiego za okres od ${reportData.period.startDate} do ${reportData.period.endDate}.`,
       ``,
-      `I. DZIAŁALNOŚĆ 14 STUDENCKICH KÓŁ NAUKOWYCH WSKZ:`,
-      `• Liczba monitorowanych Kół Naukowych: ${reportData.clubsReport.activeClubsCount}`,
-      `• Spotkania merytoryczne i warsztaty otwarte: ${reportData.clubsReport.substantiveMeetingsCount}`,
-      `• Spotkania robocze i zespoły projektowe (Wrench): ${reportData.clubsReport.projectMeetingsCount}`,
-      `• Razem spotkań (merytoryczne + projektowe): ${reportData.clubsReport.substantiveMeetingsCount + reportData.clubsReport.projectMeetingsCount}`,
-      `• Łączna frekwencja zarejestrowana z gośćmi: ${reportData.clubsReport.totalParticipants} uczestników`,
-      `• Średnia liczba uczestników na spotkanie merytoryczne: ${reportData.clubsReport.substantiveMeetingsCount > 0 ? Math.round((reportData.clubsReport.substantiveParticipants / reportData.clubsReport.substantiveMeetingsCount) * 10) / 10 : 0} osób`,
-      `• Łączna liczba wszystkich unikalnych wydarzeń w okresie: ${reportData.clubsReport.totalUniqueMeetings} (wydarzenia międzykołowe deduplikowane — liczone jako 1 unikalne)`,
-      `• Posiedzenia wewnętrzne zarządów kół: ${reportData.clubsReport.internalMeetingsCount}`,
+      `I. DZIAŁALNOŚĆ STUDENCKICH KÓŁ NAUKOWYCH WSKZ (${selectedOrgs.length} Kół):`,
+      `• Spotkania merytoryczne i warsztaty otwarte (Tabela A): ${summaryStats.substantiveEventsCount || 0} (frekwencja: ${substantiveTotalAttendees} os., średnio ${substantiveAvgRounded} os./spotkanie)`,
+      `• Prace projektowe i zespoły techniczne (Tabela B): ${summaryStats.projectEventsCount || 0} (frekwencja: ${projectTotalAttendees} os.)`,
+      `• Łącznie unikalnych wydarzeń w okresie: ${summaryStats.totalEvents || 0} (w tym ${summaryStats.jointEventsCount || 0} międzykołowe — deduplikowane)`,
+      `• Łączna frekwencja z gośćmi (merytoryczna + projektowa): ${totalAllAttendees} ${getOsobaSuffix(totalAllAttendees)}`,
       ``,
       `Wykaz aktywności poszczególnych Kół Naukowych:`,
-      ...reportData.clubsReport.clubsStats.map(cs => 
-        `• ${cs.club.name}: ${cs.substantiveCount} merytorycznych, ${cs.projectCount} projektowych (Razem: ${cs.substantiveCount + cs.projectCount}, łączna frekwencja: ${cs.totalParticipants} os., średnia: ${cs.avgAttendance} os.)`
+      ...byOrgStats.map(
+        (cs) =>
+          `• ${cleanOrgName(cs.org?.name)}: ${cs.substantiveCount} merytorycznych, ${cs.projectCount} projektowych, ${cs.jointCount} wspólnych (łączna frekwencja: ${cs.totalAttendees} os.)`
       ),
       ``,
-      ...(reportData.samorzadStats ? [
-        `II. AKTYWNOŚĆ KANCELARII SAMORZĄDU STUDENCKIEGO:`,
-        `• Korespondencja urzędowa (DKO): ${reportData.samorzadStats.dko.total} spraw (wpływające: ${reportData.samorzadStats.dko.in}, wychodzące: ${reportData.samorzadStats.dko.out})`,
-        `• Podjęte Ustalenia Operacyjne i dyspozycje: ${reportData.samorzadStats.decisions.total} (zrealizowane: ${reportData.samorzadStats.decisions.done}, w trakcie: ${reportData.samorzadStats.decisions.inProgress})`,
-        `• Sieć Starostów Roczników i Grup: ${reportData.samorzadStats.starostowie.total} aktywnych starostów (zgody RODO aktywne: ${reportData.samorzadStats.starostowie.rodoActive})`,
-        `• Inicjatywy i posiedzenia Samorządu: ${reportData.samorzadStats.events.count}`,
-        ``,
-      ] : []),
-      `Szczegółowy wykaz zrealizowanych wydarzeń oraz załączniki tabelaryczne stanowią integralną część niniejszego sprawozdania.`,
+      ...(reportData.samorzadStats
+        ? [
+            `II. AKTYWNOŚĆ KANCELARII SAMORZĄDU STUDENCKIEGO:`,
+            `• Korespondencja urzędowa (DKO): ${reportData.samorzadStats.dko.total} spraw (wpływające: ${reportData.samorzadStats.dko.in}, wychodzące: ${reportData.samorzadStats.dko.out})`,
+            `• Podjęte Ustalenia Operacyjne i dyspozycje: ${reportData.samorzadStats.decisions.total} (zrealizowane: ${reportData.samorzadStats.decisions.done}, w trakcie: ${reportData.samorzadStats.decisions.inProgress})`,
+            `• Sieć Starostów Roczników i Grup: ${reportData.samorzadStats.starostowie.total} aktywnych starostów (zgody RODO aktywne: ${reportData.samorzadStats.starostowie.rodoActive})`,
+            `• Inicjatywy i posiedzenia Samorządu: ${reportData.samorzadStats.events.count}`,
+            ``,
+          ]
+        : []),
+      `Szczegółowy wykaz zrealizowanych wydarzeń (Sekcje A, B, C) stanowi integralny załącznik do niniejszego sprawozdania.`,
       ``,
       `Z wyrazami szacunku,`,
       `Tomasz Bratkowski\nSekretarz Samorządu Studenckiego WSKZ`,
@@ -244,13 +260,13 @@ export default function ReportsGeneratorTab({
 
   return (
     <div className="w-full space-y-6">
-      {/* Styl wydruku tabelarycznego załącznika */}
+      {/* Styl wydruku A4 spójny 1:1 z MultiHub InterClubSummaryTemplate */}
       <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 10mm 12mm;
+        }
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 10mm;
-          }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -265,14 +281,37 @@ export default function ReportsGeneratorTab({
           #printable-report-content {
             display: block !important;
             width: 100% !important;
+            max-width: 186mm !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
+            padding: 0 !important;
           }
-          table {
-            font-size: 8pt !important;
-            page-break-inside: auto;
+          .inter-club-report-print table {
+            table-layout: fixed !important;
+            width: 100% !important;
+            word-wrap: break-word !important;
+            font-size: 9.5px !important;
           }
-          tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
+          .inter-club-report-print th,
+          .inter-club-report-print td {
+            padding: 3px 4px !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            font-size: 9.5px !important;
+            line-height: 1.2 !important;
+          }
+          .inter-club-report-print tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .inter-club-kpi-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            padding: 6px 8px !important;
+          }
+          .inter-club-signatures {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>
@@ -299,7 +338,6 @@ export default function ReportsGeneratorTab({
             </div>
           </div>
 
-          {/* ── 3 Główne Przyciski Eksportu ─────────────────────────────────── */}
           <div id="export-buttons-bar" className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               type="button"
@@ -344,7 +382,6 @@ export default function ReportsGeneratorTab({
             </span>
           </div>
 
-          {/* Szybkie presety dat */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             {Object.entries(datePresets).map(([key, p]) => (
               <button
@@ -363,7 +400,6 @@ export default function ReportsGeneratorTab({
           </div>
         </div>
 
-        {/* Własny wybór Od – Do oraz Przełącznik Samorządu */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
           <div>
             <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
@@ -481,406 +517,498 @@ export default function ReportsGeneratorTab({
         </div>
       </div>
 
-      {/* ── Widok Podsumowania (KPI & Raport na Ekranie) ────────────────────── */}
-      <div id="printable-report-content" className="space-y-6">
-        {/* Nagłówek druku A4 załącznika tabelarycznego */}
-        <div className="hidden print:block border-b-2 border-slate-900 pb-3 mb-4">
-          <div className="text-[10pt] font-bold uppercase text-[#1e3a8a]">
-            Wyższa Szkoła Kształcenia Zawodowego • Kancelaria Samorządu Studenckiego
-          </div>
-          <h2 className="text-[15pt] font-bold text-slate-900 mt-1">
-            Zbiorcze Zestawienie Aktywności Kół Naukowych i Samorządu Studenckiego WSKZ
-          </h2>
-          <div className="text-[9pt] text-slate-600 mt-0.5">
-            Okres sprawozdawczy: <strong>{startDate}</strong> do <strong>{endDate}</strong> • Załącznik analityczny do pisma przewodniego
-          </div>
-        </div>
-
-        {/* Karty KPI - Kolejność 1: Merytoryczne, 2: Projektowe, 3: Frekwencja, 4: Samorząd */}
-        {reportData && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Spotkania merytoryczne i warsztaty */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-              <div className="p-3 bg-blue-50 text-blue-900 rounded-xl border border-blue-100 shrink-0">
-                <Calendar size={22} className="text-[#1e3a8a]" />
-              </div>
+      {/* ── Główny Arkusz A4 Raportu (1:1 z MultiHub InterClubSummaryTemplate) ── */}
+      {reportData && (
+        <div
+          id="printable-report-content"
+          className="w-full max-w-5xl mx-auto space-y-5 print:space-y-3 print:w-full print:max-w-[186mm] print:mx-auto print:box-border text-slate-900 font-sans inter-club-report-print"
+        >
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 print:p-0 print:border-none print:shadow-none print:rounded-none">
+            {/* Nagłówek Urzędowy WSKZ */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 print:pb-3">
               <div>
-                <div className="text-xl md:text-2xl font-bold text-slate-900">
-                  {reportData.clubsReport.substantiveMeetingsCount}
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 print:bg-black inline-block"></span>
+                  <span className="text-[10.5px] font-bold tracking-widest uppercase text-slate-500 font-mono">
+                    Wyższa Szkoła Kształcenia Zawodowego • Kancelaria Samorządu Studenckiego
+                  </span>
                 </div>
-                <div className="text-xs font-semibold text-slate-500">
-                  Spotkania merytoryczne i warsztaty
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1 leading-tight">
+                  <div>Sprawozdanie Zbiorcze Aktywności</div>
+                  <div className="text-indigo-800 font-extrabold">{headerSubjectTitle}</div>
+                </h1>
+                <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  <div>Ustandaryzowane zestawienie dla Władz Uczelni</div>
+                  <div>(Prorektor ds. studenckich, Dziekanat, Kolegium Dziekańskie, PKA)</div>
+                </div>
+              </div>
+
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-[11px] font-mono font-bold text-slate-600">
+                  Okres: <span className="text-indigo-600 font-black">{startDate}</span> do{' '}
+                  <span className="text-indigo-600 font-black">{endDate}</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Data wygenerowania: <strong>{formattedDocDate}</strong>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Zakres kół: <strong>{isSingleClubReport ? headerSubjectTitle : `${selectedOrgs.length} Kół Naukowych WSKZ`}</strong>
                 </div>
               </div>
             </div>
 
-            {/* 2. Spotkania zespołów projektowych */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-              <div className="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-100 shrink-0">
-                <Wrench size={22} className="text-amber-700" />
+            {/* ── Kafelki Syntetyczne (4 kompaktowe KPI w jednym poziomym pasku) ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-3 print:my-2.5">
+              {/* KAFELEK 1: Spotkania Merytoryczne */}
+              <div className="inter-club-kpi-card bg-emerald-50/70 rounded-xl px-2.5 py-2 border border-emerald-200/80 print:border-slate-300">
+                <span className="text-[9.5px] font-bold text-emerald-800 uppercase tracking-wide block leading-tight">
+                  Spotkania Merytoryczne
+                </span>
+                <div className="text-[19px] leading-tight font-bold text-emerald-950 mt-0.5 font-mono">
+                  {summaryStats.substantiveEventsCount || 0}
+                </div>
+                <span className="text-[9px] text-emerald-700 mt-0.5 block leading-tight">
+                  Warsztaty, prelekcje, wykłady
+                </span>
               </div>
-              <div>
-                <div className="text-xl md:text-2xl font-bold text-amber-800">
-                  {reportData.clubsReport.projectMeetingsCount}
+
+              {/* KAFELEK 2: Prace Projektowe */}
+              <div className="inter-club-kpi-card bg-cyan-50/70 rounded-xl px-2.5 py-2 border border-cyan-200/80 print:border-slate-300">
+                <span className="text-[9.5px] font-bold text-cyan-800 uppercase tracking-wide block leading-tight">
+                  Prace Projektowe &amp; Tech.
+                </span>
+                <div className="text-[19px] leading-tight font-bold text-cyan-950 mt-0.5 font-mono">
+                  {summaryStats.projectEventsCount || 0}
                 </div>
-                <div className="text-xs font-semibold text-slate-500">
-                  Spotkania zespołów projektowych
+                <span className="text-[9px] text-cyan-700 mt-0.5 block leading-tight">
+                  Zespoły badawcze i wdrożenia
+                </span>
+              </div>
+
+              {/* KAFELEK 3: Łącznie Wydarzeń */}
+              <div className="inter-club-kpi-card bg-slate-50/90 rounded-xl px-2.5 py-2 border border-slate-200/90 print:border-slate-300">
+                <span className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide block leading-tight">
+                  Łącznie Wydarzeń
+                </span>
+                <div className="text-[19px] leading-tight font-bold text-slate-900 mt-0.5 font-mono">
+                  {summaryStats.totalEvents || 0}
                 </div>
+                <span className="text-[9px] text-slate-500 mt-0.5 block leading-tight">
+                  w tym {summaryStats.jointEventsCount || 0} międzykołowe
+                </span>
+              </div>
+
+              {/* KAFELEK 4: Łączna Frekwencja z Gośćmi */}
+              <div className="inter-club-kpi-card bg-indigo-50/70 rounded-xl px-2.5 py-2 border border-indigo-200/80 print:border-slate-300">
+                <span className="text-[9.5px] font-bold text-indigo-800 uppercase tracking-wide block leading-tight">
+                  Łączna Frekwencja z Gośćmi
+                </span>
+                <div className="text-[19px] leading-tight font-bold text-indigo-950 mt-0.5 font-mono">
+                  {totalAllAttendees}{' '}
+                  <span className="text-xs font-sans font-normal text-indigo-700">
+                    {getOsobaSuffix(totalAllAttendees)}
+                  </span>
+                </div>
+                <span className="text-[9px] text-indigo-700 mt-0.5 block leading-tight font-medium">
+                  średnia: {substantiveAvgRounded} os. / spotkanie merytoryczne
+                </span>
               </div>
             </div>
 
-            {/* 3. Łączna frekwencja z gośćmi */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-              <div className="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-100 shrink-0">
-                <Users size={22} className="text-emerald-700" />
+            {/* ── SEKCJA A: Spotkania Merytoryczne, Warsztaty i Otwarte Prelekcje ── */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  A. Spotkania Merytoryczne, Warsztaty i Otwarte Prelekcje ({substantiveMeetings.length})
+                </h2>
+                <span className="text-[10.5px] font-mono text-slate-500">
+                  Łączna frekwencja: <strong>{substantiveTotalAttendees}</strong> uczestników
+                </span>
               </div>
-              <div>
-                <div className="text-xl md:text-2xl font-bold text-emerald-700">
-                  {reportData.clubsReport.totalParticipants}
-                </div>
-                <div className="text-xs font-semibold text-slate-500">
-                  Łączna frekwencja z gośćmi
-                </div>
-              </div>
-            </div>
 
-            {/* 4. Sprawy DKO + Ustalenia Samorządu */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-              <div className="p-3 bg-purple-50 text-purple-900 rounded-xl border border-purple-100 shrink-0">
-                <Layers size={22} className="text-purple-700" />
-              </div>
-              <div>
-                <div className="text-xl md:text-2xl font-bold text-purple-900">
-                  {reportData.samorzadStats ? reportData.samorzadStats.dko.total + reportData.samorzadStats.decisions.total : reportData.clubsReport.totalUniqueMeetings}
-                </div>
-                <div className="text-xs font-semibold text-slate-500">
-                  {reportData.samorzadStats ? 'Sprawy DKO + Ustalenia Samorządu' : 'Wszystkie unikalne wydarzenia'}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Tabela Zbiorcza 14 Kół Naukowych (Nowy układ 7 kolumn) ────────── */}
-        {reportData && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 md:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm md:text-base font-bold text-slate-900">
-                  Tabela Zbiorcza Aktywności Kół Naukowych WSKZ ({reportData.clubsReport.activeClubsCount} kół)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Wydarzenia międzykołowe deduplikowane w podsumowaniu łącznym. Rzeczywiste dane frekwencji z Supabase.
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-slate-700 uppercase tracking-wider text-[10.5px] border-b border-slate-200">
-                  <tr>
-                    <th className="py-3 px-3.5 font-bold">Koło Naukowe</th>
-                    <th className="py-3 px-3.5 font-bold">Wydział</th>
-                    <th className="py-3 px-3.5 font-bold text-center">Spotkania merytoryczne</th>
-                    <th className="py-3 px-3.5 font-bold text-center">
-                      <span className="inline-flex items-center gap-1 text-amber-800">
-                        <Wrench size={12} />
-                        Spotkania projektowe
-                      </span>
-                    </th>
-                    <th className="py-3 px-3.5 font-bold text-center">Razem spotkań</th>
-                    <th className="py-3 px-3.5 font-bold text-center">Średnia frekwencja</th>
-                    <th className="py-3 px-3.5 font-bold text-right">Łączna frekwencja</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {reportData.clubsReport.clubsStats.map((cs) => {
-                    const IconComp = CLUB_ICONS[cs.club.icon] || Users;
-                    const totalClubMeetings = cs.substantiveCount + cs.projectCount;
-                    return (
-                      <tr key={cs.club.orgId} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3 px-3.5 font-medium text-slate-900">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              style={{ color: cs.club.color, backgroundColor: `${cs.club.color}18` }}
-                              className="p-1.5 rounded-lg shrink-0"
-                            >
-                              <IconComp size={14} />
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-900">{cs.club.name}</div>
-                              <div className="text-[10px] text-slate-400">orgId: {cs.club.orgId}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3.5 text-slate-600">{cs.club.faculty}</td>
-                        <td className="py-3 px-3.5 text-center font-bold text-blue-900">
-                          {cs.substantiveCount}
-                        </td>
-                        <td className="py-3 px-3.5 text-center font-bold text-amber-800">
-                          {cs.projectCount > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                              <Wrench size={11} />
-                              {cs.projectCount}
+              <div className="overflow-x-auto rounded-xl border border-slate-200 print:rounded-none">
+                <table className="w-full text-left text-xs border-collapse table-fixed">
+                  <colgroup>
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '17%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '19%' }} />
+                    <col style={{ width: '24%' }} />
+                    <col style={{ width: '10%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 text-[10px]">
+                      <th className="p-2 text-center whitespace-nowrap">Lp.</th>
+                      <th className="p-2 text-center whitespace-nowrap">Data</th>
+                      <th className="p-2 whitespace-nowrap">Koło wiodące</th>
+                      <th className="p-2 text-center whitespace-nowrap">Współorganizatorzy</th>
+                      <th className="p-2">Temat / Tytuł spotkania</th>
+                      <th className="p-2">Prelegent / Prowadzący</th>
+                      <th className="p-2 text-center whitespace-nowrap bg-emerald-50/70">Frekwencja</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-800">
+                    {substantiveMeetings.length > 0 ? (
+                      substantiveMeetings.map((m, idx) => (
+                        <tr
+                          key={m.id || idx}
+                          className="hover:bg-slate-50/80 transition-colors break-inside-avoid print:break-inside-avoid"
+                        >
+                          <td className="p-2 text-center font-mono text-slate-500 font-semibold">{idx + 1}</td>
+                          <td className="p-2 text-center text-slate-700 whitespace-nowrap text-[10px]">{m.date}</td>
+                          <td className="p-2">
+                            <span className="font-semibold text-slate-900 block break-words" title={m.primaryOrg?.name}>
+                              {cleanOrgName(m.primaryOrg?.shortName || m.primaryOrg?.name)}
                             </span>
-                          ) : (
-                            '0'
-                          )}
-                        </td>
-                        <td className="py-3 px-3.5 text-center font-bold text-slate-900">
-                          {totalClubMeetings}
-                        </td>
-                        <td className="py-3 px-3.5 text-center text-slate-600">
-                          {cs.avgAttendance > 0 ? `${cs.avgAttendance} os.` : '—'}
-                        </td>
-                        <td className="py-3 px-3.5 text-right font-bold text-emerald-700">
-                          {cs.totalParticipants > 0 ? `${cs.totalParticipants} os.` : '0 os.'}
+                          </td>
+                          <td className="p-2 text-center">
+                            {m.coOrgs && m.coOrgs.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {m.coOrgs.map((co) => (
+                                  <span
+                                    key={co.orgId}
+                                    className="inline-block text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200 print:border-slate-300"
+                                  >
+                                    {co.code || co.shortName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-[10px]">—</span>
+                            )}
+                          </td>
+                          <td className="p-2 font-medium text-slate-900 break-words">{m.title}</td>
+                          <td className="p-2 text-slate-600 text-[10.5px] break-words">{m.speaker}</td>
+                          <td className="p-2 text-center whitespace-nowrap font-mono font-bold text-emerald-800 bg-emerald-50/40">
+                            {m.totalParticipants > 0 ? `${m.totalParticipants} os.` : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="p-6 text-center text-xs text-slate-500">
+                          Brak zarejestrowanych spotkań merytorycznych w wybranym przedziale czasowym.
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-slate-100 text-slate-900 font-bold border-t-2 border-slate-300">
-                  <tr>
-                    <td className="py-3.5 px-3.5">
-                      ŁĄCZNIE (Deduplikowane wydarzenia unikalne)
-                    </td>
-                    <td className="py-3.5 px-3.5 text-slate-500">Wszystkie wydziały WSKZ</td>
-                    <td className="py-3.5 px-3.5 text-center text-blue-900 text-sm">
-                      {reportData.clubsReport.substantiveMeetingsCount}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-center text-amber-800 text-sm">
-                      {reportData.clubsReport.projectMeetingsCount}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-center text-slate-900 text-sm">
-                      {reportData.clubsReport.substantiveMeetingsCount + reportData.clubsReport.projectMeetingsCount}
-                    </td>
-                    <td className="py-3.5 px-3.5 text-center text-slate-700">
-                      {reportData.clubsReport.substantiveMeetingsCount > 0
-                        ? Math.round((reportData.clubsReport.substantiveParticipants / reportData.clubsReport.substantiveMeetingsCount) * 10) / 10
-                        : 0}{' '}
-                      os.
-                    </td>
-                    <td className="py-3.5 px-3.5 text-right text-emerald-800 text-sm">
-                      {reportData.clubsReport.totalParticipants} os.
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── Sekcja Statystyk Kancelarii Samorządu Studenckiego ──────────────── */}
-        {reportData?.samorzadStats && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-[#1e3a8a]" />
-                  Działalność Samorządu Studenckiego WSKZ (Dane Kancelarii — 100% zanonimizowane)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Podsumowanie rejestru DKO, zrealizowanych ustaleń operacyjnych oraz obsadzenia starostów.
-                </p>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Blok 1: DKO */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                  <span>Dziennik Korespondencji (DKO)</span>
-                  <span className="text-blue-900">{reportData.samorzadStats.dko.total} spraw</span>
-                </div>
-                <div className="text-[11.5px] text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Wpływające (IN):</span>
-                    <strong>{reportData.samorzadStats.dko.in}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Wychodzące (OUT):</span>
-                    <strong>{reportData.samorzadStats.dko.out}</strong>
-                  </div>
-                  <div className="pt-1 border-t border-slate-200 text-[10.5px]">
-                    Statusy:{' '}
-                    {Object.entries(reportData.samorzadStats.dko.byStatus).map(([st, cnt]) => (
-                      <span key={st} className="mr-2">
-                        {st}: <strong>{cnt}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            {/* ── SEKCJA B: Spotkania Zespołów Projektowych, Technicznych i Badawczych ── */}
+            <div className="space-y-2.5 pt-5 print:pt-3.5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-600"></span>
+                  B. Spotkania Zespołów Projektowych, Technicznych i Badawczych ({projectMeetings.length})
+                </h2>
+                <span className="text-[10.5px] font-mono text-slate-500">
+                  Niewliczane do mianownika frekwencji ogólnej
+                </span>
               </div>
 
-              {/* Blok 2: Ustalenia Operacyjne */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                  <span>Ustalenia Operacyjne i Uchwały</span>
-                  <span className="text-purple-900">{reportData.samorzadStats.decisions.total} podjętych</span>
-                </div>
-                <div className="text-[11.5px] text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Zrealizowane:</span>
-                    <strong className="text-emerald-700">{reportData.samorzadStats.decisions.done}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>W realizacji:</span>
-                    <strong className="text-amber-700">{reportData.samorzadStats.decisions.inProgress}</strong>
-                  </div>
-                  <div className="pt-1 border-t border-slate-200 text-[10px] text-slate-500 truncate" title={reportData.samorzadStats.decisions.topics.join(', ')}>
-                    Ostatnie uchwały: {reportData.samorzadStats.decisions.topics.slice(0, 2).join('; ') || 'Brak'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Blok 3: Sieć Starostów */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                  <span>Sieć Starostów Roczników</span>
-                  <span className="text-emerald-800">{reportData.samorzadStats.starostowie.total} aktywnych</span>
-                </div>
-                <div className="text-[11.5px] text-slate-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Zgody RODO aktywne:</span>
-                    <strong className="text-emerald-700">{reportData.samorzadStats.starostowie.rodoActive}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Oczekuje na podpis:</span>
-                    <strong className="text-amber-700">{reportData.samorzadStats.starostowie.rodoPending}</strong>
-                  </div>
-                  <div className="pt-1 border-t border-slate-200 text-[10.5px]">
-                    Kierunki:{' '}
-                    {Object.entries(reportData.samorzadStats.starostowie.byField).slice(0, 3).map(([fld, cnt]) => (
-                      <span key={fld} className="mr-2">
-                        {fld}: <strong>{cnt}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Szczegółowy Wykaz Zrealizowanych Wydarzeń w Okresie ─────────────── */}
-        {reportData && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm md:text-base font-bold text-slate-900">
-                  Szczegółowy Wykaz Wydarzeń w Wybranym Okresie ({filteredEventsList.length})
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Wszystkie zrealizowane i zaplanowane inicjatywy zsynchronizowane z kalendarzem Teamup i bazą Supabase.
-                </p>
-              </div>
-
-              {/* Filtry wyszukiwania wydarzeń */}
-              <div className="flex items-center gap-2 print-hidden-block">
-                <div className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={eventsSearchTerm}
-                    onChange={(e) => setEventsSearchTerm(e.target.value)}
-                    placeholder="Szukaj spotkania..."
-                    className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-
-                <select
-                  value={eventsTypeFilter}
-                  onChange={(e) => setEventsTypeFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL">Wszystkie typy</option>
-                  <option value="substantive">Tylko merytoryczne i warsztaty</option>
-                  <option value="project">Tylko zespoły projektowe (Wrench)</option>
-                  <option value="internal">Tylko posiedzenia zarządów</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-slate-700 uppercase tracking-wider text-[10px] sticky top-0 border-b border-slate-200">
-                  <tr>
-                    <th className="py-2.5 px-3 font-bold">Data</th>
-                    <th className="py-2.5 px-3 font-bold">Tytuł spotkania / Temat</th>
-                    <th className="py-2.5 px-3 font-bold">Typ</th>
-                    <th className="py-2.5 px-3 font-bold">Organizator / Koła</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Uczestnicy</th>
-                    <th className="py-2.5 px-3 font-bold">Lokalizacja / Platforma</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredEventsList.map((m) => {
-                    const isProject = m.meetingType === 'project';
-                    const isInternal = m.meetingType === 'internal';
-
-                    return (
-                      <tr key={m.id} className="hover:bg-slate-50 transition">
-                        <td className="py-2.5 px-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
-                          {m.date}
-                        </td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">
-                          <div>{m.title}</div>
-                          {m.who && <div className="text-[10px] text-slate-500 font-normal">Prowadzący: {m.who}</div>}
-                        </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          {isProject ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              <Wrench size={10} />
-                              Projektowe
+              <div className="overflow-x-auto rounded-xl border border-slate-200 print:rounded-none">
+                <table className="w-full text-left text-xs border-collapse table-fixed">
+                  <colgroup>
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '17%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '19%' }} />
+                    <col style={{ width: '24%' }} />
+                    <col style={{ width: '10%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 text-[10px]">
+                      <th className="p-2 text-center whitespace-nowrap">Lp.</th>
+                      <th className="p-2 text-center whitespace-nowrap">Data</th>
+                      <th className="p-2 whitespace-nowrap">Koło wiodące</th>
+                      <th className="p-2 text-center whitespace-nowrap">Współorganizatorzy</th>
+                      <th className="p-2">Temat / Cel prac projektowych</th>
+                      <th className="p-2">Koordynator / Prelegent</th>
+                      <th className="p-2 text-center whitespace-nowrap bg-cyan-50/70">Frekwencja</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-800">
+                    {projectMeetings.length > 0 ? (
+                      projectMeetings.map((m, idx) => (
+                        <tr
+                          key={m.id || idx}
+                          className="hover:bg-slate-50/80 transition-colors break-inside-avoid print:break-inside-avoid"
+                        >
+                          <td className="p-2 text-center font-mono text-slate-500 font-semibold">{idx + 1}</td>
+                          <td className="p-2 text-center text-slate-700 whitespace-nowrap text-[10px]">{m.date}</td>
+                          <td className="p-2">
+                            <span className="font-semibold text-slate-900 block break-words">
+                              {cleanOrgName(m.primaryOrg?.shortName || m.primaryOrg?.name)}
                             </span>
-                          ) : isInternal ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                              Zarząd
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                              Warsztat / Otwarte
-                            </span>
-                          )}
+                          </td>
+                          <td className="p-2 text-center">
+                            {m.coOrgs && m.coOrgs.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {m.coOrgs.map((co) => (
+                                  <span
+                                    key={co.orgId}
+                                    className="inline-block text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 print:border-slate-300"
+                                  >
+                                    {co.code || co.shortName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-[10px]">—</span>
+                            )}
+                          </td>
+                          <td className="p-2 font-medium text-slate-900 break-words">{m.title}</td>
+                          <td className="p-2 text-slate-600 text-[10.5px] break-words">{m.speaker}</td>
+                          <td className="p-2 text-center whitespace-nowrap font-mono font-bold text-cyan-800 bg-cyan-50/40">
+                            {m.totalParticipants > 0 ? `${m.totalParticipants} os.` : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="p-6 text-center text-xs text-slate-500">
+                          Brak zarejestrowanych spotkań projektowych/technicznych w wybranym przedziale czasowym.
                         </td>
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {m.participatingClubs.map(c => (
-                              <span
-                                key={c.orgId}
-                                style={{ color: c.color, backgroundColor: `${c.color}15` }}
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold"
-                              >
-                                {c.shortName}
-                              </span>
-                            ))}
-                            {m.isJoint && (
-                              <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                                Wspólne
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pasek podsumowujący frekwencję projektową */}
+              <div className="mt-2 px-3 py-1.5 rounded-xl bg-cyan-50/80 border border-cyan-200/90 text-cyan-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1 print:py-1 print:px-2.5 print:text-[9.5px] print:bg-slate-50 print:border-slate-300 break-inside-avoid print:break-inside-avoid">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-600 print:bg-slate-700 shrink-0"></span>
+                  <span>
+                    Łączna frekwencja na spotkaniach grup projektowych:{' '}
+                    <strong className="font-bold text-cyan-900 print:text-slate-900">{projectTotalAttendees}</strong>{' '}
+                    uczestników (średnio{' '}
+                    <strong className="font-bold text-cyan-900 print:text-slate-900">{projectAvgAttendees}</strong>{' '}
+                    os./spotkanie)
+                  </span>
+                </div>
+                <span className="text-[10px] text-cyan-700 print:text-slate-600 font-medium">
+                  Osobny wskaźnik zaangażowania
+                </span>
+              </div>
+            </div>
+
+            {/* ── SEKCJA C: Zbiorcza Aktywność Kół Naukowych WSKZ ── */}
+            <div className="space-y-2.5 pt-5 print:pt-3.5 print:break-before-page">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                  C. Zbiorcza Aktywność Kół Naukowych WSKZ ({byOrgStats.length} Kół)
+                </h2>
+                <span className="text-[10.5px] font-mono text-slate-500">
+                  Synteza statystyczna (frekwencja merytoryczna + projektowa)
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200 print:rounded-none">
+                <table className="w-full text-left text-xs border-collapse table-fixed">
+                  <colgroup>
+                    <col style={{ width: '5%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '37%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '11%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 text-[10px]">
+                      <th className="p-2 text-center whitespace-nowrap">Lp.</th>
+                      <th className="p-2 text-center whitespace-nowrap">Kod</th>
+                      <th className="p-2 whitespace-nowrap">Nazwa Koła Naukowego</th>
+                      <th className="p-2 text-center whitespace-nowrap bg-emerald-50/50">Merytoryczne</th>
+                      <th className="p-2 text-center whitespace-nowrap bg-indigo-50/50">Frekwencja</th>
+                      <th className="p-2 text-center whitespace-nowrap bg-cyan-50/50">Projektowe</th>
+                      <th className="p-2 text-center whitespace-nowrap">Wspólne</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-800">
+                    {byOrgStats.map((item, idx) => {
+                      const org = item.org;
+                      return (
+                        <tr
+                          key={org.orgId || idx}
+                          className="hover:bg-slate-50/80 transition-colors break-inside-avoid print:break-inside-avoid"
+                        >
+                          <td className="p-2 text-center font-mono text-slate-500 font-semibold">{idx + 1}</td>
+                          <td className="p-2 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px]">
+                              {org.code || org.number}
+                            </span>
+                          </td>
+                          <td className="p-2 font-bold text-slate-900 break-words">
+                            {cleanOrgName(org.name)}
+                            {org.hasActiveCrm && (
+                              <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 whitespace-nowrap">
+                                CRM
                               </span>
                             )}
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-bold text-slate-900 whitespace-nowrap">
-                          {m.participants > 0 ? (
-                            <span className="text-emerald-700">{m.participants} os.</span>
-                          ) : (
-                            <span className="text-slate-400 font-normal italic text-[11px]">brak danych</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-500 text-[11px]">
-                          {m.location}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="p-2 text-center font-mono font-semibold text-emerald-800 bg-emerald-50/30">
+                            {item.substantiveCount}
+                          </td>
+                          <td className="p-2 text-center font-mono font-semibold text-indigo-900 bg-indigo-50/30 whitespace-nowrap">
+                            {item.totalAttendees > 0 ? `${item.totalAttendees} os.` : '—'}
+                          </td>
+                          <td className="p-2 text-center font-mono font-semibold text-cyan-800 bg-cyan-50/30">
+                            {item.projectCount}
+                          </td>
+                          <td className="p-2 text-center font-mono text-slate-700">
+                            {item.jointCount}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-100 font-black border-t-2 border-slate-300 text-slate-900 text-xs">
+                      <td colSpan={3} className="p-2 text-right uppercase tracking-wider text-[10px]">
+                        Suma łączna (wydarzenia deduplikowane):
+                      </td>
+                      <td className="p-2 text-center font-mono text-emerald-900">
+                        {summaryStats.substantiveEventsCount || 0}
+                      </td>
+                      <td className="p-2 text-center font-mono text-indigo-950 whitespace-nowrap">
+                        {totalAllAttendees} os.
+                      </td>
+                      <td className="p-2 text-center font-mono text-cyan-900">
+                        {summaryStats.projectEventsCount || 0}
+                      </td>
+                      <td className="p-2 text-center font-mono">
+                        {summaryStats.jointEventsCount || 0}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* ── SEKCJA D: Działalność Kancelarii Samorządu Studenckiego (opcjonalna) ── */}
+            {reportData?.samorzadStats && (
+              <div className="space-y-3 pt-5 print:pt-3.5 break-inside-avoid print:break-inside-avoid">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <ShieldCheck size={15} className="text-[#1e3a8a]" />
+                    D. Działalność Kancelarii Samorządu Studenckiego WSKZ (Dane zanonimizowane)
+                  </h2>
+                  <span className="text-[10.5px] font-mono text-slate-500">
+                    Łącznie spraw i ustaleń: <strong>{reportData.samorzadStats.dko.total + reportData.samorzadStats.decisions.total}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Blok 1: DKO */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Dziennik Korespondencji (DKO)</span>
+                      <span className="text-blue-900 font-mono">{reportData.samorzadStats.dko.total} spraw</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Wpływające (IN):</span>
+                        <strong>{reportData.samorzadStats.dko.in}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Wychodzące (OUT):</span>
+                        <strong>{reportData.samorzadStats.dko.out}</strong>
+                      </div>
+                      <div className="pt-1 border-t border-slate-200 text-[10px]">
+                        Statusy:{' '}
+                        {Object.entries(reportData.samorzadStats.dko.byStatus).map(([st, cnt]) => (
+                          <span key={st} className="mr-2">
+                            {st}: <strong>{cnt}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Blok 2: Ustalenia Operacyjne */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Ustalenia Operacyjne i Uchwały</span>
+                      <span className="text-purple-900 font-mono">{reportData.samorzadStats.decisions.total} podjętych</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Zrealizowane:</span>
+                        <strong className="text-emerald-700">{reportData.samorzadStats.decisions.done}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>W realizacji:</span>
+                        <strong className="text-amber-700">{reportData.samorzadStats.decisions.inProgress}</strong>
+                      </div>
+                      <div
+                        className="pt-1 border-t border-slate-200 text-[10px] text-slate-500 truncate"
+                        title={reportData.samorzadStats.decisions.topics.join(', ')}
+                      >
+                        Ostatnie uchwały: {reportData.samorzadStats.decisions.topics.slice(0, 2).join('; ') || 'Brak'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Blok 3: Sieć Starostów */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Sieć Starostów Roczników</span>
+                      <span className="text-emerald-800 font-mono">{reportData.samorzadStats.starostowie.total} aktywnych</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Zgody RODO aktywne:</span>
+                        <strong className="text-emerald-700">{reportData.samorzadStats.starostowie.rodoActive}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Oczekuje na podpis:</span>
+                        <strong className="text-amber-700">{reportData.samorzadStats.starostowie.rodoPending}</strong>
+                      </div>
+                      <div className="pt-1 border-t border-slate-200 text-[10px]">
+                        Kierunki:{' '}
+                        {Object.entries(reportData.samorzadStats.starostowie.byField).slice(0, 3).map(([fld, cnt]) => (
+                          <span key={fld} className="mr-2">
+                            {fld}: <strong>{cnt}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Stopka z Podpisami Władz Uczelni ── */}
+            <div className="inter-club-signatures pt-6 mt-5 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center text-xs print:pt-5 print:mt-4 print:break-inside-avoid break-inside-avoid">
+              <div className="space-y-1">
+                <div className="border-b border-dashed border-slate-400 h-8 w-40 mx-auto mb-1.5"></div>
+                <div className="font-bold text-slate-900 text-[11px]">Sekretarz Samorządu Studenckiego</div>
+                <div className="text-[10px] text-slate-500">Kancelaria Samorządu WSKZ</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="border-b border-dashed border-slate-400 h-8 w-40 mx-auto mb-1.5"></div>
+                <div className="font-bold text-slate-900 text-[11px]">Opiekunowie Naukowi Kół</div>
+                <div className="text-[10px] text-slate-500">Wyższa Szkoła Kształcenia Zawodowego</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="border-b border-dashed border-slate-400 h-8 w-40 mx-auto mb-1.5"></div>
+                <div className="font-bold text-slate-900 text-[11px]">Prorektor ds. studenckich</div>
+                <div className="text-[10px] text-slate-500">Wyższa Szkoła Kształcenia Zawodowego</div>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

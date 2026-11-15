@@ -42,3 +42,80 @@ export function getTenantSupabase(orgId) {
   _tenantClientsCache.set(cleanOrg, client);
   return client;
 }
+
+/**
+ * Pobiera wszystkie rekordy z tabeli bez nagłówka x-organization-id (globalnie) z obsługą stronicowania > 1000.
+ */
+export async function fetchAllGlobalRows(table, options = {}) {
+  const pageSize = 1000;
+  let from = 0;
+  let allRows = [];
+
+  while (true) {
+    let query = supabase
+      .from(table)
+      .select(options.select || '*');
+
+    if (options.organizationIds && Array.isArray(options.organizationIds) && options.organizationIds.length > 0) {
+      query = query.in('organization_id', options.organizationIds);
+    }
+
+    if (options.orderBy) {
+      query = query.order(options.orderBy, { ascending: options.ascending !== false });
+    }
+
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) {
+      return { data: allRows.length > 0 ? allRows : null, error };
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      break;
+    }
+    allRows = allRows.concat(data);
+    if (data.length < pageSize) {
+      break;
+    }
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+}
+
+/**
+ * Pobiera wszystkie rekordy dla wskazanego tenanta (organization_id) z obsługą stronicowania powyżej limitu 1000 rekordów PostgREST.
+ */
+export async function fetchAllTenantRows(table, orgId, options = {}) {
+  const cleanOrg = String(orgId || '').trim().toLowerCase();
+  if (!cleanOrg) return { data: [], error: null };
+
+  const tenantClient = getTenantSupabase(cleanOrg);
+  const pageSize = 1000;
+  let from = 0;
+  let allRows = [];
+
+  while (true) {
+    let query = tenantClient
+      .from(table)
+      .select(options.select || '*')
+      .eq('organization_id', cleanOrg);
+
+    if (options.orderBy) {
+      query = query.order(options.orderBy, { ascending: options.ascending !== false });
+    }
+
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) {
+      return { data: allRows.length > 0 ? allRows : null, error };
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      break;
+    }
+    allRows = allRows.concat(data);
+    if (data.length < pageSize) {
+      break;
+    }
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+}

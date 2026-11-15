@@ -3,35 +3,80 @@
 export const MEETING_TYPES = {
   mandatory: {
     id: 'mandatory',
+    group: 'status',
     label: 'Obowiązkowe',
     icon: '🟢',
+    ringColorClass: 'text-emerald-500',
     badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     description: 'Wliczane do bazowej frekwencji (mianownik)',
     countsTowardsDenominator: true,
+    reportCategory: 'substantive',
   },
   optional: {
     id: 'optional',
+    group: 'status',
     label: 'Nieobowiązkowe',
     icon: '🟡',
+    ringColorClass: 'text-amber-500',
     badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
     description: 'Otwarte / dodatkowe – brak obecności nie obniża frekwencji',
     countsTowardsDenominator: false,
+    reportCategory: 'substantive',
+  },
+  project: {
+    id: 'project',
+    group: 'status',
+    label: 'Spotkanie projektowe / techniczne',
+    icon: '🛠️',
+    ringColorClass: 'text-cyan-600',
+    badgeClass: 'bg-cyan-50 text-cyan-800 border-cyan-300',
+    description: 'Prace zespołów projektowych, techniczne i organizacja wydarzeń',
+    countsTowardsDenominator: false,
+    reportCategory: 'project',
   },
   trigger_warning: {
     id: 'trigger_warning',
+    group: 'status',
     label: 'Trigger Warning',
     icon: '🟠',
+    ringColorClass: 'text-orange-500',
     badgeClass: 'bg-orange-100 text-orange-800 border-orange-300',
     description: 'Tematyka wrażliwa – wyłączone z obowiązku',
     countsTowardsDenominator: false,
+    reportCategory: 'substantive',
   },
   internal: {
     id: 'internal',
+    group: 'status',
     label: 'Wewnętrzne Zarządu',
     icon: '🔵',
+    ringColorClass: 'text-blue-500',
     badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
     description: 'Spotkanie zarządu – niewliczane do frekwencji koła',
     countsTowardsDenominator: false,
+    reportCategory: 'board',
+  },
+  conference_passive: {
+    id: 'conference_passive',
+    group: 'format',
+    label: 'Konferencja / Dyskusja',
+    icon: '🟣',
+    ringColorClass: 'text-purple-600',
+    badgeClass: 'bg-purple-50 text-purple-800 border-purple-300',
+    description: 'Wydarzenie naukowe, dyskusja lub delegacja – udział bierny / słuchacz',
+    countsTowardsDenominator: false,
+    reportCategory: 'substantive',
+  },
+  workshop_external: {
+    id: 'workshop_external',
+    group: 'format',
+    label: 'Warsztat / Szkolenie',
+    icon: '🟣',
+    ringColorClass: 'text-violet-600',
+    badgeClass: 'bg-violet-50 text-violet-800 border-violet-300',
+    description: 'Praktyczne warsztaty, szkolenia i formy podnoszenia kwalifikacji',
+    countsTowardsDenominator: false,
+    reportCategory: 'substantive',
   },
 };
 
@@ -63,30 +108,58 @@ export function getAutoMeetingType(meeting) {
     return 'internal';
   }
 
-  // 3. Trigger Warning / Wrażliwe
+  // 3. Zamknięte spotkania robocze i zespoły projektowe -> project (Tabela B)
+  const isClosedProject =
+    title.includes('🔒') ||
+    title.includes('spotkanie robocze') ||
+    title.includes('robocz') ||
+    title.includes('zamkni') ||
+    title.includes('grupa projektowa') ||
+    title.includes('grupy projektowej') ||
+    title.includes('zespół projektowy') ||
+    title.includes('zespołu projektowego') ||
+    (title.includes('projekt') && (title.includes('grup') || title.includes('zesp') || title.includes('techniczn')));
+
+  if (isClosedProject) {
+    return 'project';
+  }
+
+  // 4. Trigger Warning / Wrażliwe
   if (
-    title.includes('trauma') ||
-    title.includes('traumy') ||
+    title.includes('trigger') ||
+    title.includes('triger') ||
+    title.includes('warning') ||
+    title.includes('warnink') ||
+    title.includes('wrażliw') ||
+    title.includes('wrazliw') ||
+    title.includes('ostrzeżenie o treści') ||
+    title.includes('ostrzezenie o tresci') ||
+    title.includes('traum') ||
     title.includes('przemoc') ||
     title.includes('nadużyc') ||
     title.includes('naduzyc') ||
-    title.includes('zaburzen')
+    title.includes('zaburzen') ||
+    title.includes('[tw]') ||
+    title.includes('(tw)') ||
+    title.includes('tw:')
   ) {
     return 'trigger_warning';
   }
 
-  // 4. Nieobowiązkowe / Otwarte / Komisja
+  // 5. Nieobowiązkowe / Otwarte / Komisje / Warsztaty / Ogólne projektowe
   if (
     title.includes('komisj') ||
     title.includes('otwart') ||
     title.includes('warsztat') ||
     title.includes('dodatkow') ||
-    title.includes('dyskusyjn')
+    title.includes('dyskusyjn') ||
+    title.includes('projekt') ||
+    title.includes('techniczn')
   ) {
     return 'optional';
   }
 
-  // 5. Domyślnie: Merytoryczne prelekcje -> Obowiązkowe
+  // 6. Domyślnie: Merytoryczne prelekcje -> Obowiązkowe
   return 'mandatory';
 }
 

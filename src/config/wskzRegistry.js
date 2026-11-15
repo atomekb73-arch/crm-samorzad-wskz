@@ -21,10 +21,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_psychologii_klinicznej",
     name: "01 SKN Psychologii Klinicznej",
     shortName: "SKN Psychologii Klinicznej",
+    code: "KLINICZNA",
     subcalendarId: 14518769,
     icon: "Brain",
     color: "#6D28D9",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["kliniczna", "klinicznej", "psychologii klinicznej", "14518769"],
   },
   {
@@ -32,10 +34,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_psychotraumatologii",
     name: "02 SKN Psychotraumatologii - Integrum",
     shortName: "SKN Psychotraumatologii (Integrum)",
+    code: "INTEGRUM",
     subcalendarId: 15289290,
     icon: "Puzzle",
     color: "#BE185D",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["integrum", "trauma", "psychotraumatologii", "15289290"],
   },
   {
@@ -43,10 +47,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_psychoterapii",
     name: "03 SKN Psychoterapii",
     shortName: "SKN Psychoterapii",
+    code: "TERAPII",
     subcalendarId: null,
     icon: "Armchair",
     color: "#DB2777",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["psychoterapii", "psychoterapia"],
   },
   {
@@ -54,10 +60,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_psychologii_kryminalnej",
     name: "04 SKN Psychologii Kryminalnej",
     shortName: "SKN Psychologii Kryminalnej",
+    code: "KRYMINALNA",
     subcalendarId: 15106247,
     icon: "Search",
     color: "#B45309",
     faculty: "Wydział Prawa i Administracji",
+    hasActiveCrm: false,
     aliasKeywords: ["kryminalna", "kryminalnej", "15106247"],
   },
   {
@@ -65,10 +73,12 @@ export const WSKZ_CLUBS = [
     orgId: "uzaleznienia",
     name: "05 SKN Psychologii Zachowań Ryzykownych i Uzależnień",
     shortName: "SKN Uzależnień i Zachowań Ryzykownych",
+    code: "UZALEŻNIEŃ",
     subcalendarId: 15520561,
     icon: "Flame",
     color: "#C2410C",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: true,
     aliasKeywords: ["uzaleznienia", "uzależnień", "ryzykownych", "15520561"],
   },
   {
@@ -76,10 +86,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_spolecznej_ewolucyjnej",
     name: "06 SKN Psychologii Społecznej i Ewolucyjnej",
     shortName: "SKN Społecznej i Ewolucyjnej",
+    code: "EWOLUCYJNA",
     subcalendarId: 15558004,
     icon: "Dna",
     color: "#D97706",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["społecznej", "ewolucyjnej", "15558004"],
   },
   {
@@ -87,10 +99,12 @@ export const WSKZ_CLUBS = [
     orgId: "psychoonkologia",
     name: "07 SKN Psychoonkologii",
     shortName: "SKN Psychoonkologii",
+    code: "ONKOLOGII",
     subcalendarId: 15520558,
     icon: "Ribbon",
     color: "#0284C7",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: true,
     aliasKeywords: ["psychoonkologia", "psychoonkologii", "15520558"],
   },
   {
@@ -98,10 +112,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_psychofizjologii",
     name: "08 SKN Psychofizjologii",
     shortName: "SKN Psychofizjologii",
+    code: "FIZJOLOGII",
     subcalendarId: 15289330,
     icon: "Zap",
     color: "#0D9488",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["psychofizjologii", "psychofizjologia", "15289330"],
   },
   {
@@ -109,10 +125,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_zdrowia_srodowiska",
     name: "09 SKN Psychologii Zdrowia i Środowiska",
     shortName: "SKN Zdrowia i Środowiska",
+    code: "ZDROWIA",
     subcalendarId: 14519898,
     icon: "Leaf",
     color: "#059669",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["zdrowia", "środowiska", "srodowiska", "14519898"],
   },
   {
@@ -120,10 +138,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_seksuologii",
     name: "10 SKN Seksuologii",
     shortName: "SKN Seksuologii",
+    code: "SEKSUOLOGII",
     subcalendarId: 14518766,
     icon: "Heart",
     color: "#16A34A",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: true,
     aliasKeywords: ["seksuologii", "seksuologia", "14518766"],
   },
   {
@@ -131,10 +151,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_rozwoju_dzieci",
     name: "11 SKN Psychologii Rozwoju Dzieci i Młodzieży",
     shortName: "SKN Rozwoju Dzieci i Młodzieży",
+    code: "ROZWOJU",
     subcalendarId: 15520555,
     icon: "Sparkles",
     color: "#A21CAF",
     faculty: "Wydział Nauk Pedagogicznych",
+    hasActiveCrm: false,
     aliasKeywords: ["dzieci", "młodzieży", "mlodziezy", "rozwoju", "15520555"],
   },
   {
@@ -142,10 +164,12 @@ export const WSKZ_CLUBS = [
     orgId: "skn_krytycznego_myslenia",
     name: "12 SKN Warsztat Krytycznego Myślenia",
     shortName: "SKN Krytycznego Myślenia",
+    code: "MYŚLENIA",
     subcalendarId: 15656474,
     icon: "HelpCircle",
     color: "#7E22CE",
     faculty: "Wydział Nauk Społecznych",
+    hasActiveCrm: false,
     aliasKeywords: ["krytycznego", "myślenia", "myslenia", "warsztat krytycznego", "15656474"],
   },
   {
@@ -153,24 +177,30 @@ export const WSKZ_CLUBS = [
     orgId: "skn_reklamy_pr",
     name: "13 SKN Reklamy, PR i Marketingu",
     shortName: "SKN Reklamy, PR i Marketingu",
+    code: "REKLAMY",
     subcalendarId: 14518764,
     icon: "Target",
     color: "#E11D48",
     faculty: "Wydział Zarządzania i Komunikacji",
-    aliasKeywords: ["reklamy", "marketing", "pr", "marketingu", "14518764"],
+    hasActiveCrm: false,
+    aliasKeywords: ["reklamy", "marketing", "marketingu", "14518764"],
   },
   {
     number: "14",
     orgId: "skn_startupow",
     name: "14 SKN Nowoczesnego Zarządzania i Start-upów",
     shortName: "SKN Start-upów i Zarządzania",
+    code: "STARTUP",
     subcalendarId: null,
     icon: "Rocket",
     color: "#10B981",
     faculty: "Wydział Zarządzania",
+    hasActiveCrm: false,
     aliasKeywords: ["startup", "start-up", "start-upów", "zarządzania"],
   },
 ];
+
+export const WSKZ_ORGANIZATIONS = WSKZ_CLUBS;
 
 /**
  * Zwraca koło po ID organizacji (np. 'skn_seksuologii')
@@ -181,6 +211,8 @@ export function getClubByOrgId(orgId) {
   return WSKZ_CLUBS.find(c => c.orgId === clean || c.orgId.replace(/-/g, '_') === clean) || null;
 }
 
+export const getWskzOrgById = getClubByOrgId;
+
 /**
  * Zwraca koło po ID podkalendarza Teamup
  */
@@ -188,6 +220,17 @@ export function getClubBySubcalendarId(subcalendarId) {
   if (!subcalendarId) return null;
   const numId = Number(subcalendarId);
   return WSKZ_CLUBS.find(c => c.subcalendarId === numId) || null;
+}
+
+export const getWskzOrgBySubcalendarId = getClubBySubcalendarId;
+
+/**
+ * Sprawdza, czy dany podkalendarz należy do wykluczonych (dydaktyczne, rezerwacja).
+ */
+export function isSubcalendarExcluded(subcalendarId) {
+  if (!subcalendarId) return false;
+  const numId = Number(subcalendarId);
+  return EXCLUDED_SUBCALENDAR_IDS.includes(numId);
 }
 
 /**

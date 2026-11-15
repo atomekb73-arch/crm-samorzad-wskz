@@ -1,14 +1,20 @@
 import * as XLSX from 'xlsx';
-import { supabase, getTenantSupabase } from './supabaseClient';
-import { fetchTeamupEventsMulti } from './teamupService';
 import {
-  WSKZ_CLUBS,
+  fetchAllGlobalRows,
+  fetchAllTenantRows,
+} from './supabaseClient.js';
+import { fetchTeamupEventsMulti } from './teamupService.js';
+import {
+  WSKZ_ORGANIZATIONS,
   SAMORZAD_SUBCALENDAR_ID,
-  EXCLUDED_SUBCALENDAR_IDS,
-  getClubBySubcalendarId,
-  getClubByOrgId,
-  matchClubsForEvent,
-} from '../config/wskzRegistry';
+  getWskzOrgById,
+  getWskzOrgBySubcalendarId,
+  isSubcalendarExcluded,
+} from '../config/wskzRegistry.js';
+import { getAutoMeetingType } from '../utils/meetingTypes.js';
+
+const YEAR_PREFIX_RE = /^\[?\d{2}\/\d{2}\]?/;
+const SYSTEM_PREFIX_RE = /^\[(?:SETTINGS|DOROBEK|BOARD_TERM|KORESPONDENCJA|MEETING_META|EMAIL_CONFIG|ACCESS_USER|DOKUMENT|OPIEKUN)\]/i;
 
 /**
  * Normalizuje ciąg znaków daty do formatu YYYY-MM-DD
@@ -41,495 +47,561 @@ function isDateInRange(dateStr, startDate, endDate) {
 }
 
 /**
- * Wyciąga potencjalne kody spotkania z tytułu (np. [26/27] M01, [M01], (1/3), M262710)
+ * Normalizuje tytuł spotkania do porównywania i deduplikacji wydarzeń wspólnych
  */
-function extractMeetingCodesFromTitle(title) {
-  if (!title) return [];
-  const codes = new Set();
-  
-  // Wzorce w nawiasach kwadratowych [M01], [26/27] M01, [1/3]
-  const bracketMatches = title.match(/\[(.*?)\]/g);
-  if (bracketMatches) {
-    bracketMatches.forEach(b => {
-      const clean = b.slice(1, -1).trim();
-      if (clean) {
-        codes.add(clean);
-        // Jeśli w nawiasie jest np. 26/27, sprawdź czy za nawiasem jest M01
-        const after = title.slice(title.indexOf(b) + b.length).trim();
-        const mAfter = after.match(/^M\d+/i);
-        if (mAfter) {
-          codes.add(`${clean} ${mAfter[0]}`);
-          codes.add(mAfter[0]);
-        }
-      }
-    });
-  }
-
-  // Wzorce w nawiasach okrągłych (1/3), (2/3)
-  const parenMatches = title.match(/\((.*?)\)/g);
-  if (parenMatches) {
-    parenMatches.forEach(p => {
-      const clean = p.slice(1, -1).trim();
-      if (clean) codes.add(clean);
-    });
-  }
-
-  // Kody spotkań typu M01, M02, M-SPR-1, M252625, M262710
-  const mMatches = title.match(/\bM[-0-9a-zA-Z/]+\b/gi);
-  if (mMatches) {
-    mMatches.forEach(m => codes.add(m.trim()));
-  }
-
-  return Array.from(codes);
+function normalizeTitle(title = '') {
+  return String(title || '')
+    .toLowerCase()
+    .replace(/^\[.*?\]\s*/, '')
+    .replace(/\b(spotkanie|zebranie|warsztat|journal club)\b/gi, '')
+    .replace(/[^a-z0-9ąćęłńóśźż]/gi, '')
+    .trim();
 }
 
 /**
- * Zwraca alternatywne nazwy i warianty identyfikatora organizacji dla dopasowań w Supabase
+ * Wyznacza prefiks roku akademickiego (np. "26/27") na podstawie daty YYYY-MM-DD
  */
-function getOrgAliases(orgId) {
-  if (!orgId) return [];
-  const set = new Set([orgId.toLowerCase()]);
-  if (orgId.includes('_')) set.add(orgId.replace(/_/g, '-').toLowerCase());
-  if (orgId.includes('-')) set.add(orgId.replace(/-/g, '_').toLowerCase());
-
-  if (orgId === 'psychoonkologia' || orgId.includes('psychoonkolog')) {
-    set.add('psychoonkologia');
-    set.add('skn_psychoonkologii');
-    set.add('skn-psychoonkologii');
-  }
-  if (orgId === 'uzaleznienia' || orgId.includes('uzalezn')) {
-    set.add('uzaleznienia');
-    set.add('skn_uzaleznien');
-    set.add('skn-uzaleznien');
-  }
-  if (orgId.includes('seksuolog')) {
-    set.add('skn_seksuologii');
-    set.add('skn-seksuologii');
-  }
-  return Array.from(set);
+function getAcademicYearShort(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return '26/27';
+  const m = /^(\d{4})-(\d{2})/.exec(dateStr);
+  if (!m) return '26/27';
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const startYear = month >= 9 ? year : year - 1;
+  return `${String(startYear).slice(-2)}/${String(startYear + 1).slice(-2)}`;
 }
 
 /**
- * Główny silnik agregujący dane dla raportu Władz Uczelni
+ * Wyciąga stabilny identyfikator uczestnika (numer indeksu lub znormalizowane imię/nazwisko z activity_description)
+ */
+function extractAttendeeIdentifier(row) {
+  const directIdx = String(row?.index_number || '').trim();
+  if (directIdx) return directIdx.toUpperCase();
+
+  const rawDesc = String(row?.activity_description || '').trim();
+  if (!rawDesc) return '';
+
+  if (rawDesc.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawDesc);
+      const fromJson =
+        parsed.index_number ||
+        parsed.nr_indeksu ||
+        parsed.nrIndeksu ||
+        parsed.student_index ||
+        parsed.fullName ||
+        parsed.full_name ||
+        parsed.name ||
+        parsed.imie_nazwisko ||
+        '';
+      const cleanJson = String(fromJson).trim();
+      if (cleanJson) return cleanJson.toLowerCase();
+    } catch {}
+  }
+
+  return rawDesc.toLowerCase();
+}
+
+/**
+ * Główny silnik raportowy (zunifikowany 1:1 z MultiHub interClubReportService)
+ * łączący Teamup API + Supabase (meeting_metadata, attendance) oraz statystyki Samorządu.
  */
 export async function generateUniversityReport({
   startDate = '2026-10-01',
-  endDate = '2027-09-30',
-  selectedOrgIds = null, // null oznacza wszystkie 14 kół
+  endDate = '2026-10-30',
+  selectedOrgIds = null,
   includeSamorzad = true,
   correspondenceList = [],
   operationalDecisions = [],
   starostowieList = [],
-}) {
-  const activeClubs = selectedOrgIds && Array.isArray(selectedOrgIds) && selectedOrgIds.length > 0
-    ? WSKZ_CLUBS.filter(c => selectedOrgIds.includes(c.orgId))
-    : [...WSKZ_CLUBS];
+} = {}) {
+  const orgIdsFilter = Array.isArray(selectedOrgIds) && selectedOrgIds.length > 0
+    ? new Set(selectedOrgIds.map((id) => String(id).toLowerCase().trim()))
+    : null;
 
-  const activeClubOrgIds = new Set(activeClubs.map(c => c.orgId));
-  const activeSubcalendarIds = activeClubs
-    .map(c => c.subcalendarId)
-    .filter(Boolean);
+  const targetOrgs = orgIdsFilter
+    ? WSKZ_ORGANIZATIONS.filter((o) => orgIdsFilter.has(o.orgId.toLowerCase()))
+    : WSKZ_ORGANIZATIONS;
 
-  if (includeSamorzad) {
-    activeSubcalendarIds.push(SAMORZAD_SUBCALENDAR_ID);
-  }
+  const selectedOrgsList = targetOrgs.length > 0 ? targetOrgs : WSKZ_ORGANIZATIONS;
+  const activeOrgIds = selectedOrgsList.map((o) => o.orgId);
 
-  // ── 1. Pobranie danych z Supabase (metadata + attendance) ───────────────────
-  // Pobieramy zarówno zapytaniem ogólnym, jak i per-tenant w celu obsłużenia polityk RLS
-  let supabaseMetadata = [];
-  let supabaseAttendance = [];
+  const selectedSubcalendarIds = selectedOrgsList
+    .map((o) => o.subcalendarId)
+    .filter((id) => id && !isSubcalendarExcluded(id));
+  const selectedSubcalendarSet = new Set(selectedSubcalendarIds.map(String));
 
-  // Zapytanie globalne
-  try {
-    const { data: metaData, error: metaErr } = await supabase
-      .from('meeting_metadata')
-      .select('*');
-    if (!metaErr && Array.isArray(metaData) && metaData.length > 0) {
-      supabaseMetadata.push(...metaData);
-    }
-  } catch (e) {
-    console.warn('Brak tabeli meeting_metadata w Supabase lub błąd zapytania globalnego:', e);
-  }
-
-  try {
-    const { data: attData, error: attErr } = await supabase
-      .from('attendance')
-      .select('*');
-    if (!attErr && Array.isArray(attData) && attData.length > 0) {
-      supabaseAttendance.push(...attData);
-    }
-  } catch (e) {
-    console.warn('Brak tabeli attendance w Supabase lub błąd zapytania globalnego:', e);
-  }
-
-  // Równoległe pobranie dla wszystkich kół naukowych z nagłówkiem x-organization-id
-  // Zapewnia pobranie wpisów dla tabel chronionych przez RLS w Supabase
-  const targetTenants = Array.from(new Set([
-    ...WSKZ_CLUBS.flatMap(c => getOrgAliases(c.orgId)),
-    'skn_seksuologii',
-    'psychoonkologia',
-    'uzaleznienia',
-  ]));
-
-  try {
-    const tenantFetches = targetTenants.map(async (tenantId) => {
-      try {
-        const client = getTenantSupabase(tenantId);
-        const [metaRes, attRes] = await Promise.all([
-          client.from('meeting_metadata').select('*'),
-          client.from('attendance').select('organization_id, meeting_code, meeting_date, index_number, role, activity_description'),
-        ]);
-        return {
-          meta: metaRes?.data || [],
-          att: attRes?.data || [],
-        };
-      } catch {
-        return { meta: [], att: [] };
-      }
-    });
-
-    const tenantResults = await Promise.all(tenantFetches);
-    const seenMetaKeys = new Set(supabaseMetadata.map(m => `${m.organization_id || ''}_${m.meeting_key || m.id || ''}`));
-    const seenAttKeys = new Set(supabaseAttendance.map(a => `${a.organization_id || ''}_${a.meeting_code || ''}_${a.meeting_date || ''}_${a.index_number || ''}`));
-
-    for (const res of tenantResults) {
-      for (const m of res.meta) {
-        const k = `${m.organization_id || ''}_${m.meeting_key || m.id || ''}`;
-        if (!seenMetaKeys.has(k)) {
-          seenMetaKeys.add(k);
-          supabaseMetadata.push(m);
-        }
-      }
-      for (const a of res.att) {
-        const k = `${a.organization_id || ''}_${a.meeting_code || ''}_${a.meeting_date || ''}_${a.index_number || ''}`;
-        if (!seenAttKeys.has(k)) {
-          seenAttKeys.add(k);
-          supabaseAttendance.push(a);
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('Błąd wielokołowego pobierania danych z Supabase:', err);
-  }
-
-  // ── 2. Pobranie wydarzeń z kalendarza Teamup ──────────────────────────────
-  let rawTeamupEvents = [];
-  try {
-    rawTeamupEvents = await fetchTeamupEventsMulti({
-      startDate,
-      endDate,
-      subcalendarIds: activeSubcalendarIds,
-    });
-  } catch (err) {
-    console.warn('Błąd podczas pobierania zdarzeń z Teamup:', err);
-    rawTeamupEvents = [];
-  }
-
-  // Wyklucz zdarzenia wyłącznie z planów zajęć / techniczne
-  const filteredEvents = rawTeamupEvents.filter(evt => {
-    const subIds = Array.isArray(evt.subcalendar_ids)
-      ? evt.subcalendar_ids
-      : [evt.subcalendar_id].filter(Boolean);
-
-    // Jeśli ma wyłącznie subcalendary wykluczone -> pomiń
-    const onlyExcluded = subIds.length > 0 && subIds.every(id => EXCLUDED_SUBCALENDAR_IDS.includes(Number(id)));
-    if (onlyExcluded) return false;
-
-    // Sprawdź czy data mieści się w zakresie
-    const evtDate = toDateStr(evt.start_dt || evt.startDate);
-    return isDateInRange(evtDate, startDate, endDate);
+  // ── 1. Jedno zbiorcze zapytanie do Teamup API (bez subcalendarId[] w URL) ──
+  const allTeamupEvents = await fetchTeamupEventsMulti({
+    startDate,
+    endDate,
   });
 
-  // ── 3. Klasyfikacja i wielopoziomowe dopasowanie spotkań ───────────────────
-  const uniqueMeetingsMap = new Map();
+  // Wydarzenia z podkalendarza Samorządu Studenckiego
   const samorzadMeetings = [];
+  const rawClubEvents = [];
+  const seenEventIds = new Set();
 
-  for (const evt of filteredEvents) {
-    const evtId = String(evt.id);
-    const evtSubId = String(evt.subcalendar_id || (Array.isArray(evt.subcalendar_ids) ? evt.subcalendar_ids[0] : ''));
-    const evtDate = toDateStr(evt.start_dt || evt.startDate);
-    const evtTitle = String(evt.title || 'Spotkanie').trim();
-    const titleLower = evtTitle.toLowerCase();
+  for (const evt of allTeamupEvents) {
+    const rawDate = evt.date || (evt.start_dt ? evt.start_dt.split('T')[0] : '');
+    if (!isDateInRange(rawDate, startDate, endDate)) continue;
 
-    // Sprawdź czy to wydarzenie Samorządu
-    const subIds = Array.isArray(evt.subcalendar_ids)
-      ? evt.subcalendar_ids
-      : [evt.subcalendar_id].filter(Boolean);
+    const allSubs = Array.isArray(evt.subcalendar_ids) && evt.subcalendar_ids.length > 0
+      ? evt.subcalendar_ids.map(String)
+      : (evt.subcalendar_id ? [String(evt.subcalendar_id)] : []);
 
-    const isSamorzadEvent = subIds.map(Number).includes(SAMORZAD_SUBCALENDAR_ID) ||
-      titleLower.includes('samorząd') ||
-      titleLower.includes('kancelaria');
-
-    if (isSamorzadEvent && includeSamorzad) {
+    if (allSubs.includes(String(SAMORZAD_SUBCALENDAR_ID))) {
       samorzadMeetings.push({
-        id: evtId,
-        title: evtTitle,
-        date: evtDate,
-        start_dt: evt.start_dt,
-        end_dt: evt.end_dt,
+        id: evt.id,
+        title: evt.title || 'Wydarzenie Samorządu',
+        date: rawDate,
         location: evt.location || 'Online',
-        notes: evt.notes || '',
+        who: evt.who || 'Samorząd Studencki',
       });
     }
 
-    // Dopasuj powiązane Koła Naukowe
-    let matchedClubs = matchClubsForEvent(evt);
-
-    // Filtruj koła do tych, które są aktualnie wybrane w raporcie
-    const clubsInReport = matchedClubs.filter(c => activeClubOrgIds.has(c.orgId));
-    if (clubsInReport.length === 0) {
-      // Jeśli żadne wybrane koło nie jest powiązane, pomiń
+    if (allSubs.length === 0 || allSubs.every((s) => isSubcalendarExcluded(s))) {
       continue;
     }
 
-    // Zbierz potencjalne aliasy organizacji i kody z tytułu
-    const candidateOrgs = new Set();
-    clubsInReport.forEach(c => {
-      getOrgAliases(c.orgId).forEach(o => candidateOrgs.add(o));
-    });
-    const candidateCodes = extractMeetingCodesFromTitle(evtTitle);
-
-    // ── WIELOPOZIOMOWE DOPASOWANIE DO METADANYCH I FREKWENCJI ───────────────
-    let matchedMeta = null;
-    let participants = 0;
-    let matchedSource = 'none';
-
-    // ── POZIOM 1 (po ID / kluczu):
-    // meta.meeting_key == String(event.id), ${subcalendarId}_${event.id}, endsWith(event.id), lub pasuje do kodu z tytułu
-    for (const m of supabaseMetadata) {
-      const mKey = String(m.meeting_key || m.id || '').trim();
-      const mCode = String(m.meeting_code || m.code || '').trim();
-      if (!mKey && !mCode) continue;
-
-      const isDirectIdMatch =
-        mKey === evtId ||
-        mKey === `${evtSubId}_${evtId}` ||
-        (evtId && mKey.endsWith(evtId));
-
-      const isCodeMatch = candidateCodes.some(c =>
-        (mKey && (mKey.toLowerCase() === c.toLowerCase() || mKey.toLowerCase().includes(c.toLowerCase()))) ||
-        (mCode && (mCode.toLowerCase() === c.toLowerCase() || mCode.toLowerCase().includes(c.toLowerCase())))
-      );
-
-      if (isDirectIdMatch || isCodeMatch) {
-        matchedMeta = m;
-        matchedSource = 'metadata_key';
-        break;
-      }
+    if (selectedSubcalendarSet.size > 0 && !allSubs.some((s) => selectedSubcalendarSet.has(s))) {
+      continue;
     }
 
-    // ── POZIOM 2 (po dacie i organizacji):
-    // Jeśli Poziom 1 nie trafił, dopasuj rekord z meeting_metadata dla tej samej organizacji i daty
-    if (!matchedMeta) {
-      const sameOrgDateMetas = supabaseMetadata.filter(m => {
-        const mOrg = String(m.organization_id || '').toLowerCase();
-        const mDate = toDateStr(m.meeting_date || m.date || m.start_dt || m.created_at);
-        return candidateOrgs.has(mOrg) && mDate === evtDate;
-      });
+    const eid = evt.id ? String(evt.id) : '';
+    if (eid && seenEventIds.has(eid)) continue;
+    if (eid) seenEventIds.add(eid);
 
-      if (sameOrgDateMetas.length === 1) {
-        matchedMeta = sameOrgDateMetas[0];
-        matchedSource = 'metadata_org_date';
-      } else if (sameOrgDateMetas.length > 1) {
-        const cleanEvtTitle = evtTitle.toLowerCase().replace(/\[.*?\]|\(.*?\)/g, '').replace(/[^a-z0-9]/g, ' ').trim();
-        const found = sameOrgDateMetas.find(m => {
-          const cleanMTitle = String(m.title || m.name || '').toLowerCase().replace(/\[.*?\]|\(.*?\)/g, '').replace(/[^a-z0-9]/g, ' ').trim();
-          return cleanEvtTitle && cleanMTitle && (cleanEvtTitle.includes(cleanMTitle.slice(0, 15)) || cleanMTitle.includes(cleanEvtTitle.slice(0, 15)));
-        });
-        matchedMeta = found || sameOrgDateMetas[0];
-        matchedSource = 'metadata_org_date';
-      }
-    }
-
-    // Jeżeli znaleziono metadane i posiadają pole total_participants
-    if (
-      matchedMeta &&
-      matchedMeta.total_participants !== undefined &&
-      matchedMeta.total_participants !== null &&
-      !isNaN(Number(matchedMeta.total_participants))
-    ) {
-      participants = Math.max(0, Number(matchedMeta.total_participants));
-    } else {
-      // ── POZIOM 3 (fallback z tabeli attendance):
-      // Sprawdź attendance dla tego organization_id i meeting_date
-      const matchingAttRows = supabaseAttendance.filter(a => {
-        const aOrg = String(a.organization_id || '').toLowerCase();
-        const aDate = toDateStr(a.meeting_date);
-        return candidateOrgs.has(aOrg) && aDate === evtDate;
-      });
-
-      if (matchingAttRows.length > 0) {
-        // a) Czy istnieje techniczny wpis metadanych [MEETING_META]
-        const metaAtt = matchingAttRows.find(a =>
-          String(a.meeting_code || '').includes('[MEETING_META]') ||
-          String(a.activity_description || '').includes('"meeting_key"') ||
-          String(a.activity_description || '').includes('"total_participants"')
-        );
-
-        let parsedCount = null;
-        if (metaAtt && metaAtt.activity_description) {
-          try {
-            const parsed = JSON.parse(metaAtt.activity_description);
-            if (parsed && (parsed.total_participants !== undefined || parsed.headcount !== undefined)) {
-              parsedCount = Number(parsed.total_participants ?? parsed.headcount);
-            }
-          } catch {}
-        }
-
-        if (parsedCount !== null && !isNaN(parsedCount) && parsedCount >= 0) {
-          participants = parsedCount;
-          matchedSource = 'attendance_meta';
-        } else {
-          // b) Policz unikalne indeksy uczestników spotkania
-          const validParticipantRows = matchingAttRows.filter(a => {
-            const code = String(a.meeting_code || '');
-            if (
-              code.startsWith('[SETTINGS]') ||
-              code.startsWith('[BOARD_TERM]') ||
-              code.startsWith('[KORESPONDENCJA]') ||
-              code.startsWith('[DOROBEK]') ||
-              code.startsWith('[EMAIL_CONFIG]')
-            ) {
-              return false;
-            }
-            if (candidateCodes.length > 0) {
-              const matchesAnyCode = candidateCodes.some(c => code.toLowerCase().includes(c.toLowerCase()));
-              if (matchesAnyCode) return true;
-            }
-            return true;
-          });
-
-          const uniqueIndexes = new Set();
-          validParticipantRows.forEach(a => {
-            const idx = String(a.index_number || '').trim().toLowerCase();
-            if (idx && !idx.startsWith('[settings]') && idx !== 'user_first_login_status' && idx !== 'weights') {
-              uniqueIndexes.add(idx);
-            }
-          });
-
-          if (uniqueIndexes.size > 0) {
-            participants = uniqueIndexes.size;
-            matchedSource = 'attendance_headcount';
-          } else {
-            // Brak uczestników w bazie -> 0 (brak danych), NIGDY 22 ani 6!
-            participants = 0;
-            matchedSource = 'none';
-          }
-        }
-      } else {
-        // Brak wpisu w bazie -> 0 (brak danych), NIGDY 22 ani 6!
-        participants = 0;
-        matchedSource = 'none';
-      }
-    }
-
-    // Ustal typ spotkania
-    let meetingType = 'workshop_external';
-    if (matchedMeta?.meeting_type) {
-      meetingType = matchedMeta.meeting_type;
-    } else if (
-      titleLower.includes('projekt') ||
-      titleLower.includes('technicz') ||
-      titleLower.includes('robocz') ||
-      titleLower.includes('team') ||
-      titleLower.includes('grupa robocza') ||
-      evtTitle.includes('🛠️') ||
-      evtTitle.includes('🔧') ||
-      evtTitle.includes('🔒')
-    ) {
-      meetingType = 'project';
-    } else if (
-      titleLower.includes('zarząd') ||
-      titleLower.includes('zarzadu') ||
-      titleLower.includes('posiedzenie') ||
-      titleLower.includes('zebranie zarządu') ||
-      titleLower.includes('wewnętrzn')
-    ) {
-      meetingType = 'internal';
-    } else {
-      meetingType = 'workshop_external';
-    }
-
-    const isJoint = clubsInReport.length > 1 || (matchedMeta?.co_organizers && matchedMeta.co_organizers.length > 1);
-
-    const processedMeeting = {
-      id: evtId,
-      title: evtTitle,
-      date: evtDate,
-      start_dt: evt.start_dt,
-      end_dt: evt.end_dt,
-      location: evt.location || 'Platforma Teams / Aula WSKZ',
-      who: evt.who || '',
-      notes: evt.notes || '',
-      meetingType, // 'workshop_external' | 'project' | 'internal'
-      participants,
-      hasRealData: participants > 0,
-      matchedSource,
-      isJoint,
-      participatingClubs: clubsInReport,
-      allMatchedClubs: matchedClubs,
-    };
-
-    uniqueMeetingsMap.set(evtId, processedMeeting);
+    rawClubEvents.push(evt);
   }
 
-  const allUniqueMeetings = Array.from(uniqueMeetingsMap.values()).sort(
-    (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
-  );
+  // Chronologiczne sortowanie (nie nadajemy syntetycznych kodów M01..M99 z okna daty,
+  // ponieważ powodowałyby kolizje z historycznym prefiksem [YY/YY] M01 w innych miesiącach lub przy widoku 14 kół)
+  const sortedTeamupEvents = [...rawClubEvents]
+    .sort((a, b) => new Date(a.start_dt || a.startDate || 0) - new Date(b.start_dt || b.startDate || 0))
+    .map((evt) => {
+      const rawDate = evt.date || (evt.start_dt ? evt.start_dt.split('T')[0] : '');
+      const startObj = evt.start_dt ? new Date(evt.start_dt) : null;
+      const formattedDate = startObj && !Number.isNaN(startObj.getTime())
+        ? startObj.toLocaleString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : rawDate;
 
-  // ── 4. Statystyki Kół Naukowych (Zbiorcze i Per Koło) ──────────────────────
-  const clubsStats = activeClubs.map(club => {
-    const clubMeetings = allUniqueMeetings.filter(m =>
-      m.participatingClubs.some(c => c.orgId === club.orgId)
-    );
+      return {
+        ...evt,
+        date: rawDate,
+        formattedDate,
+        code: evt.code || '',
+      };
+    });
 
-    const substantiveMeetings = clubMeetings.filter(m => m.meetingType !== 'project' && m.meetingType !== 'internal');
-    const projectMeetings = clubMeetings.filter(m => m.meetingType === 'project');
-    const internalMeetings = clubMeetings.filter(m => m.meetingType === 'internal');
+  // Zbierz ewentualnych współorganizatorów spoza aktualnego filtra, aby odczytać ich wspólne metadane/obecności
+  const relatedOrgIdsSet = new Set(activeOrgIds);
+  for (const evt of sortedTeamupEvents) {
+    const subIds = Array.isArray(evt.subcalendar_ids) && evt.subcalendar_ids.length > 0
+      ? evt.subcalendar_ids
+      : [evt.subcalendar_id];
+    for (const sid of subIds) {
+      const org = getWskzOrgBySubcalendarId(sid);
+      if (org?.orgId) relatedOrgIdsSet.add(org.orgId);
+    }
+  }
+  const orgsToQuery = Array.from(relatedOrgIdsSet);
 
-    const totalSubstantiveParticipants = substantiveMeetings.reduce((sum, m) => sum + m.participants, 0);
-    const totalProjectParticipants = projectMeetings.reduce((sum, m) => sum + m.participants, 0);
-    const totalAllParticipants = totalSubstantiveParticipants + totalProjectParticipants;
+  // ── 2. Pobieranie metadanych spotkań (meeting_metadata global + tenant + fallback [MEETING_META]) ──
+  const metadataMap = {}; // klucz: `${orgId}__${meeting_key}`
 
-    const avgAttendance = substantiveMeetings.length > 0
-      ? Math.round((totalSubstantiveParticipants / substantiveMeetings.length) * 10) / 10
+  const [globalMetaRes, tenantMetaResults, globalAttRes, tenantAttResults] = await Promise.all([
+    fetchAllGlobalRows('meeting_metadata', { select: '*' }).catch(() => ({ data: [], error: null })),
+    Promise.allSettled(
+      orgsToQuery.map(async (orgId) => ({
+        orgId,
+        res: await fetchAllTenantRows('meeting_metadata', orgId, { select: '*' }),
+      }))
+    ),
+    fetchAllGlobalRows('attendance', {
+      select: 'organization_id, meeting_code, meeting_date, index_number, role, activity_description',
+    }).catch(() => ({ data: [], error: null })),
+    Promise.allSettled(
+      orgsToQuery.map(async (orgId) => ({
+        orgId,
+        res: await fetchAllTenantRows('attendance', orgId, {
+          select: 'organization_id, meeting_code, meeting_date, index_number, role, activity_description',
+        }),
+      }))
+    ),
+  ]);
+
+  const registerMetaRow = (row, fallbackOrgId = '') => {
+    if (!row || !row.meeting_key) return;
+    const orgId = String(row.organization_id || fallbackOrgId || '').trim().toLowerCase();
+    const mk = String(row.meeting_key).trim();
+    if (!orgId || !mk) return;
+    metadataMap[`${orgId}__${mk}`] = { ...row, organization_id: orgId, meeting_key: mk };
+  };
+
+  if (Array.isArray(globalMetaRes?.data)) {
+    globalMetaRes.data.forEach((row) => registerMetaRow(row));
+  }
+  tenantMetaResults.forEach((settled) => {
+    if (settled.status !== 'fulfilled') return;
+    const { orgId, res } = settled.value;
+    if (Array.isArray(res?.data)) {
+      res.data.forEach((row) => registerMetaRow(row, orgId));
+    }
+  });
+
+  // ── 3. Wielopoziomowe indeksowanie obecności (attendanceCountMap) z paginacją (>1000 wierszy) ──
+  const attendanceCountMap = {};
+  const uniqueAttendees = {};
+
+  const addAttendeeKey = (key, idx) => {
+    if (!key || !idx) return;
+    if (!uniqueAttendees[key]) uniqueAttendees[key] = new Set();
+    uniqueAttendees[key].add(idx);
+  };
+
+  const processAttendanceRows = (rows, fallbackOrgId = '') => {
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      const rawCode = String(row.meeting_code || '').trim();
+      const org = String(row.organization_id || fallbackOrgId || '').trim().toLowerCase();
+      if (!rawCode || !org) continue;
+
+      // Fallback chmurowy metadanych zapisanych jako [MEETING_META] w tabeli attendance
+      if (rawCode.toUpperCase().startsWith('[MEETING_META]')) {
+        try {
+          const parsed = JSON.parse(row.activity_description || '{}');
+          if (parsed && parsed.meeting_key && !metadataMap[`${org}__${parsed.meeting_key}`]) {
+            registerMetaRow({ ...parsed, organization_id: org }, org);
+          }
+        } catch {}
+        continue;
+      }
+
+      // Wyklucz rekordy techniczne / systemowe / [OPIEKUN]
+      if (SYSTEM_PREFIX_RE.test(rawCode)) continue;
+
+      const idx = extractAttendeeIdentifier(row);
+      if (!idx) continue;
+
+      const code = rawCode.toUpperCase();
+      const cleanCode = code.replace(/^\[.*?\]\s*/, '').trim();
+      const meetingDate = row.meeting_date ? String(row.meeting_date).trim().slice(0, 10) : '';
+
+      if (meetingDate) {
+        addAttendeeKey(`${org}__DATE__${meetingDate}`, idx);
+        if (cleanCode) {
+          addAttendeeKey(`${org}__CODE_DATE__${cleanCode}__${meetingDate}`, idx);
+        }
+        addAttendeeKey(`${org}__CODE_DATE__${code}__${meetingDate}`, idx);
+      }
+
+      if (YEAR_PREFIX_RE.test(code)) {
+        addAttendeeKey(`${org}__FULLCODE__${code}`, idx);
+        addAttendeeKey(`${org}__FULLCODE__${code.replace(/\s+/g, '')}`, idx);
+      }
+    }
+  };
+
+  if (Array.isArray(globalAttRes?.data)) {
+    processAttendanceRows(globalAttRes.data);
+  }
+  tenantAttResults.forEach((settled) => {
+    if (settled.status !== 'fulfilled') return;
+    const { orgId, res } = settled.value;
+    if (Array.isArray(res?.data)) {
+      processAttendanceRows(res.data, orgId);
+    }
+  });
+
+  Object.entries(uniqueAttendees).forEach(([k, set]) => {
+    attendanceCountMap[k] = set.size;
+  });
+
+  // ── 4. Deduplikacja międzykołowa i klasyfikacja spotkań ────────────────────
+  const eventsByDedupKey = new Map();
+  const internalMeetings = [];
+
+  for (const evt of sortedTeamupEvents) {
+    const rawDate = evt.date || (evt.start_dt ? evt.start_dt.split('T')[0] : '');
+    if (!rawDate) continue;
+
+    // Główny organizator po subcalendar_id (z fallbackiem do pierwszego niewykluczonego subcalendar_ids)
+    const subIds = Array.isArray(evt.subcalendar_ids) && evt.subcalendar_ids.length > 0
+      ? evt.subcalendar_ids
+      : [evt.subcalendar_id];
+
+    let primaryOrg = getWskzOrgBySubcalendarId(evt.subcalendar_id);
+    if (!primaryOrg) {
+      for (const sid of subIds) {
+        const candidateOrg = getWskzOrgBySubcalendarId(sid);
+        if (candidateOrg) {
+          primaryOrg = candidateOrg;
+          break;
+        }
+      }
+    }
+    if (!primaryOrg) continue;
+    const primaryOrgId = primaryOrg.orgId;
+
+    // Współorganizatorzy z Teamup subcalendar_ids
+    const coOrgsFromTeamup = subIds
+      .map((sid) => getWskzOrgBySubcalendarId(sid))
+      .filter((o) => o && o.orgId !== primaryOrgId)
+      .map((o) => o.orgId);
+
+    // Szukamy metadanych zarówno pod primaryOrgId, jak i pod współorganizatorami z Teamup
+    // (np. wydarzenie współdzielone zapisane pod orgId współorganizatora w meeting_metadata)
+    const metaOrgsToSearch = Array.from(new Set([primaryOrgId, ...coOrgsFromTeamup]));
+    let matchedMeta = null;
+
+    for (const searchOrg of metaOrgsToSearch) {
+      const strippedEvtCode = evt.code ? String(evt.code).replace(/^\[.*?\]\s*/, '').trim() : '';
+      const metaCandidateKeys = [
+        `${searchOrg}__${evt.id}`,
+        evt.code ? `${searchOrg}__${evt.code}` : null,
+        strippedEvtCode ? `${searchOrg}__${strippedEvtCode}` : null,
+        `${searchOrg}__${rawDate}`,
+      ].filter(Boolean);
+
+      for (const mk of metaCandidateKeys) {
+        const candidate = metadataMap[mk];
+        if (!candidate) continue;
+        if (
+          mk !== `${searchOrg}__${evt.id}` &&
+          candidate.meeting_date &&
+          String(candidate.meeting_date).slice(0, 10) !== rawDate
+        ) {
+          continue;
+        }
+        matchedMeta = candidate;
+        break;
+      }
+      if (matchedMeta) break;
+    }
+
+    const coOrgsFromMeta = Array.isArray(matchedMeta?.co_organizers) ? matchedMeta.co_organizers : [];
+    const allCoOrgIds = Array.from(new Set([...coOrgsFromTeamup, ...coOrgsFromMeta]))
+      .map((id) => String(id).toLowerCase().trim())
+      .filter((id) => id && id !== primaryOrgId && getWskzOrgById(id));
+
+    // Klasyfikacja: internal (pomijane w A i B) vs project (Tabela B) vs substantive (Tabela A)
+    const metaPayload = matchedMeta?.custom_payload && typeof matchedMeta.custom_payload === 'object'
+      ? matchedMeta.custom_payload
+      : {};
+    const explicitlyExcludedFromDenominator =
+      metaPayload.includeInFrequency === false ||
+      metaPayload.countsInFrequency === false ||
+      metaPayload.includeInDenominator === false ||
+      metaPayload.countsTowardsDenominator === false ||
+      metaPayload.wliczajDoFrekwencji === false;
+
+    const detectedType = matchedMeta?.meeting_type || getAutoMeetingType(evt);
+    const detectedTypeLower = String(detectedType || '').toLowerCase();
+    const titleLower = String(evt.title || '').toLowerCase();
+
+    const isInternalType = ['internal', 'board', 'zarząd', 'zarzad', 'wewnętrzne', 'wewnetrzne'].includes(detectedTypeLower);
+    if (isInternalType) {
+      internalMeetings.push({
+        id: evt.id,
+        title: evt.title,
+        date: rawDate,
+        primaryOrg,
+        coOrgIds: allCoOrgIds,
+        meetingType: 'internal',
+      });
+      continue;
+    }
+
+    const isProjectType = ['project', 'projektowe', 'techniczne', 'robocze'].includes(detectedTypeLower);
+    const isProjectTitle =
+      titleLower.includes('🔒') ||
+      titleLower.includes('spotkanie robocze') ||
+      titleLower.includes('robocz') ||
+      titleLower.includes('zamkni') ||
+      titleLower.includes('grupa projektowa') ||
+      titleLower.includes('grupy projektowej') ||
+      titleLower.includes('zespół projektowy') ||
+      titleLower.includes('zespołu projektowego') ||
+      (titleLower.includes('projekt') &&
+        (titleLower.includes('grup') || titleLower.includes('zesp') || titleLower.includes('techniczn')));
+
+    const isProject = isProjectType || isProjectTitle || explicitlyExcludedFromDenominator;
+    const reportCategory = isProject ? 'project' : 'substantive';
+
+    // Frekwencja pojedynczego spotkania: wyłącznie dla [primaryOrgId, ...allCoOrgIds] (zapobiega przeciekom z innych kół tego samego dnia)
+    const rawCode = String(evt.code || '').trim().toUpperCase();
+    const cleanCode = rawCode.replace(/^\[.*?\]\s*/, '').trim();
+    const evtHasYearPrefix = YEAR_PREFIX_RE.test(rawCode);
+    const checkOrgs = Array.from(new Set([primaryOrgId, ...allCoOrgIds]));
+
+    let uniqueAttendanceCount = 0;
+    for (const orgToCheck of checkOrgs) {
+      if (cleanCode && rawDate) {
+        const c1 = attendanceCountMap[`${orgToCheck}__CODE_DATE__${cleanCode}__${rawDate}`] || 0;
+        const c2 = rawCode ? (attendanceCountMap[`${orgToCheck}__CODE_DATE__${rawCode}__${rawDate}`] || 0) : 0;
+        if (Math.max(c1, c2) > uniqueAttendanceCount) uniqueAttendanceCount = Math.max(c1, c2);
+      }
+      if (evtHasYearPrefix) {
+        const c3 = attendanceCountMap[`${orgToCheck}__FULLCODE__${rawCode}`] || 0;
+        const c4 = attendanceCountMap[`${orgToCheck}__FULLCODE__${rawCode.replace(/\s+/g, '')}`] || 0;
+        if (Math.max(c3, c4) > uniqueAttendanceCount) uniqueAttendanceCount = Math.max(c3, c4);
+      }
+    }
+
+    if (uniqueAttendanceCount === 0 && rawDate) {
+      for (const orgToCheck of checkOrgs) {
+        const cDate = attendanceCountMap[`${orgToCheck}__DATE__${rawDate}`] || 0;
+        if (cDate > uniqueAttendanceCount) uniqueAttendanceCount = cDate;
+      }
+    }
+
+    const manualTotal = matchedMeta && Number(matchedMeta.total_participants) > 0
+      ? Number(matchedMeta.total_participants)
       : 0;
 
+    const evtAttendeesCount =
+      evt.total_participants ||
+      evt.totalParticipants ||
+      evt.attendeesCount ||
+      (Array.isArray(evt.attendees) ? evt.attendees.length : 0) ||
+      (Array.isArray(evt.participantRecords) ? evt.participantRecords.length : 0) ||
+      (Array.isArray(evt.listaObecnosci) ? evt.listaObecnosci.length : 0);
+
+    const totalParticipants = Math.max(uniqueAttendanceCount, manualTotal, Number(evtAttendeesCount) || 0);
+
+    // Deduplikacja po dacie i znormalizowanym tytule (lub ID Teamup)
+    const dedupKey = `${rawDate}___${normalizeTitle(evt.title) || evt.id}`;
+
+    if (!eventsByDedupKey.has(dedupKey)) {
+      eventsByDedupKey.set(dedupKey, {
+        id: evt.id,
+        code: evt.code,
+        title: evt.title || 'Spotkanie',
+        date: rawDate,
+        formattedDate: evt.formattedDate,
+        speaker: evt.who || metaPayload.speaker || 'Zarząd Koła / Zaproszony Prelegent',
+        who: evt.who || metaPayload.speaker || '',
+        location: evt.location || 'Online (Google Meet)',
+        primaryOrg,
+        coOrgIds: allCoOrgIds,
+        coOrgs: allCoOrgIds.map((id) => getWskzOrgById(id)).filter(Boolean),
+        reportCategory,
+        meetingType: isProject ? 'project' : 'substantive',
+        totalParticipants,
+        participants: totalParticipants,
+        isJointEvent: allCoOrgIds.length > 0,
+        isJoint: allCoOrgIds.length > 0,
+        participatingClubs: [primaryOrg, ...allCoOrgIds.map((id) => getWskzOrgById(id)).filter(Boolean)],
+        rawEvent: evt,
+      });
+    } else {
+      const existing = eventsByDedupKey.get(dedupKey);
+      const mergedCoOrgs = Array.from(new Set([...existing.coOrgIds, ...allCoOrgIds, primaryOrgId]))
+        .filter((id) => id !== existing.primaryOrg.orgId);
+
+      existing.coOrgIds = mergedCoOrgs;
+      existing.coOrgs = mergedCoOrgs.map((id) => getWskzOrgById(id)).filter(Boolean);
+      existing.isJointEvent = mergedCoOrgs.length > 0;
+      existing.isJoint = mergedCoOrgs.length > 0;
+      existing.participatingClubs = [existing.primaryOrg, ...existing.coOrgs];
+      if (totalParticipants > existing.totalParticipants) {
+        existing.totalParticipants = totalParticipants;
+        existing.participants = totalParticipants;
+      }
+    }
+  }
+
+  const allProcessedEvents = Array.from(eventsByDedupKey.values()).sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+
+  // Rozdzielenie na Tabelę A (merytoryczne) i Tabelę B (projektowe)
+  const substantiveMeetings = allProcessedEvents.filter((e) => e.reportCategory === 'substantive');
+  const projectMeetings = allProcessedEvents.filter((e) => e.reportCategory === 'project');
+
+  const substantiveTotalAttendees = substantiveMeetings.reduce(
+    (sum, m) => sum + (Number(m.totalParticipants) || 0),
+    0
+  );
+  const substantiveAvgAttendees = substantiveMeetings.length > 0
+    ? Math.round(substantiveTotalAttendees / substantiveMeetings.length)
+    : 0;
+
+  const projectTotalAttendees = projectMeetings.reduce(
+    (sum, m) => sum + (Number(m.totalParticipants) || 0),
+    0
+  );
+  const projectAvgAttendees = projectMeetings.length > 0
+    ? Math.round(projectTotalAttendees / projectMeetings.length)
+    : 0;
+
+  const totalAllAttendees = substantiveTotalAttendees + projectTotalAttendees;
+  const totalAllMeetingsCount = substantiveMeetings.length + projectMeetings.length;
+  const totalAllAvgAttendees = totalAllMeetingsCount > 0
+    ? Math.round(totalAllAttendees / totalAllMeetingsCount)
+    : 0;
+
+  const jointEventsCount = allProcessedEvents.filter((e) => e.isJointEvent).length;
+
+  // ── 5. Statystyki per Koło (Tabela C: Merytoryczne, Frekwencja meryt.+proj., Projektowe, Wspólne) ──
+  const byOrgStats = selectedOrgsList.map((org, idx) => {
+    const orgId = org.orgId;
+    const orgSubstantive = substantiveMeetings.filter(
+      (m) => m.primaryOrg.orgId === orgId || m.coOrgIds.includes(orgId)
+    );
+    const orgProject = projectMeetings.filter(
+      (m) => m.primaryOrg.orgId === orgId || m.coOrgIds.includes(orgId)
+    );
+    const orgJoint = allProcessedEvents.filter(
+      (m) => (m.primaryOrg.orgId === orgId && m.isJointEvent) || m.coOrgIds.includes(orgId)
+    );
+
+    const orgSubstantiveAttendees = orgSubstantive.reduce(
+      (sum, m) => sum + (Number(m.totalParticipants) || 0),
+      0
+    );
+    const orgProjectAttendees = orgProject.reduce(
+      (sum, m) => sum + (Number(m.totalParticipants) || 0),
+      0
+    );
+    const orgCombinedAttendees = orgSubstantiveAttendees + orgProjectAttendees;
+
     return {
-      club,
-      meetingsCount: substantiveMeetings.length + projectMeetings.length, // RAZEM SPOTKAŃ = merytoryczne + projektowe
-      allMeetingsCount: clubMeetings.length,
-      substantiveCount: substantiveMeetings.length,
-      projectCount: projectMeetings.length,
-      internalCount: internalMeetings.length,
-      totalParticipants: totalAllParticipants,
-      substantiveParticipants: totalSubstantiveParticipants,
-      projectParticipants: totalProjectParticipants,
-      avgAttendance,
-      meetings: clubMeetings,
+      lp: idx + 1,
+      org,
+      club: org,
+      substantiveCount: orgSubstantive.length,
+      substantiveAttendees: orgSubstantiveAttendees,
+      projectCount: orgProject.length,
+      projectAttendees: orgProjectAttendees,
+      totalAttendees: orgCombinedAttendees,
+      totalParticipants: orgCombinedAttendees,
+      jointCount: orgJoint.length,
+      totalActivities: orgSubstantive.length + orgProject.length,
+      avgAttendance: orgSubstantive.length > 0
+        ? Math.round((orgSubstantiveAttendees / orgSubstantive.length) * 10) / 10
+        : 0,
     };
   });
 
-  // Łączne unikalne statystyki (bez mnożenia wspólnych spotkań!)
-  const totalSubstantiveUnique = allUniqueMeetings.filter(m => m.meetingType !== 'project' && m.meetingType !== 'internal');
-  const totalProjectUnique = allUniqueMeetings.filter(m => m.meetingType === 'project');
-  const totalInternalUnique = allUniqueMeetings.filter(m => m.meetingType === 'internal');
-
-  const grandTotalParticipants = allUniqueMeetings.reduce((sum, m) => sum + m.participants, 0);
-  const grandTotalSubstantiveParticipants = totalSubstantiveUnique.reduce((sum, m) => sum + m.participants, 0);
-  const grandTotalProjectParticipants = totalProjectUnique.reduce((sum, m) => sum + m.participants, 0);
-
-  // ── 5. Statystyki Samorządu Studenckiego (DKO, UO, Starostowie) ───────────
+  // ── 6. Statystyki Samorządu Studenckiego (DKO, UO, Starostowie) ───────────
   let samorzadStats = null;
 
   if (includeSamorzad) {
-    const filteredCorrespondence = correspondenceList.filter(item => {
+    const filteredCorrespondence = correspondenceList.filter((item) => {
       const itemDate = toDateStr(item.dataWplywu || item.data || item.date || item.dataWyslania);
       return isDateInRange(itemDate, startDate, endDate);
     });
 
-    const dkoIn = filteredCorrespondence.filter(item => item.direction === 'IN' || item.typ === 'Wchodzące').length;
-    const dkoOut = filteredCorrespondence.filter(item => item.direction === 'OUT' || item.typ === 'Wychodzące').length;
+    const dkoIn = filteredCorrespondence.filter((item) => item.direction === 'IN' || item.typ === 'Wchodzące').length;
+    const dkoOut = filteredCorrespondence.filter((item) => item.direction === 'OUT' || item.typ === 'Wychodzące').length;
 
     const dkoStatusMap = {};
     for (const item of filteredCorrespondence) {
@@ -537,14 +609,14 @@ export async function generateUniversityReport({
       dkoStatusMap[st] = (dkoStatusMap[st] || 0) + 1;
     }
 
-    const filteredDecisions = operationalDecisions.filter(d => {
+    const filteredDecisions = operationalDecisions.filter((d) => {
       const dDate = toDateStr(d.date || d.data);
       return isDateInRange(dDate, startDate, endDate);
     });
 
-    const decisionsDone = filteredDecisions.filter(d => d.status === 'Zrealizowane').length;
-    const decisionsInProgress = filteredDecisions.filter(d => d.status === 'W realizacji' || d.status !== 'Zrealizowane').length;
-    const decisionTopics = filteredDecisions.map(d => d.topic || d.przedmiot).filter(Boolean);
+    const decisionsDone = filteredDecisions.filter((d) => d.status === 'Zrealizowane').length;
+    const decisionsInProgress = filteredDecisions.filter((d) => d.status !== 'Zrealizowane').length;
+    const decisionTopics = filteredDecisions.map((d) => d.topic || d.przedmiot).filter(Boolean);
 
     const totalStarostowie = starostowieList.length;
     const fieldMap = {};
@@ -593,17 +665,36 @@ export async function generateUniversityReport({
       endDate,
     },
     clubsReport: {
-      activeClubsCount: activeClubs.length,
-      totalUniqueMeetings: allUniqueMeetings.length,
-      substantiveMeetingsCount: totalSubstantiveUnique.length,
-      projectMeetingsCount: totalProjectUnique.length,
-      internalMeetingsCount: totalInternalUnique.length,
-      totalTogetherMeetings: totalSubstantiveUnique.length + totalProjectUnique.length,
-      totalParticipants: grandTotalParticipants,
-      substantiveParticipants: grandTotalSubstantiveParticipants,
-      projectParticipants: grandTotalProjectParticipants,
-      clubsStats,
-      allUniqueMeetings,
+      selectedOrgs: selectedOrgsList,
+      allProcessedEvents,
+      substantiveMeetings,
+      projectMeetings,
+      internalMeetings,
+      summaryStats: {
+        totalEvents: allProcessedEvents.length,
+        substantiveEventsCount: substantiveMeetings.length,
+        substantiveTotalAttendees,
+        substantiveAvgAttendees,
+        projectEventsCount: projectMeetings.length,
+        projectTotalAttendees,
+        projectAvgAttendees,
+        totalAllAttendees,
+        totalAllAvgAttendees,
+        jointEventsCount,
+      },
+      byOrgStats,
+      // Pola kompatybilnościowe
+      activeClubsCount: selectedOrgsList.length,
+      totalUniqueMeetings: allProcessedEvents.length,
+      substantiveMeetingsCount: substantiveMeetings.length,
+      projectMeetingsCount: projectMeetings.length,
+      internalMeetingsCount: internalMeetings.length,
+      totalTogetherMeetings: allProcessedEvents.length,
+      totalParticipants: totalAllAttendees,
+      substantiveParticipants: substantiveTotalAttendees,
+      projectParticipants: projectTotalAttendees,
+      clubsStats: byOrgStats,
+      allUniqueMeetings: allProcessedEvents,
     },
     samorzadStats,
     generatedAt: new Date().toISOString(),
@@ -611,8 +702,7 @@ export async function generateUniversityReport({
 }
 
 /**
- * Eksportuje zgromadzone dane do wieloarkuszowego pliku Excel (.xlsx)
- * z zachowaniem nowego układu kolumn (1. Koło, 2. Wydział, 3. Merytoryczne, 4. Projektowe, 5. Razem, 6. Średnia, 7. Łączna)
+ * Eksportuje zunifikowane zestawienie do wieloarkuszowego pliku Excel (.xlsx)
  */
 export function exportReportToExcel(reportData, filename = null) {
   if (!reportData) return;
@@ -620,6 +710,12 @@ export function exportReportToExcel(reportData, filename = null) {
   const wb = XLSX.utils.book_new();
   const dateTag = new Date().toISOString().slice(0, 10);
   const finalFilename = filename || `Zestawienie_WSKZ_${dateTag}.xlsx`;
+
+  const cr = reportData.clubsReport || {};
+  const stats = cr.summaryStats || {};
+  const subMeetings = cr.substantiveMeetings || [];
+  const projMeetings = cr.projectMeetings || [];
+  const byOrgStats = cr.byOrgStats || [];
 
   // ── Arkusz 1: Podsumowanie (KPI) ──────────────────────────────────────────
   const summaryRows = [
@@ -629,36 +725,11 @@ export function exportReportToExcel(reportData, filename = null) {
     [`Data wygenerowania: ${new Date().toLocaleString('pl-PL')}`],
     [],
     ['METRYKA / WSKAŹNIK', 'WARTOŚĆ', 'UWAGI METODOLOGICZNE'],
-    [
-      'Liczba monitorowanych Kół Naukowych',
-      reportData.clubsReport.activeClubsCount,
-      'Zgodnie z centralnym rejestrem 14 Kół WSKZ',
-    ],
-    [
-      'Spotkania merytoryczne i warsztaty otwarte',
-      reportData.clubsReport.substantiveMeetingsCount,
-      'Spotkania otwarte dla studentów i wykłady (deduplikowane)',
-    ],
-    [
-      'Spotkania robocze i zespoły projektowe (Wrench)',
-      reportData.clubsReport.projectMeetingsCount,
-      'Ewidencjonowane osobno (nie zaniżają średniej frekwencji)',
-    ],
-    [
-      'Łączna frekwencja z gośćmi',
-      reportData.clubsReport.totalParticipants,
-      'Rzeczywista liczba uczestników pobrana z bazy Supabase',
-    ],
-    [
-      'Razem spotkań (merytoryczne + projektowe)',
-      reportData.clubsReport.substantiveMeetingsCount + reportData.clubsReport.projectMeetingsCount,
-      'Suma kluczowych inicjatyw studenckich',
-    ],
-    [
-      'Posiedzenia wewnętrzne zarządów kół',
-      reportData.clubsReport.internalMeetingsCount,
-      'Organizacja wewnętrzna i planowanie kadencji',
-    ],
+    ['Liczba monitorowanych Kół Naukowych', (cr.selectedOrgs || []).length, 'Zgodnie z centralnym rejestrem Kół Naukowych WSKZ'],
+    ['Spotkania merytoryczne i warsztaty otwarte (Tabela A)', stats.substantiveEventsCount ?? subMeetings.length, 'Wykłady, prelekcje, warsztaty (deduplikowane)'],
+    ['Spotkania zespołów projektowych i robocze (Tabela B)', stats.projectEventsCount ?? projMeetings.length, 'Zespoły robocze i zamknięte grupy projektowe'],
+    ['Łącznie unikalnych wydarzeń', stats.totalEvents ?? cr.totalUniqueMeetings ?? 0, `W tym ${stats.jointEventsCount || 0} międzykołowych`],
+    ['Łączna frekwencja z gośćmi (merytoryczne + projektowe)', stats.totalAllAttendees ?? 0, `Średnio ${stats.totalAllAvgAttendees || 0} os./spotkanie`],
   ];
 
   if (reportData.samorzadStats) {
@@ -666,108 +737,76 @@ export function exportReportToExcel(reportData, filename = null) {
       [],
       ['DZIAŁALNOŚĆ SAMORZĄDU STUDENCKIEGO (KANCELARIA)', '', ''],
       ['Sprawy DKO + Ustalenia Samorządu', reportData.samorzadStats.dko.total + reportData.samorzadStats.decisions.total, 'Łączna liczba spraw urzędowych i ustaleń'],
-      ['Łączna liczba spraw w DKO', reportData.samorzadStats.dko.total, `Wpływ: ${reportData.samorzadStats.dko.in}, Wysłane: ${reportData.samorzadStats.dko.out}`],
-      ['Uchwały i Ustalenia Operacyjne', reportData.samorzadStats.decisions.total, `Zrealizowane: ${reportData.samorzadStats.decisions.done}, W toku: ${reportData.samorzadStats.decisions.inProgress}`],
+      ['Dziennik Korespondencji (DKO)', reportData.samorzadStats.dko.total, `Wpływ: ${reportData.samorzadStats.dko.in}, Wysłane: ${reportData.samorzadStats.dko.out}`],
+      ['Ustalenia Operacyjne / Uchwały', reportData.samorzadStats.decisions.total, `Zrealizowane: ${reportData.samorzadStats.decisions.done}, W toku: ${reportData.samorzadStats.decisions.inProgress}`],
       ['Sieć Starostów Roczników i Grup', reportData.samorzadStats.starostowie.total, `Zgody RODO aktywne: ${reportData.samorzadStats.starostowie.rodoActive}`],
-      ['Inicjatywy i zebrania Samorządu', reportData.samorzadStats.events.count, 'Wydarzenia z dedykowanego kalendarza Samorządu']
+      ['Inicjatywy Samorządu (Teamup)', reportData.samorzadStats.events.count, 'Wydarzenia z kalendarza Samorządu']
     );
   }
 
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Podsumowanie');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), 'Podsumowanie');
 
-  // ── Arkusz 2: Kola_Naukowe_Zbiorczo (Nowy układ 7 kolumn) ─────────────────
-  const clubsTableRows = [
-    [
-      'NR',
-      'KOŁO NAUKOWE',
-      'WYDZIAŁ',
-      'SPOTKANIA MERYTORYCZNE',
-      'SPOTKANIA PROJEKTOWE',
-      'RAZEM SPOTKAŃ',
-      'ŚREDNIA FREKWENCJA',
-      'ŁĄCZNA FREKWENCJA',
-    ],
+  // ── Arkusz 2: A_Spotkania_Merytoryczne ────────────────────────────────────
+  const substantiveRows = [
+    ['LP.', 'DATA', 'KOŁO WIODĄCE', 'WSPÓŁORGANIZATORZY', 'TEMAT / TYTUŁ SPOTKANIA', 'PRELEGENT / PROWADZĄCY', 'FREKWENCJA'],
   ];
-
-  for (const cs of reportData.clubsReport.clubsStats) {
-    clubsTableRows.push([
-      cs.club.number,
-      cs.club.name,
-      cs.club.faculty,
-      cs.substantiveCount,
-      cs.projectCount,
-      cs.substantiveCount + cs.projectCount,
-      `${cs.avgAttendance} os.`,
-      `${cs.totalParticipants} os.`,
-    ]);
-  }
-
-  // Wiersz sumy
-  const totalSub = reportData.clubsReport.substantiveMeetingsCount;
-  const totalProj = reportData.clubsReport.projectMeetingsCount;
-  const totalAllTogether = totalSub + totalProj;
-  const grandTotalPart = reportData.clubsReport.totalParticipants;
-  const grandAvg = totalSub > 0
-    ? Math.round((reportData.clubsReport.substantiveParticipants / totalSub) * 10) / 10
-    : 0;
-
-  clubsTableRows.push([
-    'SUMA',
-    'ŁĄCZNIE (Deduplikowane wydarzenia unikalne)',
-    'Wszystkie wydziały WSKZ',
-    totalSub,
-    totalProj,
-    totalAllTogether,
-    `${grandAvg} os.`,
-    `${grandTotalPart} os.`,
-  ]);
-
-  const wsClubs = XLSX.utils.aoa_to_sheet(clubsTableRows);
-  XLSX.utils.book_append_sheet(wb, wsClubs, 'Kola_Naukowe_Zbiorczo');
-
-  // ── Arkusz 3: Wykaz_Spotkan ───────────────────────────────────────────────
-  const eventsTableRows = [
-    [
-      'LP',
-      'DATA',
-      'TYTUŁ SPOTKANIA / TEMAT',
-      'TYP WYDARZENIA',
-      'KOŁO NAUKOWE / ORGANIZATORZY',
-      'WSPÓŁORGANIZACJA',
-      'LICZBA UCZESTNIKÓW',
-      'LOKALIZACJA',
-      'PROWADZĄCY',
-    ],
-  ];
-
-  reportData.clubsReport.allUniqueMeetings.forEach((m, idx) => {
-    const typeLabel =
-      m.meetingType === 'project'
-        ? 'Projektowe / Techniczne (Wrench)'
-        : m.meetingType === 'internal'
-        ? 'Posiedzenie Zarządu'
-        : 'Merytoryczne / Warsztat';
-
-    const clubsList = m.participatingClubs.map(c => c.shortName).join(' + ');
-
-    eventsTableRows.push([
+  subMeetings.forEach((m, idx) => {
+    substantiveRows.push([
       idx + 1,
       m.date,
+      m.primaryOrg?.shortName || m.primaryOrg?.name || '—',
+      m.coOrgs?.length ? m.coOrgs.map((c) => c.shortName).join(', ') : '—',
       m.title,
-      typeLabel,
-      clubsList,
-      m.isJoint ? 'TAK (międzykołowe)' : 'NIE',
-      m.participants > 0 ? `${m.participants} os.` : '0 os. (brak danych)',
-      m.location,
-      m.who || '—',
+      m.speaker || 'Zarząd Koła / Zaproszony Prelegent',
+      m.totalParticipants > 0 ? m.totalParticipants : 0,
     ]);
   });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(substantiveRows), 'A_Merytoryczne');
 
-  const wsEvents = XLSX.utils.aoa_to_sheet(eventsTableRows);
-  XLSX.utils.book_append_sheet(wb, wsEvents, 'Wykaz_Spotkan');
+  // ── Arkusz 3: B_Spotkania_Projektowe ──────────────────────────────────────
+  const projectRows = [
+    ['LP.', 'DATA', 'KOŁO WIODĄCE', 'WSPÓŁORGANIZATORZY', 'TEMAT / CEL PRAC PROJEKTOWYCH', 'KOORDYNATOR / PRELEGENT', 'FREKWENCJA'],
+  ];
+  projMeetings.forEach((m, idx) => {
+    projectRows.push([
+      idx + 1,
+      m.date,
+      m.primaryOrg?.shortName || m.primaryOrg?.name || '—',
+      m.coOrgs?.length ? m.coOrgs.map((c) => c.shortName).join(', ') : '—',
+      m.title,
+      m.speaker || 'Koordynator Projektu / Zarząd',
+      m.totalParticipants > 0 ? m.totalParticipants : 0,
+    ]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(projectRows), 'B_Projektowe');
 
-  // ── Arkusz 4: Samorzad_Studencki ──────────────────────────────────────────
+  // ── Arkusz 4: C_Kola_Naukowe_Zbiorczo ─────────────────────────────────────
+  const clubsTableRows = [
+    ['LP.', 'KOD', 'NAZWA KOŁA NAUKOWEGO', 'MERYTORYCZNE', 'FREKWENCJA (MERYT.+PROJ.)', 'PROJEKTOWE', 'WSPÓLNE'],
+  ];
+  byOrgStats.forEach((row) => {
+    clubsTableRows.push([
+      row.lp,
+      row.org?.code || row.org?.orgId,
+      row.org?.name,
+      row.substantiveCount,
+      `${row.totalAttendees} os.`,
+      row.projectCount,
+      row.jointCount,
+    ]);
+  });
+  clubsTableRows.push([
+    'SUMA',
+    '',
+    'SUMA ŁĄCZNA (wydarzenia deduplikowane)',
+    stats.substantiveEventsCount ?? subMeetings.length,
+    `${stats.totalAllAttendees ?? 0} os.`,
+    stats.projectEventsCount ?? projMeetings.length,
+    stats.jointEventsCount ?? 0,
+  ]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(clubsTableRows), 'C_Zbiorcza_Kol');
+
+  // ── Arkusz 5: D_Samorzad_Studencki ────────────────────────────────────────
   if (reportData.samorzadStats) {
     const samorzadRows = [
       ['SPRAWOZDANIE Z DZIAŁALNOŚCI KANCELARII SAMORZĄDU STUDENCKIEGO WSKZ'],
@@ -784,9 +823,7 @@ export function exportReportToExcel(reportData, filename = null) {
       ['Starostowie ze zgodą RODO', reportData.samorzadStats.starostowie.rodoActive, 'Zgody aktywne (Privacy by Design)'],
       ['Starostowie - oczekuje na zgodę RODO', reportData.samorzadStats.starostowie.rodoPending, 'W trakcie procedowania'],
     ];
-
-    const wsSamorzad = XLSX.utils.aoa_to_sheet(samorzadRows);
-    XLSX.utils.book_append_sheet(wb, wsSamorzad, 'Samorzad_Studencki');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(samorzadRows), 'D_Samorzad_Studencki');
   }
 
   XLSX.writeFile(wb, finalFilename);

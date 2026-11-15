@@ -1,3 +1,5 @@
+import { EXCLUDED_SUBCALENDAR_IDS } from '../config/wskzRegistry.js';
+
 const TEAMUP_CALENDAR_ID = import.meta.env?.VITE_TEAMUP_CALENDAR_ID || 'ks9aiux4jiza1ronpd';
 const TEAMUP_TOKEN = import.meta.env?.VITE_TEAMUP_API_KEY || import.meta.env?.VITE_TEAMUP_TOKEN || '20dc4242d0d74be314e5ee108dc618cf3f6fbcb7647865568775fe4d9a89c112';
 const BASE_URL = `/api-teamup/${TEAMUP_CALENDAR_ID}`;
@@ -183,8 +185,8 @@ export async function fetchTeamupEvents({
 }
 
 /**
- * Pobiera wydarzenia z kalendarza Teamup dla wielu podkalendarzy
- * z możliwością filtrowania po liście ID (lub wszystkich z wyłączeniem dydaktycznych).
+ * Pobiera zbiorczo wydarzenia z kalendarza Teamup w jednym zapytaniu (/events?startDate=...&endDate=...)
+ * i filtruje w pamięci JS po subcalendarIds (z wykluczeniem kalendarzy dydaktycznych/technicznych).
  */
 export async function fetchTeamupEventsMulti({
   startDate = '2026-10-01',
@@ -202,12 +204,6 @@ export async function fetchTeamupEventsMulti({
       startDate: startDate.trim(),
       endDate: endDate.trim(),
     });
-
-    if (Array.isArray(subcalendarIds) && subcalendarIds.length > 0) {
-      for (const sId of subcalendarIds) {
-        if (sId) params.append('subcalendarId[]', String(sId));
-      }
-    }
 
     const urlsToTry = getTeamupUrls(`/events?${params.toString()}`);
 
@@ -239,7 +235,26 @@ export async function fetchTeamupEventsMulti({
       return [];
     }
 
-    return eventsData.events;
+    const excludedSet = new Set((EXCLUDED_SUBCALENDAR_IDS || []).map(String));
+    const filterSet = Array.isArray(subcalendarIds) && subcalendarIds.length > 0
+      ? new Set(subcalendarIds.map(String))
+      : null;
+
+    return eventsData.events.filter((evt) => {
+      const ids = Array.isArray(evt.subcalendar_ids) && evt.subcalendar_ids.length > 0
+        ? evt.subcalendar_ids.map(String)
+        : (evt.subcalendar_id ? [String(evt.subcalendar_id)] : []);
+
+      // Wyklucz wydarzenia przypisane wyłącznie do wykluczonych podkalendarzy (dydaktycznych)
+      if (ids.length > 0 && ids.every((id) => excludedSet.has(id))) {
+        return false;
+      }
+
+      if (filterSet) {
+        return ids.some((id) => filterSet.has(id));
+      }
+      return true;
+    });
   } catch (err) {
     console.error('Błąd fetchTeamupEventsMulti:', err);
     return [];
