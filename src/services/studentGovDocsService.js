@@ -43,7 +43,7 @@ export const DEFAULT_OFFICIAL_DOCUMENTS = [
     document_date: '2026-10-01',
     status: 'obowiazujacy',
     is_public: true,
-    file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
     description: 'Najwyższy akt prawa wewnątrzuczelnianego studentów WSKZ określający ustrój, organy, ordynację wyborczą oraz zasady reprezentowania studentów.',
   },
   {
@@ -310,7 +310,7 @@ export const studentGovDocsService = {
       if (!error && Array.isArray(data) && data.length > 0) {
         const enriched = data.map((d) =>
           d.code && d.code.includes('STATUT')
-            ? { ...d, file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I' }
+            ? { ...d, file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view' }
             : d
         );
         try {
@@ -329,7 +329,7 @@ export const studentGovDocsService = {
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((d) =>
             d.code && d.code.includes('STATUT')
-              ? { ...d, file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I' }
+              ? { ...d, file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view' }
               : d
           );
         }

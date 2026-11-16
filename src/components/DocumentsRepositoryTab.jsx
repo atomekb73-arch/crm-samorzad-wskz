@@ -361,11 +361,11 @@ export default function DocumentsRepositoryTab({
                   </span>
                 </div>
                 <a
-                  href="https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I"
+                  href="https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-white/10 transition"
-                  title="Otwórz folder regulaminu w Google Drive"
+                  title="Otwórz plik regulaminu w Google Drive"
                 >
                   <ExternalLink size={14} />
                 </a>
@@ -391,8 +391,8 @@ export default function DocumentsRepositoryTab({
                       id: statutDoc?.id || 'doc_ss_01',
                       code: statutDoc?.code || 'STATUT/SS_WSKZ/2026',
                       title: statutDoc?.title || 'Statut i Regulamin Samorządu Studenckiego WSKZ',
-                      file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
-                      driveUrl: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+                      file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
+                      driveUrl: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
                     });
                   }}
                   className="text-white hover:underline font-bold cursor-pointer inline-flex items-center gap-1"
