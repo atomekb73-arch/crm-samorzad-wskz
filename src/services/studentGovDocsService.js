@@ -118,7 +118,120 @@ export const DEFAULT_OFFICIAL_DOCUMENTS = [
   },
 ];
 
+export const KNOWN_STUDENT_GOV_MEMBERS = [
+  { id: 'rusnarczyk', name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca RSS' },
+  { id: 'zerdzinska', name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej' },
+  { id: 'bratkowski', name: 'Tomasz Bratkowski', role: 'Sekretarz RSS / Protokolant' },
+  { id: 'skakuj', name: 'Błażej Skakuj', role: 'Członek Zarządu' },
+  { id: 'manikowski', name: 'Szymon Manikowski', role: 'Członek Zarządu' },
+  { id: 'pietr', name: 'Agnieszka Pietr', role: 'Przewodnicząca Komisji Rewizyjnej' },
+  { id: 'moszninska', name: 'Magdalena Mosznińska', role: 'Rada Samorządu' },
+  { id: 'skapski', name: 'Antoni Skąpski', role: 'Rada Samorządu' },
+];
+
+/**
+ * Inteligentny parser tekstu obecności (z protokołu lub CSV/Google Meet)
+ */
+export function parseAttendanceText(rawText) {
+  if (!rawText || !rawText.trim()) return [];
+  let text = String(rawText);
+
+  // 1. Jeśli jest sekcja nieobecności, odcinamy wszystko po słowie "Nieobecności" / "Nieobecni"
+  const absenceIndex = text.search(/nieobecno[śs][ćc]i|nieobecn[yi]/i);
+  if (absenceIndex !== -1) {
+    text = text.slice(0, absenceIndex);
+  }
+
+  // 2. Jeśli jest nagłówek obecnych, bierzemy tekst po nim
+  const presenceMatch = text.match(/(?:uczestnicy(?:\s+zebrania|\s+posiedzenia)?\s*\([^)]*obecn[^)]*\)|obecn[yi]\s*:?)/i);
+  if (presenceMatch && presenceMatch.index !== -1) {
+    text = text.slice(presenceMatch.index + presenceMatch[0].length);
+  }
+
+  const detectedMembers = [];
+  const detectedNamesSet = new Set();
+
+  // 3. Sprawdzamy wystąpienia znanych członków Samorządu
+  for (const member of KNOWN_STUDENT_GOV_MEMBERS) {
+    const regex = new RegExp(`\\b${member.name.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (regex.test(text)) {
+      detectedMembers.push({
+        name: member.name,
+        role: member.role,
+        present: true,
+      });
+      detectedNamesSet.add(member.name.toLowerCase());
+    }
+  }
+
+  // 4. Szukamy dodatkowych osób / gości linijka po linijce
+  const lines = text.split(/[\r\n,;•]+/).map((l) => l.trim()).filter(Boolean);
+  for (const rawLine of lines) {
+    let cleaned = rawLine.replace(/^\s*\d+[\.\)]\s*/, '');
+    cleaned = cleaned.replace(/\([^)]*\)/g, '');
+    cleaned = cleaned.replace(/\b\d{1,2}:\d{2}\b/g, '');
+    cleaned = cleaned.replace(/\b\d+\s*(?:hr|godz|min|h)\b/gi, '');
+    cleaned = cleaned.replace(/[0-9]/g, '');
+    cleaned = cleaned.trim();
+
+    const words = cleaned.split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length >= 2 && words.length <= 4) {
+      const candidateName = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const lower = candidateName.toLowerCase();
+      const isHeaderWord = /uczestnic|obecn|posiedzen|zarz[aą]d|samorz[aą]d|protoko[lł]|porz[aą]dek|otwarcie/i.test(candidateName);
+      if (!isHeaderWord && !detectedNamesSet.has(lower)) {
+        const matchedKnown = KNOWN_STUDENT_GOV_MEMBERS.find((m) => m.name.toLowerCase() === lower);
+        if (matchedKnown) {
+          detectedMembers.push({
+            name: matchedKnown.name,
+            role: matchedKnown.role,
+            present: true,
+          });
+        } else {
+          detectedMembers.push({
+            name: candidateName,
+            role: 'Uczestnik / Gość',
+            present: true,
+          });
+        }
+        detectedNamesSet.add(lower);
+      }
+    }
+  }
+
+  return detectedMembers;
+}
+
 export const DEFAULT_MEETING_PROTOCOLS = [
+  {
+    id: 'prot_ss_04',
+    organization_id: ORG_ID,
+    academic_year: '2026/2027',
+    protocol_number: 'PROT/SS_WSKZ/ZS/04/2026',
+    meeting_code: 'P04',
+    meeting_date: '2026-11-02',
+    meeting_time: '18:00 - 19:30',
+    location: 'Biuro Samorządu WSKZ / Google Meet',
+    body_type: 'zarzad',
+    title: 'Protokół z IV Posiedzenia Zarządu Samorządu Studenckiego WSKZ',
+    chairperson: 'Agnieszka Rusnarczyk (Przewodnicząca RSS)',
+    recorder: 'Tomasz Bratkowski (Sekretarz RSS)',
+    attendees_count: 4,
+    agenda: '1. Otwarcie posiedzenia i stwierdzenie kworum.\n2. Podsumowanie działalności kół naukowych w październiku 2026.\n3. Ustalenia dotyczące Dnia Studenta i wydatków budżetowych.\n4. Wolne wnioski.',
+    discussion_content: 'Zarząd obradował w składzie 4 osób. Przedyskutowano raporty z MultiHuba, frekwencję na prelekcjach oraz korespondencję wychodzącą. Przyjęto ustalenia dotyczące harmonogramu zebrań.',
+    resolutions_summary: 'Zatwierdzenie planu spotkań merytorycznych kół na listopad 2026 oraz harmonogramu dyżurów.',
+    drive_folder_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    original_file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
+    originalFileUrl: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
+    drive_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    attendees_list: [
+      { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca RSS', present: true },
+      { name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej', present: true },
+      { name: 'Tomasz Bratkowski', role: 'Sekretarz RSS', present: true },
+      { name: 'Błażej Skakuj', role: 'Członek Zarządu', present: true },
+    ],
+  },
   {
     id: 'prot_ss_01',
     organization_id: ORG_ID,
@@ -132,21 +245,20 @@ export const DEFAULT_MEETING_PROTOCOLS = [
     title: 'Protokół z I Posiedzenia Zarządu Samorządu Studenckiego WSKZ',
     chairperson: 'Agnieszka Rusnarczyk (Przewodnicząca RSS)',
     recorder: 'Tomasz Bratkowski (Sekretarz RSS)',
-    attendees_count: 5,
+    attendees_count: 4,
     agenda: '1. Otwarcie posiedzenia i stwierdzenie kworum.\n2. Przyjęcie regulaminu pracy Prezydium.\n3. Omówienie harmonogramu zebrań kół naukowych na semestr zimowy.\n4. Sprawy bieżące i wolne wnioski.',
-    discussion_content: 'Zarząd obradował w pełnym składzie. Przedyskutowano wnioski studentów dotyczące legitymacji i dostępu do biblioteki. Jednogłośnie podjęto uchwałę ZS/01/2026.',
+    discussion_content: 'Zarząd obradował w składzie 4 członków Zarządu. Przedyskutowano wnioski studentów dotyczące legitymacji i dostępu do biblioteki. Jednogłośnie podjęto uchwałę ZS/01/2026.',
     resolutions_summary: 'Podjęto Uchwałę nr 01/2026 ws. podziału zadań w Prezydium.',
     drive_folder_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
     driveFolderUrl: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
-    original_file_url: 'https://docs.google.com/document/d/1official_protocol_zs_01_wskz/preview',
-    originalFileUrl: 'https://docs.google.com/document/d/1official_protocol_zs_01_wskz/preview',
+    original_file_url: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
+    originalFileUrl: 'https://drive.google.com/file/d/1dwE1WhkZPD0V8ervQJkwx2VIDgLxRiHW/view',
     drive_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
     attendees_list: [
-      { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca', present: true },
+      { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca RSS', present: true },
       { name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej', present: true },
-      { name: 'Tomasz Bratkowski', role: 'Sekretarz', present: true },
-      { name: 'Weronika Sołtys', role: 'Członek Zarządu', present: true },
-      { name: 'Michał Kowalczyk', role: 'Członek Zarządu', present: true },
+      { name: 'Tomasz Bratkowski', role: 'Sekretarz RSS', present: true },
+      { name: 'Błażej Skakuj', role: 'Członek Zarządu', present: true },
     ],
   },
 ];
@@ -428,12 +540,25 @@ export const studentGovDocsService = {
   async getProtocols(academicYear = null) {
     const normalizeProt = (p) => {
       const isFolder = p.drive_url && p.drive_url.includes('/folders/');
+      const rawList = Array.isArray(p.attendees_list) && p.attendees_list.length > 0
+        ? p.attendees_list
+        : [
+            { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca RSS', present: true },
+            { name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej', present: true },
+            { name: 'Tomasz Bratkowski', role: 'Sekretarz RSS', present: true },
+            { name: 'Błażej Skakuj', role: 'Członek Zarządu', present: true },
+          ];
+      const activeList = rawList.filter((a) => a && a.present !== false);
+      const count = Number(p.attendees_count ?? activeList.length);
+
       return {
         ...p,
         drive_folder_url: p.drive_folder_url || p.driveFolderUrl || (isFolder ? p.drive_url : ''),
         driveFolderUrl: p.driveFolderUrl || p.drive_folder_url || (isFolder ? p.drive_url : ''),
         original_file_url: p.original_file_url || p.originalFileUrl || p.file_url || p.fileUrl || (!isFolder ? p.drive_url : ''),
         originalFileUrl: p.originalFileUrl || p.original_file_url || p.fileUrl || p.file_url || (!isFolder ? p.drive_url : ''),
+        attendees_list: rawList,
+        attendees_count: count > 0 ? count : activeList.length,
       };
     };
 
@@ -450,11 +575,14 @@ export const studentGovDocsService = {
 
       const { data, error } = await query;
       if (!error && Array.isArray(data) && data.length > 0) {
-        const normalized = data.map(normalizeProt);
+        let list = data.map(normalizeProt);
+        if (!list.some((p) => p.protocol_number === 'PROT/SS_WSKZ/ZS/04/2026')) {
+          list = [DEFAULT_MEETING_PROTOCOLS[0], ...list];
+        }
         try {
-          localStorage.setItem(LOCAL_STORAGE_PROTOCOLS_KEY, JSON.stringify(normalized));
+          localStorage.setItem(LOCAL_STORAGE_PROTOCOLS_KEY, JSON.stringify(list));
         } catch {}
-        return normalized;
+        return list;
       }
     } catch (err) {
       console.warn('[studentGovDocsService] Supabase getProtocols fallback:', err);
@@ -464,7 +592,13 @@ export const studentGovDocsService = {
       const local = localStorage.getItem(LOCAL_STORAGE_PROTOCOLS_KEY);
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeProt);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          let list = parsed.map(normalizeProt);
+          if (!list.some((p) => p.protocol_number === 'PROT/SS_WSKZ/ZS/04/2026')) {
+            list = [DEFAULT_MEETING_PROTOCOLS[0], ...list];
+          }
+          return list;
+        }
       }
     } catch {}
 

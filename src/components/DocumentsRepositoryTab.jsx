@@ -37,6 +37,8 @@ import {
   filterStudentGovDocuments,
   extractGoogleDriveFileId,
   extractGoogleDriveFolderId,
+  KNOWN_STUDENT_GOV_MEMBERS,
+  parseAttendanceText,
 } from '../services/studentGovDocsService.js';
 
 export default function DocumentsRepositoryTab({
@@ -72,7 +74,67 @@ export default function DocumentsRepositoryTab({
   const [previewDoc, setPreviewDoc] = useState(null);
   const [editingDoc, setEditingDoc] = useState(null);
   const [editingProtocol, setEditingProtocol] = useState(null);
+  const [rawAttendanceInput, setRawAttendanceInput] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+
+  // Szybkie przełączanie obecności członka Samorządu
+  const toggleMemberPresence = (member) => {
+    if (!editingProtocol) return;
+    const currentList = Array.isArray(editingProtocol.attendees_list)
+      ? [...editingProtocol.attendees_list]
+      : [];
+    const existingIdx = currentList.findIndex(
+      (a) => a.name.toLowerCase() === member.name.toLowerCase()
+    );
+
+    let updatedList;
+    if (existingIdx >= 0) {
+      const isCurrentlyPresent = currentList[existingIdx].present !== false;
+      if (isCurrentlyPresent) {
+        updatedList = currentList.filter((_, idx) => idx !== existingIdx);
+      } else {
+        updatedList = currentList.map((a, idx) =>
+          idx === existingIdx ? { ...a, present: true } : a
+        );
+      }
+    } else {
+      updatedList = [...currentList, { name: member.name, role: member.role, present: true }];
+    }
+
+    const activeCount = updatedList.filter((a) => a.present !== false).length;
+    setEditingProtocol({
+      ...editingProtocol,
+      attendees_list: updatedList,
+      attendees_count: activeCount,
+    });
+  };
+
+  // Parser wklejonego tekstu obecności
+  const handleRunAttendanceParser = (inputText) => {
+    setRawAttendanceInput(inputText);
+    if (!inputText.trim()) return;
+    const parsedMembers = parseAttendanceText(inputText);
+    if (parsedMembers.length > 0 && editingProtocol) {
+      setEditingProtocol({
+        ...editingProtocol,
+        attendees_list: parsedMembers,
+        attendees_count: parsedMembers.length,
+      });
+    }
+  };
+
+  // Usuwanie gościa z listy obecności
+  const removeGuest = (guestName) => {
+    if (!editingProtocol) return;
+    const updatedList = (editingProtocol.attendees_list || []).filter(
+      (a) => a.name.toLowerCase() !== guestName.toLowerCase()
+    );
+    setEditingProtocol({
+      ...editingProtocol,
+      attendees_list: updatedList,
+      attendees_count: updatedList.filter((a) => a.present !== false).length,
+    });
+  };
 
   // Ładowanie danych z Supabase / LocalStorage
   const loadData = useCallback(async () => {
@@ -224,7 +286,8 @@ export default function DocumentsRepositoryTab({
             ) : (
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  setRawAttendanceInput('');
                   setEditingProtocol({
                     academic_year: academicYear,
                     protocol_number: `PROT/SS_WSKZ/ZS/${String(protocols.length + 1).padStart(2, '0')}/${new Date().getFullYear()}`,
@@ -235,14 +298,20 @@ export default function DocumentsRepositoryTab({
                     title: `Protokół z Posiedzenia Zarządu Samorządu nr ${protocols.length + 1}`,
                     chairperson: 'Agnieszka Rusnarczyk (Przewodnicząca RSS)',
                     recorder: 'Tomasz Bratkowski (Sekretarz RSS)',
-                    attendees_count: 5,
+                    attendees_count: 4,
+                    attendees_list: [
+                      { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca RSS', present: true },
+                      { name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej', present: true },
+                      { name: 'Tomasz Bratkowski', role: 'Sekretarz RSS', present: true },
+                      { name: 'Błażej Skakuj', role: 'Członek Zarządu', present: true },
+                    ],
                     agenda: '1. Otwarcie posiedzenia i stwierdzenie kworum.\n2. Przyjęcie porządku obrad.\n3. Dyskusja nad bieżącymi sprawami studenckimi.\n4. Podjęcie uchwał.\n5. Wolne wnioski i zamknięcie.',
                     driveFolderUrl: '',
                     drive_folder_url: '',
                     originalFileUrl: '',
                     original_file_url: '',
-                  })
-                }
+                  });
+                }}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#1e3a8a] hover:bg-[#1d4ed8] shadow-xs transition cursor-pointer"
               >
                 <Plus size={15} />
@@ -620,10 +689,45 @@ export default function DocumentsRepositoryTab({
                     <span>Protokolant:</span>
                     <strong>{p.recorder}</strong>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Obecnych członków:</span>
-                    <strong className="text-emerald-700">{p.attendees_count} os.</strong>
-                  </div>
+                  {(() => {
+                    const activeList = Array.isArray(p.attendees_list)
+                      ? p.attendees_list.filter((a) => a && a.present !== false)
+                      : [];
+                    const count = Number(p.attendees_count ?? activeList.length);
+                    const formattedNames = activeList
+                      .map((a) => {
+                        const parts = (a.name || '').trim().split(/\s+/);
+                        if (parts.length >= 2) {
+                          return `${parts[0].charAt(0)}. ${parts.slice(1).join(' ')}`;
+                        }
+                        return a.name;
+                      })
+                      .filter(Boolean)
+                      .join(', ');
+
+                    return (
+                      <div className="pt-0.5 space-y-1">
+                        <div
+                          className="flex justify-between items-center"
+                          title={activeList.map((a) => a.name).join(', ')}
+                        >
+                          <span>Obecnych członków:</span>
+                          <strong className="text-emerald-700 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px]">
+                            {count} os.
+                          </strong>
+                        </div>
+                        {formattedNames && (
+                          <div
+                            className="text-[10px] text-slate-500 bg-white border border-slate-200/90 rounded-lg px-2 py-1 leading-relaxed"
+                            title={activeList.map((a) => `${a.name}${a.role ? ` (${a.role})` : ''}`).join('\n')}
+                          >
+                            <span className="font-semibold text-slate-700">Obecni: </span>
+                            <span className="font-medium text-slate-600">{formattedNames}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {p.agenda && (
@@ -719,7 +823,10 @@ export default function DocumentsRepositoryTab({
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setEditingProtocol(p)}
+                      onClick={() => {
+                        setRawAttendanceInput('');
+                        setEditingProtocol(p);
+                      }}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
                       title="Edytuj protokół"
                     >
@@ -1182,6 +1289,142 @@ export default function DocumentsRepositoryTab({
                   />
                 </div>
               </div>
+
+              {/* ── Sekcja: Lista obecności i Parser Uczestników ── */}
+              {(() => {
+                const activeAttendees = (editingProtocol.attendees_list || []).filter(
+                  (a) => a && a.present !== false
+                );
+                const activeAttendeesCount = activeAttendees.length;
+                const extraAttendees = activeAttendees.filter(
+                  (a) =>
+                    !KNOWN_STUDENT_GOV_MEMBERS.some(
+                      (m) => m.name.toLowerCase() === (a.name || '').toLowerCase()
+                    )
+                );
+
+                return (
+                  <div className="pt-3 border-t border-slate-200 space-y-3 bg-slate-50/70 p-3.5 rounded-2xl border">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                        <Users size={14} className="text-blue-700" />
+                        <span>Uczestnicy Posiedzenia (Lista Obecności)</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-200 font-mono">
+                          Obecnych: {activeAttendeesCount} os.
+                        </span>
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                          <span>(Licznik:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={editingProtocol.attendees_count ?? activeAttendeesCount}
+                            onChange={(e) =>
+                              setEditingProtocol({
+                                ...editingProtocol,
+                                attendees_count: Number(e.target.value),
+                              })
+                            }
+                            className="w-12 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-800 text-xs bg-white"
+                          />
+                          <span>os.)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pole wklejania z parserem */}
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <textarea
+                          rows={2}
+                          value={rawAttendanceInput}
+                          onChange={(e) => handleRunAttendanceParser(e.target.value)}
+                          placeholder="Wklej listę obecności z protokołu lub Google Meet (np. Uczestnicy zebrania (obecni): Agnieszka Rusnarczyk... Nieobecności: ...)..."
+                          className="w-full p-2.5 pr-14 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono bg-white"
+                        />
+                        {rawAttendanceInput && (
+                          <button
+                            type="button"
+                            onClick={() => setRawAttendanceInput('')}
+                            className="absolute right-2.5 top-2.5 text-[10px] text-slate-400 hover:text-slate-600 font-semibold cursor-pointer"
+                          >
+                            Wyczyść
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">
+                        Parser automatycznie odcina sekcję „Nieobecności” i wyodrębnia obecnych członków oraz gości.
+                      </span>
+                    </div>
+
+                    {/* Szybkie pigułki wyboru członków (Interactive Chips) */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Szybki wybór członków Zarządu i Rady:
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {KNOWN_STUDENT_GOV_MEMBERS.map((member) => {
+                          const isPresent = (editingProtocol.attendees_list || []).some(
+                            (a) =>
+                              a.name.toLowerCase() === member.name.toLowerCase() &&
+                              a.present !== false
+                          );
+                          return (
+                            <button
+                              key={member.id}
+                              type="button"
+                              onClick={() => toggleMemberPresence(member)}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-medium transition cursor-pointer border flex items-center gap-1.5 ${
+                                isPresent
+                                  ? 'bg-blue-100/90 text-blue-950 border-blue-300 font-bold shadow-2xs'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
+                              }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  isPresent ? 'bg-blue-600' : 'bg-slate-300'
+                                }`}
+                              />
+                              <span>{member.name}</span>
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                ({member.role})
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Dodatkowi goście */}
+                      {extraAttendees.length > 0 && (
+                        <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">
+                            Dodatkowi goście:
+                          </span>
+                          {extraAttendees.map((guest, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs font-semibold"
+                            >
+                              <span>{guest.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeGuest(guest.name)}
+                                className="text-emerald-700 hover:text-emerald-950 cursor-pointer ml-0.5"
+                                title="Usuń uczestnika"
+                              >
+                                <X size={12} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
