@@ -60,10 +60,10 @@ export default function DocumentsRepositoryTab({
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
       const saved = localStorage.getItem('crm_docs_sidebar_width');
-      const parsed = saved ? Number(saved) : 320;
-      return parsed < 310 ? 320 : parsed;
+      const parsed = saved ? Number(saved) : 345;
+      return parsed < 340 ? 345 : parsed;
     } catch {
-      return 320;
+      return 345;
     }
   });
 
@@ -307,8 +307,8 @@ export default function DocumentsRepositoryTab({
         <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
           {/* Lewy panel boczny: Kategorie i Karta Statutu */}
           <div
-            style={{ width: `${Math.max(sidebarWidth, 310)}px` }}
-            className="w-full lg:w-[320px] min-w-[300px] lg:shrink-0 space-y-4"
+            style={{ width: `${Math.max(sidebarWidth, 340)}px` }}
+            className="w-full lg:w-[345px] min-w-[340px] lg:shrink-0 space-y-4"
           >
             {/* Lista Kategorii */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-2">
@@ -326,7 +326,7 @@ export default function DocumentsRepositoryTab({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition cursor-pointer text-left gap-2 ${
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-xs transition cursor-pointer text-left ${
                         isSelected
                           ? 'bg-blue-50 text-blue-950 font-bold border border-blue-200 shadow-2xs'
                           : 'text-slate-600 hover:bg-slate-50 font-medium'
@@ -334,7 +334,7 @@ export default function DocumentsRepositoryTab({
                     >
                       <span className="whitespace-nowrap">{cat}</span>
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-mono shrink-0 ${
+                        className={`min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-mono flex items-center justify-center shrink-0 ${
                           isSelected ? 'bg-blue-200 text-blue-900 font-bold' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
@@ -426,18 +426,18 @@ export default function DocumentsRepositoryTab({
 
             {/* Tabela Aktów Prawnych */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+              <div className="overflow-x-hidden">
+                <table className="w-full table-fixed text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[10.5px]">
-                      <th className="py-3 px-3.5">Sygnatura</th>
-                      <th className="py-3 px-3.5">Tytuł aktu / Uchwały</th>
-                      <th className="py-3 px-3.5">Organ</th>
-                      <th className="py-3 px-3.5">Kategoria</th>
-                      <th className="py-3 px-3.5 text-center">Data</th>
-                      <th className="py-3 px-3.5 text-center">Status</th>
-                      <th className="py-3 px-3.5 text-center">Plik</th>
-                      <th className="py-3 px-3.5 text-right">Akcje</th>
+                      <th className="w-[19%] py-3 px-2.5">Sygnatura</th>
+                      <th className="w-[34%] py-3 px-2.5">Tytuł aktu / Uchwały</th>
+                      <th className="w-[12%] py-3 px-2.5">Organ</th>
+                      <th className="w-[13%] py-3 px-2.5">Kategoria</th>
+                      <th className="w-[9%] py-3 px-2.5 text-center">Data</th>
+                      <th className="w-[7%] py-3 px-2.5 text-center">Status</th>
+                      <th className="w-[4%] py-3 px-2.5 text-center">Plik</th>
+                      <th className="w-[36px] py-3 px-2.5 text-center">Akcje</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -452,10 +452,10 @@ export default function DocumentsRepositoryTab({
 
                         return (
                           <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3 px-3.5 font-mono font-bold text-blue-900 whitespace-nowrap">
+                            <td className="py-3 px-2.5 font-mono font-bold text-blue-900 whitespace-nowrap text-[11px] leading-tight">
                               {doc.code}
                             </td>
-                            <td className="py-3 px-3.5 max-w-md">
+                            <td className="py-3 px-2.5">
                               <div className="font-bold text-slate-900 leading-snug">{doc.title}</div>
                               {doc.description && (
                                 <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
@@ -463,18 +463,18 @@ export default function DocumentsRepositoryTab({
                                 </div>
                               )}
                             </td>
-                            <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 font-medium">
+                            <td className="py-3 px-2.5 whitespace-nowrap text-slate-600 font-medium text-[11px]">
                               {bodyLabel}
                             </td>
-                            <td className="py-3 px-3.5 whitespace-nowrap">
+                            <td className="py-3 px-2.5 whitespace-nowrap">
                               <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] border border-slate-200">
                                 {doc.category}
                               </span>
                             </td>
-                            <td className="py-3 px-3.5 text-center whitespace-nowrap font-mono text-slate-600">
+                            <td className="py-3 px-2.5 text-center whitespace-nowrap font-mono text-slate-600 text-[11px]">
                               {doc.document_date || doc.date}
                             </td>
-                            <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   isObowiazujacy
@@ -491,30 +491,29 @@ export default function DocumentsRepositoryTab({
                                   : doc.status || 'Uchylony'}
                               </span>
                             </td>
-                            <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
                               {doc.file_url || doc.driveUrl ? (
                                 <button
                                   type="button"
                                   onClick={() => setPreviewDoc(doc)}
-                                  className="text-blue-700 hover:text-blue-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                                  className="text-blue-700 hover:text-blue-900 font-semibold cursor-pointer underline underline-offset-2 text-xs"
                                   title="Otwórz podgląd dokumentu"
                                 >
-                                  <FileCheck size={14} />
-                                  <span>Podgląd</span>
+                                  Podgląd
                                 </button>
                               ) : (
                                 <span className="text-slate-400 italic text-[11px]">—</span>
                               )}
                             </td>
-                            <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-1">
+                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                              <div className="flex flex-col items-center justify-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => setEditingDoc(doc)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                                  className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
                                   title="Edytuj dokument"
                                 >
-                                  <Edit3 size={14} />
+                                  <Edit3 size={13} />
                                 </button>
                                 <button
                                   type="button"
@@ -526,10 +525,10 @@ export default function DocumentsRepositoryTab({
                                       code: doc.code,
                                     })
                                   }
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                                  className="p-1 rounded-md text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
                                   title="Usuń dokument"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={13} />
                                 </button>
                               </div>
                             </td>
