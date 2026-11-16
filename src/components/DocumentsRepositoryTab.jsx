@@ -430,14 +430,14 @@ export default function DocumentsRepositoryTab({
                 <table className="w-full table-fixed text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[10.5px]">
-                      <th className="w-[20.5%] py-3 px-2.5">Sygnatura</th>
-                      <th className="w-[28.5%] py-3 px-2.5">Tytuł aktu / Uchwały</th>
+                      <th className="w-[16.5%] py-3 pl-2.5 pr-1.5">Sygnatura</th>
+                      <th className="w-[29.5%] py-3 px-2.5">Tytuł aktu / Uchwały</th>
                       <th className="w-[11.5%] py-3 px-2.5">Organ</th>
                       <th className="w-[14.5%] py-3 px-2.5">Kategoria</th>
                       <th className="w-[8.5%] py-3 px-2.5 text-center whitespace-nowrap">Data</th>
-                      <th className="w-[8%] py-3 pl-1 pr-2 text-center whitespace-nowrap">Status</th>
-                      <th className="w-[4.5%] py-3 px-1.5 text-center whitespace-nowrap">Plik</th>
-                      <th className="w-[4%] min-w-[48px] py-3 pr-3 text-center whitespace-nowrap">Akcje</th>
+                      <th className="w-[8.5%] py-3 pl-1 pr-2 text-center whitespace-nowrap">Status</th>
+                      <th className="w-[6.5%] py-3 px-1 text-center whitespace-nowrap">Plik</th>
+                      <th className="w-[4.5%] min-w-[48px] py-3 pr-3 text-center whitespace-nowrap">Akcje</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -452,7 +452,7 @@ export default function DocumentsRepositoryTab({
 
                         return (
                           <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3 px-2.5 font-mono font-bold text-blue-900 whitespace-nowrap text-[11.5px] tracking-tight leading-tight">
+                            <td className="py-3 pl-2.5 pr-1.5 font-mono font-bold text-blue-900 whitespace-nowrap text-[11.5px] tracking-tight leading-tight">
                               {doc.code}
                             </td>
                             <td className="py-3 px-2.5">
@@ -491,18 +491,18 @@ export default function DocumentsRepositoryTab({
                                   : doc.status || 'Uchylony'}
                               </span>
                             </td>
-                            <td className="py-3 px-1.5 text-center whitespace-nowrap">
+                            <td className="py-3 px-1 text-center whitespace-nowrap">
                               {doc.file_url || doc.driveUrl ? (
                                 <button
                                   type="button"
                                   onClick={() => setPreviewDoc(doc)}
-                                  className="text-blue-700 hover:text-blue-900 font-semibold cursor-pointer underline underline-offset-2 text-xs"
+                                  className="text-blue-700 hover:text-blue-900 font-medium cursor-pointer underline underline-offset-2 text-[11.5px] leading-none whitespace-nowrap"
                                   title="Otwórz podgląd dokumentu"
                                 >
                                   Podgląd
                                 </button>
                               ) : (
-                                <span className="text-slate-400 italic text-[11px]">—</span>
+                                <span className="text-slate-400 font-medium text-[11.5px] leading-none whitespace-nowrap">—</span>
                               )}
                             </td>
                             <td className="py-3 pr-3 text-center whitespace-nowrap">

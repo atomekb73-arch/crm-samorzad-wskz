@@ -36,7 +36,7 @@ export default function Navbar({
   };
 
   return (
-    <nav className="w-full flex items-center gap-1.5 justify-start overflow-x-auto py-1.5 px-2 bg-white rounded-2xl border border-slate-200 shadow-xs print:hidden">
+    <nav className="w-full flex items-center gap-1 xl:gap-1.5 justify-start overflow-x-auto xl:overflow-x-visible py-1.5 px-2 bg-white rounded-2xl border border-slate-200 shadow-xs print:hidden">
       {MAIN_TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = isTabActive(tab);
@@ -44,14 +44,14 @@ export default function Navbar({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 text-xs md:text-sm font-medium px-3.5 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer group ${
+            className={`flex items-center gap-1.5 text-xs xl:text-[13px] font-medium px-2.5 xl:px-3 py-1.5 rounded-xl transition-all whitespace-nowrap cursor-pointer group ${
               isActive
                 ? 'bg-[#1e3a8a] text-white shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Icon
-              size={17}
+              size={16}
               className={
                 isActive
                   ? 'text-white shrink-0'
