@@ -430,14 +430,14 @@ export default function DocumentsRepositoryTab({
                 <table className="w-full table-fixed text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[10.5px]">
-                      <th className="w-[19%] py-3 px-2.5">Sygnatura</th>
-                      <th className="w-[34%] py-3 px-2.5">Tytuł aktu / Uchwały</th>
-                      <th className="w-[12%] py-3 px-2.5">Organ</th>
-                      <th className="w-[13%] py-3 px-2.5">Kategoria</th>
-                      <th className="w-[9%] py-3 px-2.5 text-center">Data</th>
-                      <th className="w-[7%] py-3 px-2.5 text-center">Status</th>
-                      <th className="w-[4%] py-3 px-2.5 text-center">Plik</th>
-                      <th className="w-[36px] py-3 px-2.5 text-center">Akcje</th>
+                      <th className="w-[20.5%] py-3 px-2.5">Sygnatura</th>
+                      <th className="w-[28.5%] py-3 px-2.5">Tytuł aktu / Uchwały</th>
+                      <th className="w-[11.5%] py-3 px-2.5">Organ</th>
+                      <th className="w-[14.5%] py-3 px-2.5">Kategoria</th>
+                      <th className="w-[8.5%] py-3 px-2.5 text-center whitespace-nowrap">Data</th>
+                      <th className="w-[8%] py-3 pl-1 pr-2 text-center whitespace-nowrap">Status</th>
+                      <th className="w-[4.5%] py-3 px-1.5 text-center whitespace-nowrap">Plik</th>
+                      <th className="w-[4%] min-w-[48px] py-3 pr-3 text-center whitespace-nowrap">Akcje</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -452,7 +452,7 @@ export default function DocumentsRepositoryTab({
 
                         return (
                           <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3 px-2.5 font-mono font-bold text-blue-900 whitespace-nowrap text-[11px] leading-tight">
+                            <td className="py-3 px-2.5 font-mono font-bold text-blue-900 whitespace-nowrap text-[11.5px] tracking-tight leading-tight">
                               {doc.code}
                             </td>
                             <td className="py-3 px-2.5">
@@ -467,14 +467,14 @@ export default function DocumentsRepositoryTab({
                               {bodyLabel}
                             </td>
                             <td className="py-3 px-2.5 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] border border-slate-200">
+                              <span className="inline-block max-w-full truncate px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-[10px] border border-slate-200">
                                 {doc.category}
                               </span>
                             </td>
                             <td className="py-3 px-2.5 text-center whitespace-nowrap font-mono text-slate-600 text-[11px]">
                               {doc.document_date || doc.date}
                             </td>
-                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                            <td className="py-3 pl-1 pr-2 text-center whitespace-nowrap">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   isObowiazujacy
@@ -491,7 +491,7 @@ export default function DocumentsRepositoryTab({
                                   : doc.status || 'Uchylony'}
                               </span>
                             </td>
-                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                            <td className="py-3 px-1.5 text-center whitespace-nowrap">
                               {doc.file_url || doc.driveUrl ? (
                                 <button
                                   type="button"
@@ -505,7 +505,7 @@ export default function DocumentsRepositoryTab({
                                 <span className="text-slate-400 italic text-[11px]">—</span>
                               )}
                             </td>
-                            <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                            <td className="py-3 pr-3 text-center whitespace-nowrap">
                               <div className="flex flex-col items-center justify-center gap-1.5">
                                 <button
                                   type="button"
