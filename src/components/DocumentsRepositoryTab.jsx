@@ -237,6 +237,10 @@ export default function DocumentsRepositoryTab({
                     recorder: 'Tomasz Bratkowski (Sekretarz RSS)',
                     attendees_count: 5,
                     agenda: '1. Otwarcie posiedzenia i stwierdzenie kworum.\n2. Przyjęcie porządku obrad.\n3. Dyskusja nad bieżącymi sprawami studenckimi.\n4. Podjęcie uchwał.\n5. Wolne wnioski i zamknięcie.',
+                    driveFolderUrl: '',
+                    drive_folder_url: '',
+                    originalFileUrl: '',
+                    original_file_url: '',
                   })
                 }
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#1e3a8a] hover:bg-[#1d4ed8] shadow-xs transition cursor-pointer"
@@ -511,7 +515,7 @@ export default function DocumentsRepositoryTab({
                               </span>
                             </td>
                             <td className="py-3 px-1 text-center whitespace-nowrap">
-                              {doc.file_url || doc.driveUrl ? (
+                              {doc.file_url || doc.driveUrl || doc.fileUrl || doc.drive_folder_url || doc.driveFolderUrl || doc.original_file_url || doc.originalFileUrl ? (
                                 <button
                                   type="button"
                                   onClick={() => setPreviewDoc(doc)}
@@ -640,25 +644,84 @@ export default function DocumentsRepositoryTab({
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  {p.drive_url ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewDoc({ file_url: p.drive_url, title: p.title, code: p.protocol_number })}
-                      className="text-xs font-semibold text-blue-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <ExternalLink size={13} />
-                      <span>Skan / Dysk Google</span>
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-slate-400">Protokół w EZD CRM</span>
-                  )}
+                {/* Pasek akcji dokumentowych: Dysk uczelni & Plik źródłowy */}
+                {(() => {
+                  const folderUrl = p.drive_folder_url || p.driveFolderUrl;
+                  const fileUrl =
+                    p.original_file_url ||
+                    p.originalFileUrl ||
+                    p.file_url ||
+                    p.fileUrl ||
+                    (p.drive_url && !p.drive_url.includes('/folders/') ? p.drive_url : null);
+
+                  return (
+                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                      {folderUrl ? (
+                        <a
+                          href={folderUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 transition shadow-2xs"
+                          title="Otwórz folder posiedzenia na dysku uczelni w nowej karcie"
+                        >
+                          <FolderOpen size={14} className="text-blue-700" />
+                          <span>Otwórz lokalizację na dysku</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingProtocol(p)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs text-slate-500 border border-dashed border-slate-300 hover:bg-slate-50 hover:text-slate-800 transition cursor-pointer"
+                          title="Dodaj link do folderu w chmurze"
+                        >
+                          <FolderOpen size={13} className="text-slate-400" />
+                          <span>+ Dodaj lokalizację dysku</span>
+                        </button>
+                      )}
+
+                      {fileUrl ? (
+                        <a
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs"
+                          title="Otwórz oryginalny plik protokołu w nowej karcie"
+                        >
+                          <FileText size={14} className="text-emerald-700" />
+                          <span>Oryginalny plik protokołu</span>
+                          <ExternalLink size={12} className="text-emerald-600" />
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewDoc({
+                              file_url: folderUrl || p.drive_url || '',
+                              title: p.title,
+                              code: p.protocol_number,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs text-slate-500 hover:text-blue-700 hover:bg-slate-50 transition cursor-pointer"
+                        >
+                          <Eye size={13} />
+                          <span>Podgląd w CRM</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {p.meeting_code || 'P01'} • Rejestr Kancelarii
+                  </span>
 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setEditingProtocol(p)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                      title="Edytuj protokół"
                     >
                       <Edit3 size={14} />
                     </button>
@@ -673,6 +736,7 @@ export default function DocumentsRepositoryTab({
                         })
                       }
                       className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                      title="Usuń protokół"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -702,9 +766,23 @@ export default function DocumentsRepositoryTab({
               </div>
 
               <div className="flex items-center gap-2">
-                {(previewDoc.file_url || previewDoc.driveUrl) && (
+                {(previewDoc.file_url ||
+                  previewDoc.driveUrl ||
+                  previewDoc.fileUrl ||
+                  previewDoc.drive_folder_url ||
+                  previewDoc.driveFolderUrl ||
+                  previewDoc.original_file_url ||
+                  previewDoc.originalFileUrl) && (
                   <a
-                    href={previewDoc.file_url || previewDoc.driveUrl}
+                    href={
+                      previewDoc.file_url ||
+                      previewDoc.driveUrl ||
+                      previewDoc.fileUrl ||
+                      previewDoc.drive_folder_url ||
+                      previewDoc.driveFolderUrl ||
+                      previewDoc.original_file_url ||
+                      previewDoc.originalFileUrl
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition"
@@ -725,7 +803,14 @@ export default function DocumentsRepositoryTab({
 
             <div className="flex-1 w-full bg-slate-100 overflow-hidden relative">
               {(() => {
-                const targetUrl = previewDoc.file_url || previewDoc.driveUrl;
+                const targetUrl =
+                  previewDoc.file_url ||
+                  previewDoc.driveUrl ||
+                  previewDoc.fileUrl ||
+                  previewDoc.drive_folder_url ||
+                  previewDoc.driveFolderUrl ||
+                  previewDoc.original_file_url ||
+                  previewDoc.originalFileUrl;
                 const folderId = extractGoogleDriveFolderId(targetUrl);
                 if (folderId) {
                   return (
@@ -1121,6 +1206,143 @@ export default function DocumentsRepositoryTab({
                   placeholder="Wpisz listę uchwał podjętych na zebraniu..."
                   className="w-full p-2 rounded-xl border border-slate-300 text-xs"
                 />
+              </div>
+
+              {/* Sekcja: Linki Zewnętrzne i Dokumentacja */}
+              <div className="pt-3 border-t border-slate-200 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Link size={14} className="text-blue-700" />
+                  <span>Elektroniczne repozytorium i pliki źródłowe protokołu</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pole 1: Lokalizacja na dysku uczelni (Folder) */}
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-600">
+                      Lokalizacja na dysku uczelni (Folder)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="url"
+                        value={editingProtocol.driveFolderUrl || editingProtocol.drive_folder_url || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingProtocol({
+                            ...editingProtocol,
+                            driveFolderUrl: val,
+                            drive_folder_url: val,
+                          });
+                        }}
+                        placeholder="https://drive.google.com/drive/folders/... lub SharePoint"
+                        className="w-full p-2 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={!Boolean((editingProtocol.driveFolderUrl || editingProtocol.drive_folder_url || '').trim())}
+                        onClick={() => {
+                          const url = (editingProtocol.driveFolderUrl || editingProtocol.drive_folder_url || '').trim();
+                          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition shrink-0 ${
+                          Boolean((editingProtocol.driveFolderUrl || editingProtocol.drive_folder_url || '').trim())
+                            ? 'bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 cursor-pointer shadow-2xs'
+                            : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                        }`}
+                        title="Otwórz folder w nowej karcie"
+                      >
+                        <FolderOpen size={14} />
+                        <span>Otwórz folder</span>
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      Link do folderu posiedzenia w chmurze uczelnianej
+                    </span>
+                  </div>
+
+                  {/* Pole 2: Link do oryginalnego pliku protokołu */}
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-600">
+                      Link do oryginalnego pliku protokołu
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="url"
+                        value={
+                          editingProtocol.originalFileUrl ||
+                          editingProtocol.original_file_url ||
+                          editingProtocol.fileUrl ||
+                          editingProtocol.file_url ||
+                          editingProtocol.driveUrl ||
+                          editingProtocol.drive_url ||
+                          ''
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingProtocol({
+                            ...editingProtocol,
+                            originalFileUrl: val,
+                            original_file_url: val,
+                            fileUrl: val,
+                            file_url: val,
+                            drive_url: val,
+                          });
+                        }}
+                        placeholder="https://docs.google.com/document/d/... lub skan PDF"
+                        className="w-full p-2 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={
+                          !Boolean(
+                            (
+                              editingProtocol.originalFileUrl ||
+                              editingProtocol.original_file_url ||
+                              editingProtocol.fileUrl ||
+                              editingProtocol.file_url ||
+                              editingProtocol.driveUrl ||
+                              editingProtocol.drive_url ||
+                              ''
+                            ).trim()
+                          )
+                        }
+                        onClick={() => {
+                          const url = (
+                            editingProtocol.originalFileUrl ||
+                            editingProtocol.original_file_url ||
+                            editingProtocol.fileUrl ||
+                            editingProtocol.file_url ||
+                            editingProtocol.driveUrl ||
+                            editingProtocol.drive_url ||
+                            ''
+                          ).trim();
+                          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition shrink-0 ${
+                          Boolean(
+                            (
+                              editingProtocol.originalFileUrl ||
+                              editingProtocol.original_file_url ||
+                              editingProtocol.fileUrl ||
+                              editingProtocol.file_url ||
+                              editingProtocol.driveUrl ||
+                              editingProtocol.drive_url ||
+                              ''
+                            ).trim()
+                          )
+                            ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 cursor-pointer shadow-2xs'
+                            : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                        }`}
+                        title="Otwórz plik w nowej karcie"
+                      >
+                        <FileText size={14} />
+                        <span>Otwórz plik</span>
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      Plik tekstowy Google Docs lub podpisany skan PDF
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">

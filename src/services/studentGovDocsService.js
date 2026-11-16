@@ -136,6 +136,11 @@ export const DEFAULT_MEETING_PROTOCOLS = [
     agenda: '1. Otwarcie posiedzenia i stwierdzenie kworum.\n2. Przyjęcie regulaminu pracy Prezydium.\n3. Omówienie harmonogramu zebrań kół naukowych na semestr zimowy.\n4. Sprawy bieżące i wolne wnioski.',
     discussion_content: 'Zarząd obradował w pełnym składzie. Przedyskutowano wnioski studentów dotyczące legitymacji i dostępu do biblioteki. Jednogłośnie podjęto uchwałę ZS/01/2026.',
     resolutions_summary: 'Podjęto Uchwałę nr 01/2026 ws. podziału zadań w Prezydium.',
+    drive_folder_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+    original_file_url: 'https://docs.google.com/document/d/1official_protocol_zs_01_wskz/preview',
+    originalFileUrl: 'https://docs.google.com/document/d/1official_protocol_zs_01_wskz/preview',
+    drive_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
     attendees_list: [
       { name: 'Agnieszka Rusnarczyk', role: 'Przewodnicząca', present: true },
       { name: 'Aleksandra Żerdzińska', role: 'Zastępca Przewodniczącej', present: true },
@@ -421,6 +426,17 @@ export const studentGovDocsService = {
 
   // Pobieranie protokołów posiedzeń
   async getProtocols(academicYear = null) {
+    const normalizeProt = (p) => {
+      const isFolder = p.drive_url && p.drive_url.includes('/folders/');
+      return {
+        ...p,
+        drive_folder_url: p.drive_folder_url || p.driveFolderUrl || (isFolder ? p.drive_url : ''),
+        driveFolderUrl: p.driveFolderUrl || p.drive_folder_url || (isFolder ? p.drive_url : ''),
+        original_file_url: p.original_file_url || p.originalFileUrl || p.file_url || p.fileUrl || (!isFolder ? p.drive_url : ''),
+        originalFileUrl: p.originalFileUrl || p.original_file_url || p.fileUrl || p.file_url || (!isFolder ? p.drive_url : ''),
+      };
+    };
+
     try {
       let query = supabase
         .from('meeting_protocols')
@@ -434,10 +450,11 @@ export const studentGovDocsService = {
 
       const { data, error } = await query;
       if (!error && Array.isArray(data) && data.length > 0) {
+        const normalized = data.map(normalizeProt);
         try {
-          localStorage.setItem(LOCAL_STORAGE_PROTOCOLS_KEY, JSON.stringify(data));
+          localStorage.setItem(LOCAL_STORAGE_PROTOCOLS_KEY, JSON.stringify(normalized));
         } catch {}
-        return data;
+        return normalized;
       }
     } catch (err) {
       console.warn('[studentGovDocsService] Supabase getProtocols fallback:', err);
@@ -447,16 +464,19 @@ export const studentGovDocsService = {
       const local = localStorage.getItem(LOCAL_STORAGE_PROTOCOLS_KEY);
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizeProt);
       }
     } catch {}
 
-    return DEFAULT_MEETING_PROTOCOLS;
+    return DEFAULT_MEETING_PROTOCOLS.map(normalizeProt);
   },
 
   // Zapis protokołu posiedzenia
   async saveProtocol(protocol) {
     const rawDate = protocol.meeting_date || protocol.date || new Date().toISOString().slice(0, 10);
+    const driveFolderUrl = (protocol.drive_folder_url || protocol.driveFolderUrl || '').trim();
+    const originalFileUrl = (protocol.original_file_url || protocol.originalFileUrl || protocol.file_url || protocol.fileUrl || '').trim();
+
     const payload = {
       organization_id: ORG_ID,
       academic_year: protocol.academic_year || protocol.academicYear || '2026/2027',
@@ -475,17 +495,43 @@ export const studentGovDocsService = {
       discussion_content: protocol.discussion_content || protocol.discussionContent || '',
       resolutions_summary: protocol.resolutions_summary || protocol.resolutionsSummary || '',
       attendees_list: Array.isArray(protocol.attendees_list) ? protocol.attendees_list : [],
-      drive_url: protocol.drive_url || protocol.driveUrl || '',
+      drive_folder_url: driveFolderUrl,
+      driveFolderUrl: driveFolderUrl,
+      original_file_url: originalFileUrl,
+      originalFileUrl: originalFileUrl,
+      drive_url: originalFileUrl || driveFolderUrl || protocol.drive_url || '',
       storage_path: protocol.storage_path || null,
       updated_at: new Date().toISOString(),
     };
 
     let saved = null;
     try {
+      const supabasePayload = {
+        organization_id: payload.organization_id,
+        academic_year: payload.academic_year,
+        protocol_number: payload.protocol_number,
+        meeting_id: payload.meeting_id,
+        meeting_code: payload.meeting_code,
+        meeting_date: payload.meeting_date,
+        meeting_time: payload.meeting_time,
+        location: payload.location,
+        body_type: payload.body_type,
+        title: payload.title,
+        chairperson: payload.chairperson,
+        recorder: payload.recorder,
+        attendees_count: payload.attendees_count,
+        agenda: payload.agenda,
+        discussion_content: payload.discussion_content,
+        resolutions_summary: payload.resolutions_summary,
+        attendees_list: payload.attendees_list,
+        drive_url: payload.drive_url,
+        updated_at: payload.updated_at,
+      };
+
       if (protocol.id && !String(protocol.id).startsWith('prot_ss_')) {
         const { data, error } = await supabase
           .from('meeting_protocols')
-          .update(payload)
+          .update(supabasePayload)
           .eq('id', protocol.id)
           .select()
           .single();
@@ -493,7 +539,7 @@ export const studentGovDocsService = {
       } else {
         const { data, error } = await supabase
           .from('meeting_protocols')
-          .insert([payload])
+          .insert([supabasePayload])
           .select()
           .single();
         if (!error && data) saved = data;
@@ -502,10 +548,11 @@ export const studentGovDocsService = {
       console.warn('[studentGovDocsService] Błąd zapisu protokołu do Supabase:', e);
     }
 
-    const fallbackProt = saved || {
+    const fallbackProt = {
+      ...(saved || {}),
       ...payload,
-      id: protocol.id || `prot_local_${Date.now()}`,
-      created_at: new Date().toISOString(),
+      id: (saved && saved.id) || protocol.id || `prot_local_${Date.now()}`,
+      created_at: (saved && saved.created_at) || protocol.created_at || new Date().toISOString(),
     };
 
     try {
