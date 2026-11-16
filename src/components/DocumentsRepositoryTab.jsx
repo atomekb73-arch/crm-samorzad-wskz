@@ -60,9 +60,10 @@ export default function DocumentsRepositoryTab({
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
       const saved = localStorage.getItem('crm_docs_sidebar_width');
-      return saved ? Number(saved) : 260;
+      const parsed = saved ? Number(saved) : 320;
+      return parsed < 310 ? 320 : parsed;
     } catch {
-      return 260;
+      return 320;
     }
   });
 
@@ -171,7 +172,7 @@ export default function DocumentsRepositoryTab({
   };
 
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full max-w-[1650px] mx-auto space-y-5">
       {/* ── Top Header Toolbar ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -303,11 +304,11 @@ export default function DocumentsRepositoryTab({
 
       {/* ── Główny Widok Dokumentów z Bocznym Panelem ──────────────────────── */}
       {activeMainTab === 'documents' && (
-        <div className="flex flex-col lg:flex-row gap-5 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
           {/* Lewy panel boczny: Kategorie i Karta Statutu */}
           <div
-            style={{ width: `${sidebarWidth}px` }}
-            className="w-full lg:shrink-0 space-y-4"
+            style={{ width: `${Math.max(sidebarWidth, 310)}px` }}
+            className="w-full lg:w-[320px] min-w-[300px] lg:shrink-0 space-y-4"
           >
             {/* Lista Kategorii */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-2">
@@ -325,16 +326,16 @@ export default function DocumentsRepositoryTab({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition cursor-pointer text-left gap-2 ${
                         isSelected
-                          ? 'bg-blue-50 text-blue-950 font-bold border border-blue-200'
-                          : 'text-slate-600 hover:bg-slate-50'
+                          ? 'bg-blue-50 text-blue-950 font-bold border border-blue-200 shadow-2xs'
+                          : 'text-slate-600 hover:bg-slate-50 font-medium'
                       }`}
                     >
-                      <span className="truncate">{cat}</span>
+                      <span className="whitespace-nowrap">{cat}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                          isSelected ? 'bg-blue-200 text-blue-900' : 'bg-slate-100 text-slate-500'
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-mono shrink-0 ${
+                          isSelected ? 'bg-blue-200 text-blue-900 font-bold' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
                         {count}
@@ -380,7 +381,7 @@ export default function DocumentsRepositoryTab({
           </div>
 
           {/* Główna tabela dokumentów */}
-          <div className="flex-1 w-full space-y-4">
+          <div className="flex-1 min-w-0 w-full space-y-4">
             {/* Pasek Wyszukiwania i Filtrów */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative flex-1">
