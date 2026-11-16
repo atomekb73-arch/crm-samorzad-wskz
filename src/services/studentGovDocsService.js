@@ -43,7 +43,7 @@ export const DEFAULT_OFFICIAL_DOCUMENTS = [
     document_date: '2026-10-01',
     status: 'obowiazujacy',
     is_public: true,
-    file_url: 'https://docs.google.com/document/d/1official_statut_samorzad_wskz/preview',
+    file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
     description: 'Najwyższy akt prawa wewnątrzuczelnianego studentów WSKZ określający ustrój, organy, ordynację wyborczą oraz zasady reprezentowania studentów.',
   },
   {
@@ -162,6 +162,17 @@ export function extractGoogleDriveFileId(url) {
   if (idMatch) return idMatch[1];
   const directMatch = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (directMatch) return directMatch[1];
+  return null;
+}
+
+/**
+ * Wyciąga ID folderu Google Drive (/folders/...)
+ */
+export function extractGoogleDriveFolderId(url) {
+  if (!url) return null;
+  const str = String(url).trim();
+  const folderMatch = str.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch) return folderMatch[1];
   return null;
 }
 
@@ -292,10 +303,15 @@ export const studentGovDocsService = {
 
       const { data, error } = await query;
       if (!error && Array.isArray(data) && data.length > 0) {
+        const enriched = data.map((d) =>
+          d.code && d.code.includes('STATUT')
+            ? { ...d, file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I' }
+            : d
+        );
         try {
-          localStorage.setItem(LOCAL_STORAGE_DOCS_KEY, JSON.stringify(data));
+          localStorage.setItem(LOCAL_STORAGE_DOCS_KEY, JSON.stringify(enriched));
         } catch {}
-        return data;
+        return enriched;
       }
     } catch (err) {
       console.warn('[studentGovDocsService] Supabase getDocuments fallback:', err);
@@ -305,7 +321,13 @@ export const studentGovDocsService = {
       const local = localStorage.getItem(LOCAL_STORAGE_DOCS_KEY);
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((d) =>
+            d.code && d.code.includes('STATUT')
+              ? { ...d, file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I' }
+              : d
+          );
+        }
       }
     } catch {}
 

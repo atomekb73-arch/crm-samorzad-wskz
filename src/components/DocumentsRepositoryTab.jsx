@@ -36,6 +36,7 @@ import {
   generateDocumentSignature,
   filterStudentGovDocuments,
   extractGoogleDriveFileId,
+  extractGoogleDriveFolderId,
 } from '../services/studentGovDocsService.js';
 
 export default function DocumentsRepositoryTab({
@@ -348,18 +349,29 @@ export default function DocumentsRepositoryTab({
 
             {/* Karta Statutu Samorządu WSKZ */}
             <div className="bg-gradient-to-br from-indigo-900 to-blue-950 rounded-2xl text-white p-4 shadow-sm space-y-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={20} className="text-amber-400" />
-                <span className="text-xs font-bold uppercase tracking-wide text-indigo-200">
-                  Akt Podstawowy
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={20} className="text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wide text-indigo-200">
+                    Akt Podstawowy
+                  </span>
+                </div>
+                <a
+                  href="https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-white/10 transition"
+                  title="Otwórz folder regulaminu w Google Drive"
+                >
+                  <ExternalLink size={14} />
+                </a>
               </div>
               <div>
                 <h4 className="text-sm font-bold leading-tight">
-                  Statut Samorządu Studenckiego WSKZ
+                  Statut i Regulaminy Samorządu WSKZ
                 </h4>
                 <p className="text-[11px] text-indigo-200 mt-1 leading-relaxed">
-                  Zatwierdzony przez Senat i Władze Uczelni WSKZ. Określa kompetencje organów i ordynację wyborczą.
+                  Zatwierdzony przez Senat i Władze Uczelni WSKZ. Określa kompetencje organów, regulaminy i ordynację wyborczą.
                 </p>
               </div>
               <div className="pt-2 border-t border-indigo-800/80 flex items-center justify-between text-[11px]">
@@ -369,12 +381,19 @@ export default function DocumentsRepositoryTab({
                 <button
                   type="button"
                   onClick={() => {
-                    const statutDoc = documents.find((d) => d.code.includes('STATUT'));
-                    if (statutDoc) setPreviewDoc(statutDoc);
+                    const statutDoc = documents.find((d) => d.code && d.code.includes('STATUT'));
+                    setPreviewDoc({
+                      ...(statutDoc || {}),
+                      id: statutDoc?.id || 'doc_ss_01',
+                      code: statutDoc?.code || 'STATUT/SS_WSKZ/2026',
+                      title: statutDoc?.title || 'Statut i Regulamin Samorządu Studenckiego WSKZ',
+                      file_url: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+                      driveUrl: 'https://drive.google.com/drive/folders/1Zy3ebtmyqOTG6pvo_XFM9jb8KEbT8S8I',
+                    });
                   }}
-                  className="text-white hover:underline font-bold cursor-pointer"
+                  className="text-white hover:underline font-bold cursor-pointer inline-flex items-center gap-1"
                 >
-                  Podgląd aktu →
+                  <span>Podgląd regulaminu →</span>
                 </button>
               </div>
             </div>
@@ -707,6 +726,35 @@ export default function DocumentsRepositoryTab({
             <div className="flex-1 w-full bg-slate-100 overflow-hidden relative">
               {(() => {
                 const targetUrl = previewDoc.file_url || previewDoc.driveUrl;
+                const folderId = extractGoogleDriveFolderId(targetUrl);
+                if (folderId) {
+                  return (
+                    <div className="w-full h-full flex flex-col">
+                      <div className="bg-blue-50 border-b border-blue-200 px-4 py-2.5 flex items-center justify-between text-xs text-blue-900 shrink-0">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <FolderOpen size={16} className="text-blue-700" />
+                          Katalog Google Drive z regulaminami i aktami prawnymi WSKZ
+                        </span>
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
+                        >
+                          <ExternalLink size={12} />
+                          Otwórz w Google Drive
+                        </a>
+                      </div>
+                      <iframe
+                        src={`https://drive.google.com/embeddedfolderview?id=${folderId}#grid`}
+                        title={previewDoc.title}
+                        className="w-full flex-1 border-0"
+                        allow="autoplay"
+                      />
+                    </div>
+                  );
+                }
+
                 const driveId = extractGoogleDriveFileId(targetUrl);
                 if (driveId) {
                   return (
