@@ -853,6 +853,22 @@ export const OFFICIAL_2026_2027_CORRESPONDENCE = [
     sourceCitation: "Mail K. Szyszki z 12.11.2026 r. (album 50288)"
   },
   {
+    sygnatura: "DK/2026/11/15",
+    id: "DK/2026/11/15",
+    dataWplywu: "2026-11-16 12:33",
+    dataWyslania: "2026-11-16 12:33",
+    typ: "Wchodzące",
+    direction: "IN",
+    status: "Zatwierdzone",
+    weryfikacjaFormalna: "Zatwierdzone",
+    nadawca: "dr Łukasz Cymbaluk (Prodziekan ds. Studenckich WAZI)",
+    odbiorca: "Agnieszka Rusnarczyk (Przewodnicząca Samorządu Studenckiego)",
+    przedmiot: "Przekazanie oświadczeń o wyrażeniu zgody na kandydowanie i pełnienie funkcji Starosty Roku (WAZI – 4 osoby)",
+    tresc: "Przekazanie przez Prodziekana ds. Studenckich WAZI skanów 4 oświadczeń (Załącznik nr 1) studentów I roku studiów I stopnia wyrażających zgodę na kandydowanie i pełnienie funkcji Starosty Roku: Jana Matuszaka (Informatyka / AI i ML), Igora Sikorskiego (Bazy danych, data science i analityka biznesowa), Dawida Tobiasa (Administracja) oraz Krzysztofa Malesy (Administracja).",
+    summary: "Przekazanie przez Prodziekana ds. Studenckich WAZI skanów 4 oświadczeń (Załącznik nr 1) studentów I roku studiów I stopnia wyrażających zgodę na kandydowanie i pełnienie funkcji Starosty Roku: Jana Matuszaka (Informatyka / AI i ML), Igora Sikorskiego (Bazy danych, data science i analityka biznesowa), Dawida Tobiasa (Administracja) oraz Krzysztofa Malesy (Administracja).",
+    sourceCitation: "Mail dr. Ł. Cymbaluka z 16.11.2026 r. (załączniki: 1-2 Matuszak Jan.pdf, 1-3 Sikorski Igor.pdf, Krzysztof Malesa.jpeg, WhatsApp Image 2026-11-15 at 21.11.41.jpeg)"
+  },
+  {
     sygnatura: "DK/2026/10/28",
     dataWplywu: "2026-10-01 12:27",
     typ: "Wychodzące",

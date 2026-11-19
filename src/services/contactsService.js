@@ -233,6 +233,82 @@ export const SEED_STAROSTOWIE = [
     startDate: "2026-11-08",
     endDate: "",
     notes: "8_11_B.tiff"
+  },
+  {
+    id: "ST-013",
+    category: "starostowie",
+    name: "Jan Matuszak",
+    role: "Starosta Roku",
+    field: "Informatyka (Sztuczna inteligencja i ML)",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "Semestr 1",
+    group: "1-2",
+    phone: "+48 577 750 584",
+    emailUczelniany: "",
+    emailPrywatny: "jan.matuszak@gmail.com",
+    email: "jan.matuszak@gmail.com",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-10-25",
+    endDate: "",
+    notes: "Wydział Administracji, Zarządzania i Informatyki (WAZI). Oświadczenie z 25.10.2026 r. (Wrocław), Załącznik nr 1 (plik 1-2 Matuszak Jan.pdf)"
+  },
+  {
+    id: "ST-014",
+    category: "starostowie",
+    name: "Igor Sikorski",
+    role: "Starosta Roku",
+    field: "Bazy danych, data science i analityka biznesowa",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "Semestr 1",
+    group: "1-3",
+    phone: "+48 515 352 393",
+    emailUczelniany: "",
+    emailPrywatny: "i.sikorski@o2.pl",
+    email: "i.sikorski@o2.pl",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-10-25",
+    endDate: "",
+    notes: "Wydział Administracji, Zarządzania i Informatyki (WAZI). Oświadczenie z 25.10.2026 r. (Wrocław), Załącznik nr 1 (plik 1-3 Sikorski Igor.pdf)"
+  },
+  {
+    id: "ST-015",
+    category: "starostowie",
+    name: "Dawid Tobias",
+    role: "Starosta Roku",
+    field: "Administracja",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "Semestr 1",
+    group: "",
+    phone: "+48 577 349 308",
+    emailUczelniany: "",
+    emailPrywatny: "dawid.tobias@onet.eu",
+    email: "dawid.tobias@onet.eu",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-11-14",
+    endDate: "",
+    notes: "Wydział Administracji, Zarządzania i Informatyki (WAZI). Oświadczenie z 14.11.2026 r. (Wrocław), Załącznik nr 1. Alt. tel: +49 174 373 4826"
+  },
+  {
+    id: "ST-016",
+    category: "starostowie",
+    name: "Krzysztof Malesa",
+    role: "Starosta Roku",
+    field: "Administracja",
+    mode: "Niestacjonarne (I stopnia)",
+    year: "I rok",
+    semester: "Semestr 1",
+    group: "1-12-26/27Z",
+    phone: "+48 695 908 258",
+    emailUczelniany: "",
+    emailPrywatny: "krzysztof.malesa@gmail.com",
+    email: "krzysztof.malesa@gmail.com",
+    rodoStatus: "Zgoda aktywna",
+    startDate: "2026-11-15",
+    endDate: "",
+    notes: "Wydział Administracji, Zarządzania i Informatyki (WAZI). Oświadczenie z 15.11.2026 r. (Wrocław), Załącznik nr 1 (adnotacja: 1-12-26/27Z)"
   }
 ];
 
@@ -609,6 +685,14 @@ export function getLocalContacts() {
         }
         return st;
       });
+      // Auto-migracja: dołączanie nowych rekordów z SEED_STAROSTOWIE, jeśli jeszcze ich nie ma w pamięci podręcznej
+      const existingIds = new Set(starostowie.map(st => st.id));
+      const missingSeeds = SEED_STAROSTOWIE.filter(seed => !existingIds.has(seed.id));
+      if (missingSeeds.length > 0) {
+        starostowie = [...starostowie, ...missingSeeds];
+        migrated = true;
+      }
+
       if (migrated) {
         try {
           localStorage.setItem(STORAGE_KEY_STAROSTOWIE, JSON.stringify(starostowie));
